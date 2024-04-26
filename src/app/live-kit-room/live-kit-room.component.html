@@ -1,0 +1,100 @@
+<div *ngIf="!isMeetingStarted" class="container">
+  <form [formGroup]="nameForm" (ngSubmit)="startMeeting()" class="form">
+    <div>
+      <h1>Start Meeting</h1>
+      <div>
+        <label for="name">Participant Name:</label>
+        <input
+          placeholder="Enter your name"
+          type="text"
+          formControlName="name"
+          id="name"
+        />
+      </div>
+      <div class="startMeeting-container">
+        <button type="submit" class="startBtn">Start Meeting</button>
+      </div>
+    </div>
+  </form>
+</div>
+<ng-container *ngIf="isMeetingStarted">
+  <header class="header">
+    <div class="left-header">
+      <button class="grid-view" matTooltip="View">
+        <i class="far fa-th-large"></i>
+      </button>
+      <div *ngIf="isScreenRecording" class="screen-recording">
+        <i class="far fa-record-vinyl"></i>
+        <div class="timer">{{ recordingTime }}</div>
+      </div>
+    </div>
+    <div class="right-header">
+      <button class="menu" matTooltip="Menu">
+        <span class="material-symbols-outlined"> segment </span>
+      </button>
+      <button
+        class="people"
+        matTooltip="Participants"
+        (click)="openParticipantSideWindow()"
+      >
+        <i class="fal fa-user-friends"></i>
+      </button>
+
+      <button class="chat" matTooltip="Chat" (click)="openChatSideWindow()">
+        <i class="far fa-comment-lines"></i>
+      </button>
+      <button class="emojis" matTooltip="React">
+        <span class="material-symbols-outlined"> emoji_language </span>
+      </button>
+      <button class="more" matTooltip="More">
+        <i class="fas fa-ellipsis-h"></i>
+      </button>
+      <div class="line"></div>
+      <button class="video" (click)="toggleVideo()">
+        <i
+          class="fas"
+          [ngClass]="{
+            'fa-video-slash': !isVideoOn,
+            'fa-video': isVideoOn
+          }"
+        ></i>
+      </button>
+      <button class="mic" (click)="toggleMic()">
+        <i
+          class="fas"
+          [ngClass]="{
+            'fa-microphone': !isMicOn,
+            'fa-microphone-slash': isMicOn
+          }"
+        ></i>
+      </button>
+      <button class="share" (click)="toggleScreenShare()">
+        <span class="material-symbols-outlined" *ngIf="!isScreenSharing">
+          screen_share
+        </span>
+        <span
+          class="material-symbols-outlined"
+          *ngIf="isScreenSharing"
+          [ngStyle]="{ color: iconColor }"
+        >
+          stop_screen_share
+        </span>
+      </button>
+      <button class="leave-btn">
+        <div class="phone-icon">
+          <!-- <span class="material-symbols-outlined"> call_end </span> -->
+        </div>
+        <h2>Leave</h2>
+        <div class="chevron-icon"><i class="fas fa-chevron-down"></i></div>
+      </button>
+    </div>
+  </header>
+
+  <video
+    *ngIf="isVideoOn && stream"
+    id="video-preview"
+    autoplay
+    [srcObject]="stream"
+  ></video>
+  <div id="remoteVideoContainer"></div>
+</ng-container>
