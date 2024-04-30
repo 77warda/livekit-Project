@@ -97,4 +97,58 @@
     [srcObject]="stream"
   ></video>
   <div id="remoteVideoContainer"></div>
+  <div id="remoteAudioContainer"></div>
+  <div id="localScreenShareContainer"></div>
+  <div *ngIf="participantNameDisconnected">
+    "{{ participantNameDisconnected }}" disconnected.
+  </div>
+  <!-- <ng-container *ngIf="sharedLayout; else offLayout">
+    <div class="screenshare-container">
+      <div class="grid-item1">
+        <img
+          src="https://img.freepik.com/premium-photo/watercolor-painting-national-park-featuring-iconic-landmarks-such-as-old-faithful-yellowstone-half-dome-yosemite-intricate-details-nature-wildlife-generate-ai_893737-1017.jpg?size=626&ext=jpg&ga=GA1.1.490661761.1705061609&semt=sph"
+          alt="Laptop"
+        />
+        <p class="person-name">{{ images[0]?.title }}</p>
+      </div>
+      <div class="grid-item2">
+        <div class="person-with-video">
+          <div class="img-with-title" *ngFor="let image of images">
+            <img [src]="image.src" [alt]="image.title" />
+            <p class="person-name">{{ image.title }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+  <ng-template #offLayout>
+    <ng-container *ngIf="withVideo; else withoutVideo">
+      <div class="screen-off-container">
+        <div class="grid-item" *ngFor="let image of images">
+          <div class="img-with-title">
+            <img [src]="image.src" [alt]="image.title" />
+            <p class="person-name">{{ image.title }}</p>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+    <ng-template #withoutVideo>
+      <div class="screen-off-container">
+        <h1 *ngFor="let participant of participants">hello</h1>
+
+        <div class="grid-item" *ngFor="let participant of participants">
+          <div class="person-without-video">
+            <div class="round-img">
+              <img
+                *ngIf="participant.dp"
+                [src]="participant.dp"
+                alt="Image 5"
+              />
+              <p *ngIf="!participant.dp">{{ participant.name }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ng-template> -->
 </ng-container>
