@@ -167,7 +167,7 @@ export class LiveKitRoomComponent {
     console.log('Entered name:', name);
     const wsURL = 'wss://vc-ua59wquz.livekit.cloud';
     const token =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2aWRlbyI6eyJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6ImN1cnJlbnQiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpYXQiOjE3MTQ0ODE4MDAsIm5iZiI6MTcxNDQ4MTgwMCwiZXhwIjoxNzE0NTAzNDAwLCJpc3MiOiJBUElVV2JFSzdCZ3Y0dWsiLCJzdWIiOiJBaHNhbiIsImp0aSI6IkFoc2FuIn0.gpU8bBWyreCwUQrJe4YhK2mciL3I7F1Aeo7Z8_XvtSE';
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2aWRlbyI6eyJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6InRodXJzZGF5IEV2ZSIsImNhblB1Ymxpc2giOnRydWUsImNhblN1YnNjcmliZSI6dHJ1ZX0sImlhdCI6MTcxNDY1MDY5NCwibmJmIjoxNzE0NjUwNjk0LCJleHAiOjE3MTQ2NzIyOTQsImlzcyI6IkFQSVVXYkVLN0JndjR1ayIsInN1YiI6IkFiZCIsImp0aSI6IkFiZCJ9.Ujuxz73c8A8gGYUYvPzB9mzX4t7TI4FbyPt_cwjNteQ';
     try {
       await this.livekitService.connectToRoom(wsURL, token);
       await this.livekitService.enableCameraAndMicrophone();

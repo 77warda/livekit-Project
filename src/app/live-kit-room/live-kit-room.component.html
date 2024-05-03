@@ -96,7 +96,9 @@
     autoplay
     [srcObject]="stream"
   ></video>
-  <div id="remoteVideoContainer"></div>
+  <div id="remoteVideoContainer" class="video-container">
+    <!-- <p *ngIf="isVideoOn" class="person-name">Warda</p> -->
+  </div>
   <div id="remoteAudioContainer"></div>
   <div id="localScreenShareContainer"></div>
   <div *ngIf="participantNameDisconnected">

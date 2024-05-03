@@ -31,6 +31,7 @@ export class LiveKitService {
     console.log('Connected to room', this.room.name);
     this.audioVideoHandler();
   }
+
   audioVideoHandler() {
     this.room.on(
       RoomEvent.TrackSubscribed,
@@ -39,6 +40,30 @@ export class LiveKitService {
     this.room.on(
       RoomEvent.ParticipantDisconnected,
       this.handleParticipantDisconnected.bind(this)
+    );
+    this.room.on(RoomEvent.TrackPublished, (publication, participant) => {
+      publication.setSubscribed(true);
+    });
+
+    // also subscribe to tracks published before participant joined
+    this.room.remoteParticipants.forEach((participant) => {
+      participant.trackPublications.forEach((publication) => {
+        publication.setSubscribed(true);
+      });
+    });
+    this.room.on(
+      RoomEvent.LocalTrackPublished,
+      (publication: LocalTrackPublication, participant: LocalParticipant) => {
+        if (publication.source === Track.Source.ScreenShare) {
+          const screenShareContainer = document.querySelector(
+            '#localScreenShareContainer'
+          );
+          const screenShareTrack = publication.track?.attach();
+          if (screenShareTrack) {
+            screenShareContainer?.appendChild(screenShareTrack);
+          }
+        }
+      }
     );
   }
 
@@ -77,7 +102,10 @@ export class LiveKitService {
       const container = document.getElementById('remoteVideoContainer');
       if (container) {
         const element = track.attach();
+        element.style.width = '400px'; // Set fixed width
+        element.style.height = '300px';
         container.appendChild(element);
+        element.classList.add('participant-video');
         this.remoteParticipantName = participant.identity; // Associate video element with participant
       } else {
         console.error('Remote video container not found');
@@ -129,15 +157,15 @@ export class LiveKitService {
     }
   }
 
-  // async toggleScreenShare(): Promise<void> {
-  //   if (this.isScreenSharingEnabled) {
-  //     this.room.localParticipant.setScreenShareEnabled(false);
-  //     this.isScreenSharingEnabled = false;
-  //   } else {
-  //     this.room.localParticipant.setScreenShareEnabled(true);
-  //     this.isScreenSharingEnabled = true;
-  //   }
-  // }
+  async toggleScreenShare(): Promise<void> {
+    if (this.isScreenSharingEnabled) {
+      this.room.localParticipant.setScreenShareEnabled(false);
+      this.isScreenSharingEnabled = false;
+    } else {
+      this.room.localParticipant.setScreenShareEnabled(true);
+      this.isScreenSharingEnabled = true;
+    }
+  }
   // ===================
   // async participantScreenShare(): Promise<void> {
   //   if (!this.isScreenSharingEnabled) {
@@ -171,43 +199,44 @@ export class LiveKitService {
   //     }
   //   }
   // }
-  async toggleScreenShare(): Promise<void> {
-    // Object.values(this.room.localParticipant.videoTrackPublications).forEach((videoTrack: LocalTrackPublication) => videoTrack.track?.mediaStream)
+  // ==============================================
+  // async toggleScreenShare(): Promise<void> {
+  //   // Object.values(this.room.localParticipant.videoTrackPublications).forEach((videoTrack: LocalTrackPublication) => videoTrack.track?.mediaStream)
 
-    try {
-      if (!this.isScreenSharingEnabled) {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-        });
-        const container = document.getElementById('localScreenShareContainer');
-        if (container) {
-          const videoElement = document.createElement('video');
-          videoElement.srcObject = stream;
-          videoElement.autoplay = true;
-          container.appendChild(videoElement);
-          this.isScreenSharingEnabled = true;
+  //   try {
+  //     if (!this.isScreenSharingEnabled) {
+  //       const stream = await navigator.mediaDevices.getDisplayMedia({
+  //         video: true,
+  //       });
+  //       const container = document.getElementById('localScreenShareContainer');
+  //       if (container) {
+  //         const videoElement = document.createElement('video');
+  //         videoElement.srcObject = stream;
+  //         videoElement.autoplay = true;
+  //         container.appendChild(videoElement);
+  //         this.isScreenSharingEnabled = true;
 
-          // Publish the screen sharing stream to the room
-          await this.room.localParticipant.publishTrack(
-            stream.getVideoTracks()[0],
-            { name: 'screen_share' }
-          );
-        } else {
-          console.error('Local screen share container not found');
-        }
-      } else {
-        // this.room.localParticipant.unpublishTrack('screen_share'); // Unpublish the screen sharing track
-        this.isScreenSharingEnabled = false;
-        const container = document.getElementById('localScreenShareContainer');
-        if (container) {
-          container.innerHTML = ''; // Remove the video element from the container
-        } else {
-          console.error('Local screen share container not found');
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling screen sharing:', error);
-      // Handle error (e.g., show an error message to the user)
-    }
-  }
+  //         // Publish the screen sharing stream to the room
+  //         await this.room.localParticipant.publishTrack(
+  //           stream.getVideoTracks()[0],
+  //           { name: 'screen_share' }
+  //         );
+  //       } else {
+  //         console.error('Local screen share container not found');
+  //       }
+  //     } else {
+  //       // this.room.localParticipant.unpublishTrack('screen_share'); // Unpublish the screen sharing track
+  //       this.isScreenSharingEnabled = false;
+  //       const container = document.getElementById('localScreenShareContainer');
+  //       if (container) {
+  //         container.innerHTML = ''; // Remove the video element from the container
+  //       } else {
+  //         console.error('Local screen share container not found');
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('Error toggling screen sharing:', error);
+  //     // Handle error (e.g., show an error message to the user)
+  //   }
+  // }
 }
