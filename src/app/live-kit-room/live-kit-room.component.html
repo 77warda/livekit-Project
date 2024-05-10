@@ -18,139 +18,148 @@
   </form>
 </div>
 <ng-container *ngIf="isMeetingStarted">
-  <header class="header">
-    <div class="left-header">
-      <button class="grid-view" matTooltip="View">
-        <i class="far fa-th-large"></i>
-      </button>
-      <div *ngIf="isScreenRecording" class="screen-recording">
-        <i class="far fa-record-vinyl"></i>
-        <div class="timer">{{ recordingTime }}</div>
+  <div class="os-main-content">
+    <header class="header">
+      <div class="left-header">
+        <button class="grid-view" matTooltip="View">
+          <i class="far fa-th-large"></i>
+        </button>
+        <div *ngIf="isScreenRecording" class="screen-recording">
+          <i class="far fa-record-vinyl"></i>
+          <div class="timer">{{ recordingTime }}</div>
+        </div>
       </div>
-    </div>
-    <div class="right-header">
-      <button class="menu" matTooltip="Menu">
-        <span class="material-symbols-outlined"> segment </span>
-      </button>
-      <button
-        class="people"
-        matTooltip="Participants"
-        (click)="openParticipantSideWindow()"
-      >
-        <i class="fal fa-user-friends"></i>
-      </button>
-
-      <button class="chat" matTooltip="Chat" (click)="openChatSideWindow()">
-        <i class="far fa-comment-lines"></i>
-      </button>
-      <button class="emojis" matTooltip="React">
-        <span class="material-symbols-outlined"> emoji_language </span>
-      </button>
-      <button class="more" matTooltip="More">
-        <i class="fas fa-ellipsis-h"></i>
-      </button>
-      <div class="line"></div>
-      <button class="video" (click)="toggleVideo()">
-        <i
-          class="fas"
-          [ngClass]="{
-            'fa-video-slash': !isVideoOn,
-            'fa-video': isVideoOn
-          }"
-        ></i>
-      </button>
-      <button class="mic" (click)="toggleMic()">
-        <i
-          class="fas"
-          [ngClass]="{
-            'fa-microphone': !isMicOn,
-            'fa-microphone-slash': isMicOn
-          }"
-        ></i>
-      </button>
-      <button class="share" (click)="toggleScreenShare()">
-        <span class="material-symbols-outlined" *ngIf="!isScreenSharing">
-          screen_share
-        </span>
-        <span
-          class="material-symbols-outlined"
-          *ngIf="isScreenSharing"
-          [ngStyle]="{ color: iconColor }"
+      <div class="right-header">
+        <button class="menu" matTooltip="Menu">
+          <span class="material-symbols-outlined"> segment </span>
+        </button>
+        <button
+          class="people"
+          matTooltip="Participants"
+          (click)="openParticipantSideWindow()"
         >
-          stop_screen_share
-        </span>
-      </button>
-      <button class="leave-btn">
-        <div class="phone-icon">
-          <!-- <span class="material-symbols-outlined"> call_end </span> -->
-        </div>
-        <h2>Leave</h2>
-        <div class="chevron-icon"><i class="fas fa-chevron-down"></i></div>
-      </button>
-    </div>
-  </header>
+          <i class="fal fa-user-friends"></i>
+        </button>
 
-  <video
-    *ngIf="isVideoOn && stream"
-    id="video-preview"
-    autoplay
-    [srcObject]="stream"
-  ></video>
-  <div id="remoteVideoContainer" class="video-container">
-    <!-- <p *ngIf="isVideoOn" class="person-name">Warda</p> -->
-  </div>
-  <div id="remoteAudioContainer"></div>
-  <div id="localScreenShareContainer"></div>
-  <div *ngIf="participantNameDisconnected">
-    "{{ participantNameDisconnected }}" disconnected.
-  </div>
-  <!-- <ng-container *ngIf="sharedLayout; else offLayout">
-    <div class="screenshare-container">
-      <div class="grid-item1">
-        <img
-          src="https://img.freepik.com/premium-photo/watercolor-painting-national-park-featuring-iconic-landmarks-such-as-old-faithful-yellowstone-half-dome-yosemite-intricate-details-nature-wildlife-generate-ai_893737-1017.jpg?size=626&ext=jpg&ga=GA1.1.490661761.1705061609&semt=sph"
-          alt="Laptop"
-        />
-        <p class="person-name">{{ images[0]?.title }}</p>
-      </div>
-      <div class="grid-item2">
-        <div class="person-with-video">
-          <div class="img-with-title" *ngFor="let image of images">
-            <img [src]="image.src" [alt]="image.title" />
-            <p class="person-name">{{ image.title }}</p>
+        <button class="chat" matTooltip="Chat" (click)="openChatSideWindow()">
+          <i class="far fa-comment-lines"></i>
+        </button>
+        <button class="emojis" matTooltip="React">
+          <span class="material-symbols-outlined"> emoji_language </span>
+        </button>
+        <button class="more" matTooltip="More">
+          <i class="fas fa-ellipsis-h"></i>
+        </button>
+        <div class="line"></div>
+        <button class="video" (click)="toggleVideo()">
+          <i
+            class="fas"
+            [ngClass]="{
+              'fa-video-slash': isVideoOn,
+              'fa-video': !isVideoOn
+            }"
+          ></i>
+        </button>
+        <button class="mic" (click)="toggleMic()">
+          <i
+            class="fas"
+            [ngClass]="{
+              'fa-microphone': !isMicOn,
+              'fa-microphone-slash': isMicOn
+            }"
+          ></i>
+        </button>
+        <button class="share" (click)="toggleScreenShare()">
+          <span class="material-symbols-outlined" *ngIf="!isScreenSharing">
+            screen_share
+          </span>
+          <span
+            class="material-symbols-outlined"
+            *ngIf="isScreenSharing"
+            [ngStyle]="{ color: iconColor }"
+          >
+            stop_screen_share
+          </span>
+        </button>
+        <button class="leave-btn">
+          <div class="phone-icon">
+            <!-- <span class="material-symbols-outlined"> call_end </span> -->
           </div>
-        </div>
+          <h2>Leave</h2>
+          <div class="chevron-icon"><i class="fas fa-chevron-down"></i></div>
+        </button>
+      </div>
+    </header>
+    <!-- <ng-container *ngIf="screenShareTrack">
+      <div id="localScreenShareContainer" class="ss-container"></div>
+    </ng-container> -->
+    <div class="lk-grid-layout-wrapper">
+      <div
+        class="lk-grid-layout"
+        [style.grid-template-columns]="GalleryGridColumnStyle"
+      ></div>
+    </div>
+
+    <div id="localScreenShareContainer" class="ss-container"></div>
+
+    <!-- modal to show a person is already sharing screen  -->
+
+    <div id="myModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <p>Another participant is already sharing its screen.</p>
       </div>
     </div>
-  </ng-container>
-  <ng-template #offLayout>
-    <ng-container *ngIf="withVideo; else withoutVideo">
-      <div class="screen-off-container">
-        <div class="grid-item" *ngFor="let image of images">
-          <div class="img-with-title">
-            <img [src]="image.src" [alt]="image.title" />
-            <p class="person-name">{{ image.title }}</p>
-          </div>
-        </div>
-      </div>
-    </ng-container>
-    <ng-template #withoutVideo>
-      <div class="screen-off-container">
-        <h1 *ngFor="let participant of participants">hello</h1>
+  </div>
 
-        <div class="grid-item" *ngFor="let participant of participants">
-          <div class="person-without-video">
-            <div class="round-img">
-              <img
-                *ngIf="participant.dp"
-                [src]="participant.dp"
-                alt="Image 5"
-              />
-              <p *ngIf="!participant.dp">{{ participant.name }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </ng-template>
+  <!-- <ng-template *ngIf="!attachedTrack">
+    <div class="avatar-name">
+      <img src="../../assets/avatar.png" alt="Default Image" />
+      <p *ngIf="participantName" class="person-name">warda</p>
+    </div>
   </ng-template> -->
+  <!-- <ng-container *ngIf="isVideoOn && stream; else participantImage">
+    <video id="video-preview" autoplay [srcObject]="stream"></video>
+  </ng-container>
+
+  <ng-template #participantImage>
+    <div class="avatar-name">
+      <img src="../../assets/avatar.png" alt="Default Image" />
+      <p *ngIf="participantName" class="person-name">warda</p>
+    </div>
+  </ng-template>
+  <div
+    id="remoteVideoContainer"
+    [ngClass]="{
+      'video-container-row': !isScreenSharingEnabled,
+      'video-container-column': isScreenSharingEnabled
+    }"
+  >
+    <p *ngIf="isVideoOn" class="person-name">Warda</p>
+  </div> -->
+  <!-- <div id="remoteVideoContainer">
+    <div class="wrapper">
+      <div class="video-box" *ngIf="attachedTrack">{{ attachedTrack }}</div>
+    </div>
+  </div> -->
 </ng-container>
+
+<!-- html structure for creating video elments  -->
+<!-- <div class="lk-grid-layout-wrapper">
+  <div
+    id="remoteVideoContainer"
+    class="lk-grid-layout"
+    [style.grid-template-columns]="GalleryGridColumnStyle"
+  >
+    <div class="" *ngIf="attachedTrack">
+      <video id="videoElement" class="lk-participant-tile video-element">
+        {{ attachedTrack }}
+      </video>
+      <div class="lk-participant-metadata">
+        <div class="lk-participant-metadata-item">
+          <span class="lk-participant-name">Participant Name</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> -->

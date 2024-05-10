@@ -4,12 +4,14 @@ import {
   LocalParticipant,
   LocalTrack,
   LocalTrackPublication,
+  Participant,
   RemoteParticipant,
   RemoteTrack,
   RemoteTrackPublication,
   Room,
   RoomEvent,
   Track,
+  TrackPublication,
   VideoQuality,
 } from 'livekit-client';
 
@@ -23,6 +25,12 @@ export class LiveKitService {
   participantDisconnected = new EventEmitter<string>();
   remoteAudioTrackSubscribed = new EventEmitter();
   private isScreenSharingEnabled = false;
+  private screenSharingInProgress = false;
+  private isOtherParticipantSharing = false;
+  videoStatusChanged = new EventEmitter<boolean>();
+  remoteParticipantSharingScreen!: boolean;
+  participants!: number;
+  screenShareTrackSubscribed = new EventEmitter<RemoteTrack>();
   constructor() {}
 
   async connectToRoom(wsURL: string, token: string): Promise<void> {
@@ -33,6 +41,11 @@ export class LiveKitService {
   }
 
   audioVideoHandler() {
+    this.room.on(RoomEvent.TrackMuted, this.handleTrackMuted.bind(this));
+    this.room.on(RoomEvent.TrackUnmuted, this.handleTrackUnmuted.bind(this));
+
+    this.participants = this.room.numParticipants;
+    console.log('prrr now', this.participants);
     this.room.on(
       RoomEvent.TrackSubscribed,
       this.handleTrackSubscribed.bind(this)
@@ -51,10 +64,12 @@ export class LiveKitService {
         publication.setSubscribed(true);
       });
     });
+
     this.room.on(
       RoomEvent.LocalTrackPublished,
       (publication: LocalTrackPublication, participant: LocalParticipant) => {
         if (publication.source === Track.Source.ScreenShare) {
+          this.screenSharingInProgress = true;
           const screenShareContainer = document.querySelector(
             '#localScreenShareContainer'
           );
@@ -65,47 +80,261 @@ export class LiveKitService {
         }
       }
     );
+    this.room.on(
+      RoomEvent.LocalTrackPublished,
+
+      (publication: LocalTrackPublication, participant: LocalParticipant) => {
+        if (publication.track?.source === Track.Source.Camera) {
+          const el2 = document.createElement('div');
+          el2.setAttribute('class', 'lk-participant-tile');
+          el2.setAttribute('id', `${participant.sid}`);
+          el2.setAttribute(
+            'style',
+            `        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+        overflow: hidden;
+        border-radius: 0.5rem;`
+          );
+          const container = document.querySelector('.lk-grid-layout');
+          if (container) {
+            // el2.appendChild(container);
+            const element = publication.track.attach();
+            el2.appendChild(element);
+            element.setAttribute(
+              'style',
+              'width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000; object-fit: cover;'
+            );
+            const el3 = document.createElement('div');
+            el3.setAttribute('class', 'lk-participant-metadata');
+            el3.setAttribute(
+              'style',
+              `position: absolute;
+              right: 0.25rem;
+              bottom: 0.25rem;
+              left: 0.25rem;
+              display: flex;
+              flex-direction: row;
+              align-items: center;
+              justify-content: space-between;
+              gap: 0.5rem;
+              line-height: 1;`
+            );
+            const el4 = document.createElement('div');
+            el4.setAttribute('class', 'lk-participant-metadata-item');
+            el4.setAttribute(
+              'style',
+              `display: flex;
+              align-items: center;
+              padding: 0.25rem;
+              background-color: rgba(0, 0, 0, 0.5);
+              border-radius: calc(var(--lk-border-radius) / 2);`
+            );
+            const el5 = document.createElement('span');
+            el5.setAttribute('class', 'lk-participant-name');
+            el5.setAttribute(
+              'style',
+              ` font-size: 0.875rem;
+              color: white;
+              `
+            );
+            el2.appendChild(el3);
+            el3.appendChild(el4);
+            el4.appendChild(el5);
+            el5.innerText = participant.identity;
+            container.appendChild(el2);
+            // container.appendChild(el3);
+            console.log('local track published', publication.track);
+
+            //   <div class="lk-participant-metadata">
+            //   <div class="lk-participant-metadata-item">
+            //     <span class="lk-participant-name">Hassam Qayyum</span>
+            //   </div>
+            // </div>
+          } else {
+            console.error('Remote video container not found');
+          }
+        }
+        if (publication.source === Track.Source.ScreenShare) {
+          const screenShareContainer = document.querySelector(
+            '.localScreenShareContainer'
+          );
+          const screenShareTrack = publication.track?.attach();
+          if (screenShareTrack) {
+            screenShareTrack.setAttribute(
+              'style',
+              'width: 100%; height:100%; object-fit: contain;'
+            );
+            screenShareContainer?.appendChild(screenShareTrack);
+          }
+        }
+      }
+    );
+    this.room.remoteParticipants.forEach((participant) => {
+      participant.trackPublications.forEach((publication) => {
+        if (publication.track && publication.kind === 'video') {
+          this.handleTrackSubscribed(
+            publication.track,
+            publication,
+            participant
+          );
+        }
+      });
+    });
   }
 
-  private handleParticipantDisconnected(participant: RemoteParticipant) {
+  handleParticipantDisconnected(participant: RemoteParticipant) {
     console.log('Participant disconnected:', participant);
     this.participantDisconnected.emit(participant.identity);
+
     // Remove video element associated with the disconnected participant
-    this.removeVideoElement(participant);
+    const container = document.querySelector('.lk-grid-layout');
+    if (container) {
+      const participantTiles = container.querySelectorAll(
+        '.lk-participant-tile'
+      );
+      participantTiles.forEach((tile) => {
+        const nameElement = tile.querySelector('.lk-participant-name');
+        if (nameElement && nameElement.textContent === participant.identity) {
+          tile.remove();
+        }
+      });
+    }
   }
 
-  private removeVideoElement(participant: RemoteParticipant) {
-    const container = document.getElementById('remoteVideoContainer');
-    if (container) {
-      // Find and remove video element for the disconnected participant
-      const videoElements = container.getElementsByTagName('video');
-      for (let i = 0; i < videoElements.length; i++) {
-        const video = videoElements[i];
-        if (video.srcObject) {
-          video.remove();
-          break;
-        }
+  attachTrackToElement(track: any, elementId: string): HTMLElement | null {
+    if (track.kind === 'video' && track.source === Track.Source.Camera) {
+      const container = document.getElementById(elementId);
+      if (container) {
+        return track.attach();
+      } else {
+        console.error('Remote video container not found');
+      }
+    }
+    return null;
+  }
+  handleTrackUnmuted(publication: TrackPublication, participant: Participant) {
+    console.log('Track unpublished:', publication, participant);
+    console.log('testing', publication.kind);
+    if (
+      publication.kind === 'video' &&
+      publication.track?.source === Track.Source.Camera
+    ) {
+      console.log('video is on');
+      const containerById = document.getElementById(`${participant.sid}`);
+      const imgElement = containerById?.getElementsByTagName('img');
+      imgElement![0]?.remove();
+    }
+  }
+
+  handleTrackMuted(publication: TrackPublication, participant: Participant) {
+    console.log('Track mute/unmute event:', publication, participant);
+    if (
+      publication.kind === 'video' &&
+      publication.track?.source === Track.Source.Camera
+    ) {
+      // Check if the track is muted
+      if (publication.isMuted) {
+        // Handle logic for when video is muted
+        console.log('Video is off');
+        // const container = document.querySelector('.lk-participant-tile');
+        const containerById = document.getElementById(`${participant.sid}`);
+        const imgElement = document.createElement('img');
+        imgElement.setAttribute('src', '../assets/avatar.png');
+        imgElement.setAttribute(
+          'style',
+          'position:absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; border-radius: 50%; object-fit: cover; object-position: center;'
+        );
+        containerById?.appendChild(imgElement);
+      } else {
+        // Handle logic for when video is unmuted
+        console.log('Video is on');
       }
     }
   }
 
   handleTrackSubscribed(
     track: RemoteTrack,
+
     publication: RemoteTrackPublication,
     participant: RemoteParticipant
   ) {
-    console.log('Audio/video track:', track);
-    console.log('Publication:', publication);
-    console.log('Participant:', participant);
-
-    if (track.kind === 'video') {
-      const container = document.getElementById('remoteVideoContainer');
+    console.log('testing', publication);
+    if (track.kind === 'video' && track.source === Track.Source.Camera) {
+      // const container = document.getElementById('remoteVideoContainer');
+      // if (container) {
+      //   const element = track.attach();
+      //   element.setAttribute('class', 'lk-participant-tile');
+      //   element.setAttribute(
+      //     'style',
+      //     'position: relative;  display: flex ;flex-direction: column ;gap: 0.375rem ; overflow: hidden ;border-radius: 0.5rem '
+      //   );
+      //   container.appendChild(element);
+      // } else {
+      //   console.error('Remote video container not found');
+      // }
+      // ===================================
+      const el2 = document.createElement('div');
+      el2.setAttribute('class', 'lk-participant-tile');
+      el2.setAttribute('id', `${participant.sid}`);
+      el2.setAttribute(
+        'style',
+        `position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 0.375rem;
+        overflow: hidden;
+        border-radius: 0.5rem;`
+      );
+      const container = document.querySelector('.lk-grid-layout');
       if (container) {
         const element = track.attach();
-        element.style.width = '400px'; // Set fixed width
-        element.style.height = '300px';
-        container.appendChild(element);
-        element.classList.add('participant-video');
+        el2.appendChild(element);
+        element.setAttribute(
+          'style',
+          'width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000; object-fit: cover;'
+        );
+        const el3 = document.createElement('div');
+        el3.setAttribute('class', 'lk-participant-metadata');
+        el3.setAttribute(
+          'style',
+          `position: absolute;
+              right: 0.25rem;
+              bottom: 0.25rem;
+              left: 0.25rem;
+              display: flex;
+              flex-direction: row;
+              align-items: center;
+              justify-content: space-between;
+              gap: 0.5rem;
+              line-height: 1;`
+        );
+        const el4 = document.createElement('div');
+        el4.setAttribute('class', 'lk-participant-metadata-item');
+        el4.setAttribute(
+          'style',
+          `display: flex;
+              align-items: center;
+              padding: 0.25rem;
+              background-color: rgba(0, 0, 0, 0.5);
+              border-radius: calc(var(--lk-border-radius) / 2);`
+        );
+        const el5 = document.createElement('span');
+        el5.setAttribute('class', 'lk-participant-name');
+        el5.setAttribute(
+          'style',
+          ` font-size: 0.875rem;
+              color: white;
+              `
+        );
+        el2.appendChild(el3);
+        el3.appendChild(el4);
+        el4.appendChild(el5);
+        el5.innerText = participant.identity;
+        container.appendChild(el2);
+        // container.appendChild(el3);
+        publication.setVideoQuality(VideoQuality.LOW);
         this.remoteParticipantName = participant.identity; // Associate video element with participant
       } else {
         console.error('Remote video container not found');
@@ -118,6 +347,17 @@ export class LiveKitService {
       } else {
         console.error('Remote audio container not found');
       }
+    } else if (track.source === Track.Source.ScreenShare) {
+      this.screenShareTrackSubscribed.emit(track);
+      // const screenShareContainer = document.getElementById(
+      //   'localScreenShareContainer'
+      // );
+      // if (screenShareContainer) {
+      //   const screenShareTrack = track.attach();
+      //   screenShareContainer.appendChild(screenShareTrack);
+      // } else {
+      //   console.error('Local screen share container not found');
+      // }
     }
   }
 
@@ -143,6 +383,7 @@ export class LiveKitService {
     const localParticipant = this.room.localParticipant;
     const isVideoEnabled = localParticipant.isCameraEnabled;
     await localParticipant.setCameraEnabled(!isVideoEnabled);
+    this.videoStatusChanged.emit(!isVideoEnabled); // Emit the updated video status
   }
 
   async startCamera(): Promise<MediaStream | undefined> {
@@ -161,82 +402,57 @@ export class LiveKitService {
     if (this.isScreenSharingEnabled) {
       this.room.localParticipant.setScreenShareEnabled(false);
       this.isScreenSharingEnabled = false;
+      const container = document.getElementById('localScreenShareContainer');
+      if (container) {
+        container.innerHTML = ''; // Remove all child elements of the container
+      } else {
+        console.error('Local screen share container not found');
+      }
+      // If video was hidden due to screen sharing, show it again
+      const videoContainer = document.getElementById('localVideoContainer');
+      if (videoContainer) {
+        videoContainer.style.display = 'block';
+      }
     } else {
-      this.room.localParticipant.setScreenShareEnabled(true);
-      this.isScreenSharingEnabled = true;
+      // Check if any remote participant is already sharing screen
+      this.remoteParticipantSharingScreen = false;
+      this.room.remoteParticipants.forEach((participant) => {
+        participant.trackPublications.forEach((publication) => {
+          if (
+            publication.track &&
+            publication.track.source === Track.Source.ScreenShare
+          ) {
+            this.remoteParticipantSharingScreen = true;
+          }
+        });
+      });
+
+      if (this.remoteParticipantSharingScreen) {
+        // console.log('Another participant is already sharing their screen.');
+        const modal = document.getElementById('myModal') as HTMLElement;
+        const closeBtn = modal?.querySelector('.close') as HTMLElement;
+
+        modal?.setAttribute('style', 'display:block');
+
+        closeBtn.onclick = function () {
+          modal?.setAttribute('style', 'display:none');
+        };
+
+        window.onclick = function (event) {
+          if (event.target == modal) {
+            modal?.setAttribute('style', 'display:none');
+          }
+        };
+      } else {
+        // No participant is sharing screen, proceed to start screen sharing
+        this.room.localParticipant.setScreenShareEnabled(true);
+        this.isScreenSharingEnabled = true;
+        // Hide local video when screen sharing starts
+        const videoContainer = document.getElementById('localVideoContainer');
+        if (videoContainer) {
+          videoContainer.style.display = 'none';
+        }
+      }
     }
   }
-  // ===================
-  // async participantScreenShare(): Promise<void> {
-  //   if (!this.isScreenSharingEnabled) {
-  //     try {
-  //       const stream = await navigator.mediaDevices.getDisplayMedia({
-  //         video: true,
-  //       });
-  //       const container = document.getElementById('localScreenShareContainer');
-  //       if (container) {
-  //         const videoElement = document.createElement('video');
-  //         videoElement.srcObject = stream;
-  //         videoElement.autoplay = true;
-  //         container.appendChild(videoElement);
-  //         this.isScreenSharingEnabled = true;
-  //       } else {
-  //         console.error('Local screen share container not found');
-  //       }
-  //     } catch (error) {
-  //       console.error('Error starting screen sharing:', error);
-  //       // Handle error (e.g., show an error message to the user)
-  //     }
-  //   } else {
-  //     this.room.localParticipant.setScreenShareEnabled(true);
-  //     this.isScreenSharingEnabled = true;
-  //     const container = document.getElementById('localScreenShareContainer');
-  //     if (container) {
-  //       container.innerHTML = ''; // Remove the video element from the container
-  //       this.isScreenSharingEnabled = false;
-  //     } else {
-  //       console.error('Local screen share container not found');
-  //     }
-  //   }
-  // }
-  // ==============================================
-  // async toggleScreenShare(): Promise<void> {
-  //   // Object.values(this.room.localParticipant.videoTrackPublications).forEach((videoTrack: LocalTrackPublication) => videoTrack.track?.mediaStream)
-
-  //   try {
-  //     if (!this.isScreenSharingEnabled) {
-  //       const stream = await navigator.mediaDevices.getDisplayMedia({
-  //         video: true,
-  //       });
-  //       const container = document.getElementById('localScreenShareContainer');
-  //       if (container) {
-  //         const videoElement = document.createElement('video');
-  //         videoElement.srcObject = stream;
-  //         videoElement.autoplay = true;
-  //         container.appendChild(videoElement);
-  //         this.isScreenSharingEnabled = true;
-
-  //         // Publish the screen sharing stream to the room
-  //         await this.room.localParticipant.publishTrack(
-  //           stream.getVideoTracks()[0],
-  //           { name: 'screen_share' }
-  //         );
-  //       } else {
-  //         console.error('Local screen share container not found');
-  //       }
-  //     } else {
-  //       // this.room.localParticipant.unpublishTrack('screen_share'); // Unpublish the screen sharing track
-  //       this.isScreenSharingEnabled = false;
-  //       const container = document.getElementById('localScreenShareContainer');
-  //       if (container) {
-  //         container.innerHTML = ''; // Remove the video element from the container
-  //       } else {
-  //         console.error('Local screen share container not found');
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.error('Error toggling screen sharing:', error);
-  //     // Handle error (e.g., show an error message to the user)
-  //   }
-  // }
 }
