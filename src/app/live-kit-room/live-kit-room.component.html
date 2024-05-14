@@ -93,15 +93,42 @@
     <!-- <ng-container *ngIf="screenShareTrack">
       <div id="localScreenShareContainer" class="ss-container"></div>
     </ng-container> -->
-    <div class="lk-grid-layout-wrapper">
+    <!-- <div class="lk-grid-layout-wrapper">
       <div
         class="lk-grid-layout"
         [style.grid-template-columns]="GalleryGridColumnStyle"
       ></div>
+    </div> -->
+
+    <!-- <div id="localScreenShareContainer" class="ss-container"></div> -->
+    <ng-container
+      *ngIf="
+        isScreenSharing === true ||
+        this.livekitService.remoteScreenShare === true
+      "
+    >
+      <div class="lk-focus-layout-wrapper">
+        <div class="lk-focus-layout"></div>
+      </div>
+    </ng-container>
+    <div
+      class="lk-grid-layout-wrapper"
+      [ngClass]="{
+        'screen-share-layout-wrapper':
+          this.livekitService.room.localParticipant.isScreenShareEnabled ===
+            true || this.livekitService.remoteScreenShare === true
+      }"
+    >
+      <div
+        class="lk-grid-layout"
+        [ngClass]="{
+          'screen-share-layout':
+            this.livekitService.room.localParticipant.isScreenShareEnabled ===
+              true || this.livekitService.remoteScreenShare === true
+        }"
+        [style.grid-template-columns]="GalleryGridColumnStyle"
+      ></div>
     </div>
-
-    <div id="localScreenShareContainer" class="ss-container"></div>
-
     <!-- modal to show a person is already sharing screen  -->
 
     <div id="myModal" class="modal">

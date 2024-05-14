@@ -102,11 +102,11 @@ export class LiveKitRoomComponent {
   stream: MediaStream | undefined;
   participantName: string = '';
   screenShareTrackSubscription!: Subscription;
-  screenShareTrack!: boolean;
+  screenShareTrack!: RemoteTrack | undefined;
 
   constructor(
     private formBuilder: FormBuilder,
-    private livekitService: LiveKitService
+    public livekitService: LiveKitService
   ) {
     this.nameForm = this.formBuilder.group({
       name: [''],
@@ -140,10 +140,16 @@ export class LiveKitRoomComponent {
   ngAfterViewInit(): void {
     this.screenShareTrackSubscription =
       this.livekitService.screenShareTrackSubscribed.subscribe(
-        (track: RemoteTrack) => {
-          this.screenShareTrack = track.source === Track.Source.ScreenShare;
-          console.log('check condition', this.screenShareTrack);
-          // Now you can use this.screenShareTrack to display the screen share track in your component's template
+        (track: RemoteTrack | undefined) => {
+          // this.screenShareTrack = track.source === Track.Source.ScreenShare;
+          // console.log('check condition', this.screenShareTrack);
+          if (track && track.source === Track.Source.ScreenShare) {
+            this.screenShareTrack = track;
+            console.log('ss track', track);
+          } else {
+            this.screenShareTrack = undefined; // Reset to null if no screen share track
+            console.log('else ss track', this.screenShareTrack);
+          }
         }
       );
     this.livekitService.remoteVideoTrackSubscribed.subscribe(
@@ -194,7 +200,7 @@ export class LiveKitRoomComponent {
     console.log('Entered name:', name);
     const wsURL = 'wss://vc-ua59wquz.livekit.cloud';
     const token =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2aWRlbyI6eyJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6Ik5ldyIsImNhblB1Ymxpc2giOnRydWUsImNhblN1YnNjcmliZSI6dHJ1ZX0sImlhdCI6MTcxNTM0Njg0MiwibmJmIjoxNzE1MzQ2ODQyLCJleHAiOjE3MTUzNjg0NDIsImlzcyI6IkFQSVVXYkVLN0JndjR1ayIsInN1YiI6IldhcmRhIiwianRpIjoiV2FyZGEifQ.QM5SoDGbSDSAlM2szSuhGgmgP_VjVW3HQY_vmc5EC-k';
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2aWRlbyI6eyJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6IldhcmRhIHdvcmxkIiwiY2FuUHVibGlzaCI6dHJ1ZSwiY2FuU3Vic2NyaWJlIjp0cnVlfSwiaWF0IjoxNzE1NjYwODc5LCJuYmYiOjE3MTU2NjA4NzksImV4cCI6MTcxNTY4MjQ3OSwiaXNzIjoiQVBJVVdiRUs3Qmd2NHVrIiwic3ViIjoiV2FyZGEiLCJqdGkiOiJXYXJkYSJ9.YA1fxG66b6qRXuDh1dhc0YRNmdch0OjHyLG8Bm1nxIk';
     try {
       this.isMeetingStarted = true;
       await this.livekitService.connectToRoom(wsURL, token);
@@ -217,15 +223,6 @@ export class LiveKitRoomComponent {
   recordingTime = '00:22:23';
   isScreenSharing = false;
 
-  // toggleScreenShare() {
-  //   this.isScreenSharing = !this.isScreenSharing;
-  //   if (this.isScreenSharing) {
-  //     this.iconColor = 'green';
-  //     this.livekitService.startScreenSharing();
-  //   } else {
-  //     this.iconColor = 'black';
-  //   }
-  // }
   // async toggleScreenShare() {
   //   this.isScreenSharing = !this.isScreenSharing;
   //   if (this.isScreenSharing) {
@@ -234,29 +231,42 @@ export class LiveKitRoomComponent {
   //     this.iconColor = 'black';
   //   }
   //   try {
+  //     // Toggle the screen sharing state
+  //     this.isScreenSharingEnabled = !this.isScreenSharingEnabled;
+
+  //     // Update the icon color based on the screen sharing state
+  //     this.iconColor = this.isScreenSharingEnabled ? 'green' : 'black';
+
+  //     // Toggle screen sharing using the LiveKit service
   //     await this.livekitService.toggleScreenShare();
-  //     // await this.livekitService.participantScreenShare();
+  //     if (this.livekitService.remoteParticipantSharingScreen === true) {
+  //       this.isScreenSharingEnabled = false;
+  //       this.isScreenSharing = false;
+  //     }
   //   } catch (error) {
-  //     console.error('Error toggling sharescreen:', error);
+  //     console.error('Error toggling screen share:', error);
   //     // Handle error (e.g., show an error message to the user)
   //   }
   // }
   async toggleScreenShare() {
+    this.isScreenSharing = !this.isScreenSharing;
+    console.log('testing', this.isScreenSharing);
+    if (this.isScreenSharing) {
+      this.iconColor = 'green';
+    } else {
+      this.iconColor = 'black';
+    }
+    // if (this.livekitService.isRemoteScreenSharing$) {
+    //   this.iconColor = 'grey';
+    // }
     try {
-      // Toggle the screen sharing state
-      this.isScreenSharingEnabled = !this.isScreenSharingEnabled;
-
-      // Update the icon color based on the screen sharing state
-      this.iconColor = this.isScreenSharingEnabled ? 'green' : 'black';
-
-      // Toggle screen sharing using the LiveKit service
       await this.livekitService.toggleScreenShare();
       if (this.livekitService.remoteParticipantSharingScreen === true) {
-        this.isScreenSharingEnabled = false;
+        // this.isScreenSharingEnabled = false;
         this.isScreenSharing = false;
       }
     } catch (error) {
-      console.error('Error toggling screen share:', error);
+      console.error('Error toggling video:', error);
       // Handle error (e.g., show an error message to the user)
     }
   }
