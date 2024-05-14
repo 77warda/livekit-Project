@@ -1,6 +1,7 @@
 import { EventEmitter, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import {
+  DataPacket_Kind,
   LocalParticipant,
   LocalTrack,
   LocalTrackPublication,
@@ -32,6 +33,8 @@ export class LiveKitService {
   participants!: number;
   screenShareTrackSubscribed = new EventEmitter<any>();
   remoteScreenShare = false;
+  private encoder = new TextEncoder();
+  private decoder = new TextDecoder();
   constructor() {}
 
   async connectToRoom(wsURL: string, token: string): Promise<void> {
@@ -41,6 +44,28 @@ export class LiveKitService {
     this.audioVideoHandler();
   }
 
+  sendChatMessage(message: string) {
+    const strData = JSON.stringify({ message });
+    const data = this.encoder.encode(strData);
+    this.room.localParticipant.publishData(data, { reliable: true });
+  }
+
+  listenForChatMessages() {
+    this.room.on(
+      RoomEvent.DataReceived,
+      (
+        payload: Uint8Array,
+        participant?: RemoteParticipant,
+        kind?: DataPacket_Kind
+      ) => {
+        if (participant) {
+          const strData = this.decoder.decode(payload);
+          const { message } = JSON.parse(strData);
+          console.log(`${participant.identity}: ${message}`);
+        }
+      }
+    );
+  }
   audioVideoHandler() {
     this.room.on(RoomEvent.TrackMuted, this.handleTrackMuted.bind(this));
     this.room.on(RoomEvent.TrackUnmuted, this.handleTrackUnmuted.bind(this));
@@ -87,6 +112,14 @@ export class LiveKitService {
     //     }
     //   }
     // );
+    this.room.on(
+      RoomEvent.LocalTrackUnpublished,
+      (publication: LocalTrackPublication, participant: LocalParticipant) => {
+        if (publication.source === Track.Source.ScreenShare) {
+          this.remoteScreenShare = false;
+        }
+      }
+    );
     this.room.on(
       RoomEvent.LocalTrackPublished,
 

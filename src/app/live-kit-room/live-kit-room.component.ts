@@ -98,6 +98,7 @@ export class LiveKitRoomComponent {
 
   roomDetails: { wsURL: string; token: string } | null = null;
   nameForm!: FormGroup;
+  chatForm!: FormGroup;
   isMeetingStarted = false;
   stream: MediaStream | undefined;
   participantName: string = '';
@@ -107,13 +108,17 @@ export class LiveKitRoomComponent {
   constructor(
     private formBuilder: FormBuilder,
     public livekitService: LiveKitService
-  ) {
+  ) {}
+
+  ngOnInit() {
     this.nameForm = this.formBuilder.group({
       name: [''],
     });
-  }
+    this.chatForm = this.formBuilder.group({
+      message: [''],
+    });
+    this.livekitService.listenForChatMessages();
 
-  ngOnInit() {
     this.attachedTrack = this.livekitService.attachTrackToElement(
       Track,
       'remoteVideoContainer'
@@ -136,7 +141,12 @@ export class LiveKitRoomComponent {
       }
     );
   }
-
+  sendMessage() {
+    const msg = this.chatForm.value.message;
+    console.log('Entered message:', msg);
+    this.chatForm.patchValue({ message: '' });
+    this.livekitService.sendChatMessage(msg);
+  }
   ngAfterViewInit(): void {
     this.screenShareTrackSubscription =
       this.livekitService.screenShareTrackSubscribed.subscribe(
@@ -200,7 +210,7 @@ export class LiveKitRoomComponent {
     console.log('Entered name:', name);
     const wsURL = 'wss://vc-ua59wquz.livekit.cloud';
     const token =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2aWRlbyI6eyJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6IldhcmRhIHdvcmxkIiwiY2FuUHVibGlzaCI6dHJ1ZSwiY2FuU3Vic2NyaWJlIjp0cnVlfSwiaWF0IjoxNzE1NjYwODc5LCJuYmYiOjE3MTU2NjA4NzksImV4cCI6MTcxNTY4MjQ3OSwiaXNzIjoiQVBJVVdiRUs3Qmd2NHVrIiwic3ViIjoiV2FyZGEiLCJqdGkiOiJXYXJkYSJ9.YA1fxG66b6qRXuDh1dhc0YRNmdch0OjHyLG8Bm1nxIk';
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2aWRlbyI6eyJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6IlR1ZXNkYXkiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpYXQiOjE3MTU2ODM4MjksIm5iZiI6MTcxNTY4MzgyOSwiZXhwIjoxNzE1NzA1NDI5LCJpc3MiOiJBUElVV2JFSzdCZ3Y0dWsiLCJzdWIiOiJXQVJEQSIsImp0aSI6IldBUkRBIn0._3aXzASB7oR0BfiP80Q4YEpK92OKFzhwZmjJjqldclA';
     try {
       this.isMeetingStarted = true;
       await this.livekitService.connectToRoom(wsURL, token);
@@ -223,31 +233,6 @@ export class LiveKitRoomComponent {
   recordingTime = '00:22:23';
   isScreenSharing = false;
 
-  // async toggleScreenShare() {
-  //   this.isScreenSharing = !this.isScreenSharing;
-  //   if (this.isScreenSharing) {
-  //     this.iconColor = 'green';
-  //   } else {
-  //     this.iconColor = 'black';
-  //   }
-  //   try {
-  //     // Toggle the screen sharing state
-  //     this.isScreenSharingEnabled = !this.isScreenSharingEnabled;
-
-  //     // Update the icon color based on the screen sharing state
-  //     this.iconColor = this.isScreenSharingEnabled ? 'green' : 'black';
-
-  //     // Toggle screen sharing using the LiveKit service
-  //     await this.livekitService.toggleScreenShare();
-  //     if (this.livekitService.remoteParticipantSharingScreen === true) {
-  //       this.isScreenSharingEnabled = false;
-  //       this.isScreenSharing = false;
-  //     }
-  //   } catch (error) {
-  //     console.error('Error toggling screen share:', error);
-  //     // Handle error (e.g., show an error message to the user)
-  //   }
-  // }
   async toggleScreenShare() {
     this.isScreenSharing = !this.isScreenSharing;
     console.log('testing', this.isScreenSharing);
@@ -300,7 +285,7 @@ export class LiveKitRoomComponent {
     this.participantSideWindowVisible = false;
   }
   openChatSideWindow() {
-    this.chatSideWindowVisible = true;
+    this.chatSideWindowVisible = !this.chatSideWindowVisible;
     this.participantSideWindowVisible = false;
   }
   closeChatSideWindow() {

@@ -90,17 +90,7 @@
         </button>
       </div>
     </header>
-    <!-- <ng-container *ngIf="screenShareTrack">
-      <div id="localScreenShareContainer" class="ss-container"></div>
-    </ng-container> -->
-    <!-- <div class="lk-grid-layout-wrapper">
-      <div
-        class="lk-grid-layout"
-        [style.grid-template-columns]="GalleryGridColumnStyle"
-      ></div>
-    </div> -->
 
-    <!-- <div id="localScreenShareContainer" class="ss-container"></div> -->
     <ng-container
       *ngIf="
         isScreenSharing === true ||
@@ -115,16 +105,16 @@
       class="lk-grid-layout-wrapper"
       [ngClass]="{
         'screen-share-layout-wrapper':
-          this.livekitService.room.localParticipant.isScreenShareEnabled ===
-            true || this.livekitService.remoteScreenShare === true
+          isScreenSharing === true ||
+          this.livekitService.remoteScreenShare === true
       }"
     >
       <div
         class="lk-grid-layout"
         [ngClass]="{
           'screen-share-layout':
-            this.livekitService.room.localParticipant.isScreenShareEnabled ===
-              true || this.livekitService.remoteScreenShare === true
+            isScreenSharing === true ||
+            this.livekitService.remoteScreenShare === true
         }"
         [style.grid-template-columns]="GalleryGridColumnStyle"
       ></div>
@@ -139,36 +129,69 @@
     </div>
   </div>
 
-  <!-- <ng-template *ngIf="!attachedTrack">
-    <div class="avatar-name">
-      <img src="../../assets/avatar.png" alt="Default Image" />
-      <p *ngIf="participantName" class="person-name">warda</p>
+  <div class="closeChatSideWindow" (click)="closeChatSideWindow()">
+    <div *ngIf="chatSideWindowVisible" class="chat-side-window-container">
+      <div class="chat-side-window" (click)="$event.stopPropagation()">
+        <div class="chat-detail">
+          <div class="os-content-card-nav">
+            <div class="chat-head">
+              <h2>Chat</h2>
+            </div>
+          </div>
+          <div class="os-content-card-body">
+            <div class="os-content-body">
+              <div class="main-sender">
+                <div class="send">
+                  <div class="msg-tym">12:01am</div>
+                  <div class="msg-detail">Lorem</div>
+                </div>
+              </div>
+              <div class="main-receiver">
+                <div class="receive">
+                  <div class="avatar">
+                    <p>WR</p>
+                  </div>
+                  <div class="receive-msg">
+                    <div class="head">
+                      <div class="receiver-name">Warda Rasool</div>
+                      <div class="msg-tym">12:00am</div>
+                    </div>
+                    <div class="msg-detail">Lorem ipsum</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <form
+            [formGroup]="chatForm"
+            (ngSubmit)="sendMessage()"
+            class="os-content-card-footer"
+          >
+            <!-- <form
+              [formGroup]="chatForm"
+              (ngSubmit)="sendMessage()"
+            > -->
+            <div class="add"><i class="fas fa-plus"></i></div>
+            <div class="search">
+              <input
+                type="text"
+                class="sendTerm"
+                placeholder="send a message"
+                formControlName="message"
+              />
+              <div class="emoji">
+                <i class="fas fa-face-smile"></i>
+              </div>
+            </div>
+            <button type="submit" class="sendButton">
+              <i class="send fas fa-paper-plane"></i>
+            </button>
+            <!-- </form> -->
+          </form>
+        </div>
+      </div>
     </div>
-  </ng-template> -->
-  <!-- <ng-container *ngIf="isVideoOn && stream; else participantImage">
-    <video id="video-preview" autoplay [srcObject]="stream"></video>
-  </ng-container>
-
-  <ng-template #participantImage>
-    <div class="avatar-name">
-      <img src="../../assets/avatar.png" alt="Default Image" />
-      <p *ngIf="participantName" class="person-name">warda</p>
-    </div>
-  </ng-template>
-  <div
-    id="remoteVideoContainer"
-    [ngClass]="{
-      'video-container-row': !isScreenSharingEnabled,
-      'video-container-column': isScreenSharingEnabled
-    }"
-  >
-    <p *ngIf="isVideoOn" class="person-name">Warda</p>
-  </div> -->
-  <!-- <div id="remoteVideoContainer">
-    <div class="wrapper">
-      <div class="video-box" *ngIf="attachedTrack">{{ attachedTrack }}</div>
-    </div>
-  </div> -->
+  </div>
 </ng-container>
 
 <!-- html structure for creating video elments  -->
