@@ -1,21 +1,12 @@
 <div *ngIf="!isMeetingStarted" class="container">
-  <form [formGroup]="nameForm" (ngSubmit)="startMeeting()" class="form">
+  <div class="form">
     <div>
       <h1>Start Meeting</h1>
-      <div>
-        <label for="name">Participant Name:</label>
-        <input
-          placeholder="Enter your name"
-          type="text"
-          formControlName="name"
-          id="name"
-        />
-      </div>
       <div class="startMeeting-container">
-        <button type="submit" class="startBtn">Start Meeting</button>
+        <button (click)="startMeeting()" class="startBtn">Start Meeting</button>
       </div>
     </div>
-  </form>
+  </div>
 </div>
 <ng-container *ngIf="isMeetingStarted">
   <div class="os-main-content">
@@ -43,6 +34,9 @@
 
         <button class="chat" matTooltip="Chat" (click)="openChatSideWindow()">
           <i class="far fa-comment-lines"></i>
+          <span *ngIf="unreadMessagesCount > 0" class="badge"
+            >0{{ unreadMessagesCount }}</span
+          >
         </button>
         <button class="emojis" matTooltip="React">
           <span class="material-symbols-outlined"> emoji_language </span>
@@ -81,7 +75,7 @@
             stop_screen_share
           </span>
         </button>
-        <button class="leave-btn">
+        <button class="leave-btn" (click)="leaveBtn()">
           <div class="phone-icon">
             <!-- <span class="material-symbols-outlined"> call_end </span> -->
           </div>
@@ -139,24 +133,38 @@
             </div>
           </div>
           <div class="os-content-card-body">
-            <div class="os-content-body">
-              <div class="main-sender">
-                <div class="send">
-                  <div class="msg-tym">12:01am</div>
-                  <div class="msg-detail">Lorem</div>
-                </div>
-              </div>
-              <div class="main-receiver">
-                <div class="receive">
-                  <div class="avatar">
-                    <p>WR</p>
-                  </div>
-                  <div class="receive-msg">
-                    <div class="head">
-                      <div class="receiver-name">Warda Rasool</div>
-                      <div class="msg-tym">12:00am</div>
+            <div class="os-content-body" #messageContainer>
+              <div *ngFor="let message of allMessages; let i = index">
+                <div class="main-receiver" *ngIf="message.type === 'received'">
+                  <div class="receive">
+                    <div class="avatar">
+                      <p *ngIf="shouldShowAvatar(i)">
+                        {{ message.senderName.charAt(0).toUpperCase() }}
+                      </p>
                     </div>
-                    <div class="msg-detail">Lorem ipsum</div>
+                    <div class="receive-msg">
+                      <div class="head">
+                        <div class="receiver-name">
+                          <h2 *ngIf="shouldShowAvatar(i)">
+                            {{ message.senderName }}
+                          </h2>
+                        </div>
+                        <div class="msg-tym">
+                          {{ message.receivingTime | date : "shortTime" }}
+                        </div>
+                      </div>
+                      <div class="msg-detail">
+                        {{ message.receivedMsg }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="main-sender" *ngIf="message.type === 'sent'">
+                  <div class="send">
+                    <div class="msg-tym">
+                      {{ message.sendingTime | date : "shortTime" }}
+                    </div>
+                    <div class="msg-detail">{{ message.sendMessage }}</div>
                   </div>
                 </div>
               </div>
@@ -167,10 +175,6 @@
             (ngSubmit)="sendMessage()"
             class="os-content-card-footer"
           >
-            <!-- <form
-              [formGroup]="chatForm"
-              (ngSubmit)="sendMessage()"
-            > -->
             <div class="add"><i class="fas fa-plus"></i></div>
             <div class="search">
               <input
@@ -186,8 +190,88 @@
             <button type="submit" class="sendButton">
               <i class="send fas fa-paper-plane"></i>
             </button>
-            <!-- </form> -->
           </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="closeParticipantSideWindow"
+    (click)="closeParticipantSideWindow()"
+  >
+    <div
+      *ngIf="participantSideWindowVisible"
+      class="participants-side-window-container"
+    >
+      <div class="participants-side-window" (click)="$event.stopPropagation()">
+        <h2>Participants</h2>
+
+        <div class="participant-container">
+          <div class="participant">
+            <div class="left-side">
+              <div class="avatar">
+                <p>{{ extractInitials(localParticipant.identity) }}</p>
+              </div>
+              <div class="name">{{ localParticipant.identity }}(You)</div>
+            </div>
+            <div class="right-side">
+              <div class="screen-share-icon">
+                <span class="material-symbols-outlined" *ngIf="isScreenSharing">
+                  screen_share
+                </span>
+              </div>
+              <div class="video-icon">
+                <i
+                  class="fas"
+                  [ngClass]="{
+                    'fa-video-slash': isVideoOn,
+                    'fa-video': !isVideoOn
+                  }"
+                ></i>
+              </div>
+              <div class="mic-icon">
+                <i
+                  class="fas"
+                  [ngClass]="{
+                    'fa-microphone': isMicOn,
+                    'fa-microphone-slash': !isMicOn
+                  }"
+                ></i>
+              </div>
+            </div>
+          </div>
+          <div
+            *ngFor="let participant of remoteParticipantNames"
+            class="participant"
+          >
+            <div class="left-side">
+              <div class="avatar">
+                <p>{{ extractInitials(participant.identity) }}</p>
+              </div>
+              <div class="name">{{ participant.identity }}</div>
+            </div>
+            <div class="right-side">
+              <div class="video-icon">
+                <i
+                  class="fas"
+                  [ngClass]="{
+                    'fa-video-slash': !participant.isCameraEnabled,
+                    'fa-video': participant.isCameraEnabled
+                  }"
+                ></i>
+              </div>
+              <div class="mic-icon">
+                <i
+                  class="fas"
+                  [ngClass]="{
+                    'fa-microphone': participant.isMicrophoneEnabled,
+                    'fa-microphone-slash': !participant.isMicrophoneEnabled
+                  }"
+                ></i>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

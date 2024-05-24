@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
 import {
   Participant,
   RemoteParticipant,
@@ -11,6 +11,9 @@ import {
 import { LiveKitService } from '../livekit.service';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { Subscription } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
+import { ErrorDialogComponent } from '../error-dialog/error-dialog.component';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 const GRIDCOLUMN: { [key: number]: string } = {
   1: '1fr',
@@ -26,126 +29,150 @@ const GRIDCOLUMN: { [key: number]: string } = {
   styleUrls: ['./live-kit-room.component.scss'],
 })
 export class LiveKitRoomComponent {
+  @ViewChild('messageContainer') messageContainer!: ElementRef;
   attachedTrack: HTMLElement | null = null;
 
-  sharedLayout!: boolean;
-  withVideo!: boolean;
-  isScreenSharingEnabled: boolean = false;
-  // participants = [
-  //   {
-  //     name: 'GJ',
-  //     dp: 'https://img.freepik.com/free-photo/beautiful-shot-tree-savanna-plains-with-blue-sky_181624-22049.jpg?size=626&ext=jpg&ga=GA1.1.490661761.1705061609&semt=sph',
-  //     title: 'George John',
-  //   },
-  //   {
-  //     name: 'GJ',
-  //     title: 'John Doe',
-  //   },
-  //   {
-  //     name: 'GJ',
-  //     dp: 'https://img.freepik.com/premium-photo/landscape-africa-with-river-trees-mountains-horizon-cloudy-sky-3d-illustration_76964-3101.jpg?size=626&ext=jpg&ga=GA1.1.490661761.1705061609&semt=sph',
-  //     title: 'Henry Peel',
-  //   },
-  //   {
-  //     name: 'GJ',
-  //     title: 'New one',
-  //   },
-  //   {
-  //     name: 'GJ',
-  //     dp: 'https://img.freepik.com/premium-photo/landscape-africa-with-river-trees-mountains-horizon-cloudy-sky-3d-illustration_76964-3101.jpg?size=626&ext=jpg&ga=GA1.1.490661761.1705061609&semt=sph',
-  //     title: 'Henry Peel',
-  //   },
-  //   {
-  //     name: 'GJ',
-  //     dp: 'https://img.freepik.com/premium-photo/beautiful-tropical-beach-island_213396-4088.jpg?size=626&ext=jpg&ga=GA1.1.490661761.1705061609&semt=sph',
-  //     title: 'New one',
-  //   },
-  //   {
-  //     name: 'GJ',
-  //     title: 'Henry Peel',
-  //   },
-  // ];
-  // images = [
-  //   {
-  //     src: 'https://img.freepik.com/free-photo/beautiful-shot-tree-savanna-plains-with-blue-sky_181624-22049.jpg?size=626&ext=jpg&ga=GA1.1.490661761.1705061609&semt=sph',
-  //     title: 'George John',
-  //   },
-  //   {
-  //     src: 'https://img.freepik.com/free-photo/beautiful-shot-snowy-mountains-with-dark-blue-sky_181624-2640.jpg?size=626&ext=jpg&ga=GA1.1.490661761.1705061609&semt=sph',
-  //     title: 'John Doe',
-  //   },
-  //   {
-  //     src: 'https://img.freepik.com/premium-photo/landscape-africa-with-river-trees-mountains-horizon-cloudy-sky-3d-illustration_76964-3101.jpg?size=626&ext=jpg&ga=GA1.1.490661761.1705061609&semt=sph',
-  //     title: 'Henry Peel',
-  //   },
-  //   {
-  //     src: 'https://img.freepik.com/premium-photo/beautiful-tropical-beach-island_213396-4088.jpg?size=626&ext=jpg&ga=GA1.1.490661761.1705061609&semt=sph',
-  //     title: 'New one',
-  //   },
-  //   {
-  //     src: 'https://img.freepik.com/premium-photo/landscape-africa-with-river-trees-mountains-horizon-cloudy-sky-3d-illustration_76964-3101.jpg?size=626&ext=jpg&ga=GA1.1.490661761.1705061609&semt=sph',
-  //     title: 'Henry Peel',
-  //   },
-  //   {
-  //     src: 'https://img.freepik.com/premium-photo/beautiful-tropical-beach-island_213396-4088.jpg?size=626&ext=jpg&ga=GA1.1.490661761.1705061609&semt=sph',
-  //     title: 'New one',
-  //   },
-  //   {
-  //     src: 'https://img.freepik.com/premium-photo/landscape-africa-with-river-trees-mountains-horizon-cloudy-sky-3d-illustration_76964-3101.jpg?size=626&ext=jpg&ga=GA1.1.490661761.1705061609&semt=sph',
-  //     title: 'Henry Peel',
-  //   },
-  // ];
-
+  // sharedLayout!: boolean;
+  // withVideo!: boolean;
+  // isScreenSharingEnabled: boolean = false;
   roomDetails: { wsURL: string; token: string } | null = null;
-  nameForm!: FormGroup;
   chatForm!: FormGroup;
   isMeetingStarted = false;
   stream: MediaStream | undefined;
-  participantName: string = '';
+  // localParticipantName: string = '';
   screenShareTrackSubscription!: Subscription;
   screenShareTrack!: RemoteTrack | undefined;
+  // previousSenderName: string = '';
+  unreadMessagesCount = 0;
+  remoteParticipantNames: any;
+  localParticipant: any;
+
+  // ==================== header=========================
+  participantSideWindowVisible = false;
+  chatSideWindowVisible = false;
+  isVideoOn = false;
+  isMicOn = false;
+  iconColor = 'black';
+  isScreenRecording = true;
+  recordingTime = '00:22:23';
+  isScreenSharing = false;
+
+  // allParticipants: RemoteParticipant[] = [];
+  // receivedMessages: any[] = [];
+  // messageSent: any[] = [];
+  allMessages: any[] = [];
 
   constructor(
     private formBuilder: FormBuilder,
-    public livekitService: LiveKitService
+    public livekitService: LiveKitService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit() {
-    this.nameForm = this.formBuilder.group({
-      name: [''],
-    });
     this.chatForm = this.formBuilder.group({
       message: [''],
     });
-    this.livekitService.listenForChatMessages();
+
+    this.livekitService.msgDataReceived.subscribe((data) => {
+      console.log('Received message:', data.message);
+      console.log('Participant:', data.participant);
+
+      const receivedMsg = data?.message?.message;
+      const senderName = data?.participant?.identity;
+      const receivingTime = data?.message?.timestamp;
+      this.allMessages.push({
+        senderName,
+        receivedMsg,
+        receivingTime,
+        type: 'received',
+      });
+      if (!this.chatSideWindowVisible) {
+        this.unreadMessagesCount++;
+      }
+      this.scrollToBottom();
+      this.sortMessages();
+    });
+    this.livekitService.messageEmitter.subscribe((data: any) => {
+      console.log('data', data);
+      const sendMessage = data?.message;
+      const sendingTime = data?.timestamp;
+      this.allMessages.push({ sendMessage, sendingTime, type: 'sent' });
+      this.sortMessages();
+      this.scrollToBottom();
+    });
 
     this.attachedTrack = this.livekitService.attachTrackToElement(
       Track,
       'remoteVideoContainer'
     );
-    // this.screenShareTrackSubscription =
-    //   this.livekitService.screenShareTrackSubscribed.subscribe(
-    //     (track: RemoteTrack) => {
-    //       this.screenShareTrack = track.source === Track.Source.ScreenShare;
-    //       console.log('check condition', this.screenShareTrack);
-    //       // Now you can use this.screenShareTrack to display the screen share track in your component's template
-    //     }
-    //   );
-    this.livekitService.participantDisconnected.subscribe(
-      (participantName: string) => {
-        console.log('Participant disconnected:', participantName);
-        this.participantName = participantName;
-        setTimeout(() => {
-          this.participantName = ''; // Clear the participant name after 2 or 3 seconds
-        }, 2000); // Change to 3000 for 3 seconds
-      }
+    this.livekitService.participantNamesUpdated.subscribe((names: any) => {
+      this.remoteParticipantNames = names;
+      console.log('Participant names updated:', this.remoteParticipantNames);
+    });
+
+    this.livekitService.localParticipantData.subscribe((data: any) => {
+      this.localParticipant = data;
+      console.log('local Participant name updated:', this.localParticipant);
+    });
+  }
+
+  async startMeeting() {
+    const wsURL = 'wss://vc-ua59wquz.livekit.cloud';
+    const token =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2aWRlbyI6eyJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6Ik5ldyBSb29tIiwiY2FuUHVibGlzaCI6dHJ1ZSwiY2FuU3Vic2NyaWJlIjp0cnVlfSwiaWF0IjoxNzE2NDY3NDIzLCJuYmYiOjE3MTY0Njc0MjMsImV4cCI6MTcxNjQ4OTAyMywiaXNzIjoiQVBJVVdiRUs3Qmd2NHVrIiwic3ViIjoiQWlzaGEiLCJqdGkiOiJBaXNoYSJ9.oibOT2ghOdOUfwqGrFNmcEN7zkwitcH1xi_PuVRmWaQ';
+    try {
+      await this.livekitService.connectToRoom(wsURL, token);
+      this.isMeetingStarted = true;
+    } catch (error: any) {
+      console.error('Error starting meeting:', error);
+      this.dialog.open(ErrorDialogComponent, {
+        data: {
+          message: `Error starting meeting. Token is invalid. Try Again with a different Token`,
+        },
+      });
+      setTimeout(() => {
+        this.isMeetingStarted = false;
+      }, 3000);
+    }
+    try {
+      await this.livekitService.enableCameraAndMicrophone();
+    } catch (error: any) {
+      console.error('Error starting meeting:', error);
+      this.dialog.open(ErrorDialogComponent, {
+        data: {
+          message: `Error Connecting to Microphone and Camera`,
+        },
+      });
+    }
+  }
+  async startCamera() {
+    this.stream = await this.livekitService.startCamera();
+  }
+
+  extractInitials(name: any) {
+    const words = name.split(' ').map((word: any) => word.charAt(0));
+    return words.join('');
+  }
+  sortMessages() {
+    this.allMessages.sort(
+      (a, b) =>
+        new Date(a.receivingTime || a.sendingTime).getTime() -
+        new Date(b.receivingTime || b.sendingTime).getTime()
     );
   }
+  shouldShowAvatar(index: number): boolean {
+    if (index === 0) {
+      return true;
+    }
+    const currentMessage = this.allMessages[index];
+    const previousMessage = this.allMessages[index - 1];
+    return currentMessage.senderName !== previousMessage.senderName;
+  }
   sendMessage() {
-    const msg = this.chatForm.value.message;
-    console.log('Entered message:', msg);
-    this.chatForm.patchValue({ message: '' });
-    this.livekitService.sendChatMessage(msg);
+    const msg = this.chatForm.value;
+    this.livekitService.sendChatMessage({ msg });
+    this.chatForm.reset();
   }
   ngAfterViewInit(): void {
     this.screenShareTrackSubscription =
@@ -188,70 +215,40 @@ export class LiveKitRoomComponent {
         );
       }
     );
-    // this.livekitService.remoteVideoTrackSubscribed.subscribe((track) => {
-    //   // this.displayRemoteVideo(track);
-    //   console.log('Received remote video track:', track);
-    // });
-    // this.livekitService.remoteAudioTrackSubscribed.subscribe((track) => {
-    //   // Handle remote audio track
-    //   console.log('Received remote audio track:', track);
-
-    //   // this.displayRemoteAudio(track);
-    //   // You can implement further logic here, such as playing the audio track
-    // });
   }
 
-  ngOnDestroy(): void {
-    this.screenShareTrackSubscription.unsubscribe();
+  // ngOnDestroy(): void {
+  //   this.screenShareTrackSubscription.unsubscribe();
+  // }
+
+  async leaveBtn() {
+    this.livekitService.disconnectRoom();
+    this.isMeetingStarted = false;
+    this.openSnackBar(`You Left the meeting`);
   }
 
-  async startMeeting() {
-    const name = this.nameForm.value.name;
-    console.log('Entered name:', name);
-    const wsURL = 'wss://vc-ua59wquz.livekit.cloud';
-    const token =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2aWRlbyI6eyJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6IlR1ZXNkYXkiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWV9LCJpYXQiOjE3MTU2ODM4MjksIm5iZiI6MTcxNTY4MzgyOSwiZXhwIjoxNzE1NzA1NDI5LCJpc3MiOiJBUElVV2JFSzdCZ3Y0dWsiLCJzdWIiOiJXQVJEQSIsImp0aSI6IldBUkRBIn0._3aXzASB7oR0BfiP80Q4YEpK92OKFzhwZmjJjqldclA';
-    try {
-      this.isMeetingStarted = true;
-      await this.livekitService.connectToRoom(wsURL, token);
-      await this.livekitService.enableCameraAndMicrophone();
-    } catch (error) {
-      console.error('Error starting meeting:', error);
-    }
-  }
-  async startCamera() {
-    this.stream = await this.livekitService.startCamera();
-  }
-
-  // ==================== header
-  participantSideWindowVisible = false;
-  chatSideWindowVisible = false;
-  isVideoOn = false;
-  isMicOn = false;
-  iconColor = 'black';
-  isScreenRecording = true;
-  recordingTime = '00:22:23';
-  isScreenSharing = false;
-
+  // ==================== header=========================
   async toggleScreenShare() {
-    this.isScreenSharing = !this.isScreenSharing;
-    console.log('testing', this.isScreenSharing);
-    if (this.isScreenSharing) {
-      this.iconColor = 'green';
-    } else {
-      this.iconColor = 'black';
-    }
     // if (this.livekitService.isRemoteScreenSharing$) {
     //   this.iconColor = 'grey';
     // }
     try {
       await this.livekitService.toggleScreenShare();
+      this.isScreenSharing = !this.isScreenSharing;
+      console.log('testing', this.isScreenSharing);
+      if (this.isScreenSharing) {
+        this.iconColor = 'green';
+      } else {
+        this.iconColor = 'black';
+      }
       if (this.livekitService.remoteParticipantSharingScreen === true) {
         // this.isScreenSharingEnabled = false;
         this.isScreenSharing = false;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling video:', error);
+
+      this.openSnackBar(`Error Screen Sharing: ${error.message}`);
       // Handle error (e.g., show an error message to the user)
     }
   }
@@ -264,18 +261,30 @@ export class LiveKitRoomComponent {
         localParticipant.isCameraEnabled &&
         !localParticipant.getTrackPublication(Track.Source.Camera)?.isMuted;
       this.stream = await this.livekitService.startCamera();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error toggling video:', error);
+      this.openSnackBar(`Error video start: ${error.message}`);
     }
   }
-
-  // toggleMic() {
-  //   this.isMicOn = !this.isMicOn;
+  // async toggleVideo() {
+  //   this.isVideoOn = !this.isVideoOn; // Toggle video state locally
+  //   try {
+  //     await this.livekitService.toggleVideo();
+  //   } catch (error: any) {
+  //     console.error('Error toggling video:', error);
+  //     this.openSnackBar(`Error toggling video: ${error.message}`);
+  //   }
   // }
+
   async toggleMic() {
-    await this.livekitService.toggleMicrophone();
-    this.isMicOn = !this.isMicOn;
-    console.log('on/off', this.livekitService.toggleMicrophone);
+    try {
+      await this.livekitService.toggleMicrophone();
+      this.isMicOn = !this.isMicOn;
+      console.log('on/off', this.livekitService.toggleMicrophone);
+    } catch (error: any) {
+      console.error('Error toggling mic:', error);
+      this.openSnackBar(`Error mic start: ${error.message}`);
+    }
   }
   openParticipantSideWindow() {
     this.participantSideWindowVisible = true;
@@ -287,6 +296,10 @@ export class LiveKitRoomComponent {
   openChatSideWindow() {
     this.chatSideWindowVisible = !this.chatSideWindowVisible;
     this.participantSideWindowVisible = false;
+    if (this.chatSideWindowVisible) {
+      this.unreadMessagesCount = 0;
+      this.scrollToBottom();
+    }
   }
   closeChatSideWindow() {
     this.chatSideWindowVisible = false;
@@ -297,5 +310,18 @@ export class LiveKitRoomComponent {
     } else {
       return 'repeat(auto-fill, minmax(200px, 1fr))';
     }
+  }
+  scrollToBottom(): void {
+    try {
+      setTimeout(() => {
+        this.messageContainer.nativeElement.scrollTop =
+          this.messageContainer.nativeElement.scrollHeight;
+      }, 100);
+    } catch (err) {}
+  }
+  openSnackBar(message: string) {
+    this.snackBar.open(message, 'Close', {
+      duration: 3000, // duration in milliseconds
+    });
   }
 }

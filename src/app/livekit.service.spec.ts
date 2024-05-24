@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { LivekitService } from './livekit.service';
+import { LiveKitService } from './livekit.service';
 
 describe('LivekitService', () => {
-  let service: LivekitService;
+  let service: LiveKitService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(LivekitService);
+    service = TestBed.inject(LiveKitService);
   });
 
   it('should be created', () => {
