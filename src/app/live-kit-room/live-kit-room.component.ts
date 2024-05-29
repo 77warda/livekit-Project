@@ -29,13 +29,14 @@ const GRIDCOLUMN: { [key: number]: string } = {
   styleUrls: ['./live-kit-room.component.scss'],
 })
 export class LiveKitRoomComponent {
-  @ViewChild('messageContainer') messageContainer!: ElementRef;
+  @ViewChild('messageContainer') messageContainer!: ElementRef | any;
   attachedTrack: HTMLElement | null = null;
 
   // sharedLayout!: boolean;
   // withVideo!: boolean;
   // isScreenSharingEnabled: boolean = false;
   roomDetails: { wsURL: string; token: string } | null = null;
+  startForm!: FormGroup;
   chatForm!: FormGroup;
   isMeetingStarted = false;
   stream: MediaStream | undefined;
@@ -61,6 +62,7 @@ export class LiveKitRoomComponent {
   // receivedMessages: any[] = [];
   // messageSent: any[] = [];
   allMessages: any[] = [];
+  room!: Room;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -70,10 +72,13 @@ export class LiveKitRoomComponent {
   ) {}
 
   ngOnInit() {
+    this.startForm = this.formBuilder.group({
+      token: [''],
+    });
     this.chatForm = this.formBuilder.group({
       message: [''],
+      participant: [''],
     });
-
     this.livekitService.msgDataReceived.subscribe((data) => {
       console.log('Received message:', data.message);
       console.log('Participant:', data.participant);
@@ -113,14 +118,25 @@ export class LiveKitRoomComponent {
 
     this.livekitService.localParticipantData.subscribe((data: any) => {
       this.localParticipant = data;
+      // this.localParticipant = data.find((p: any) => p.isLocal);
       console.log('local Participant name updated:', this.localParticipant);
+    });
+
+    this.livekitService.messageEmitter.subscribe((data: any) => {
+      console.log('data', data);
+      const sendMessage = data?.message;
+      const sendingTime = data?.timestamp;
+      this.allMessages.push({ sendMessage, sendingTime, type: 'sent' });
+      this.sortMessages();
+      this.scrollToBottom();
     });
   }
 
   async startMeeting() {
+    const dynamicToken = this.startForm.value.token;
+    console.log('token is', dynamicToken);
     const wsURL = 'wss://vc-ua59wquz.livekit.cloud';
-    const token =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2aWRlbyI6eyJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6Ik5ldyBSb29tIiwiY2FuUHVibGlzaCI6dHJ1ZSwiY2FuU3Vic2NyaWJlIjp0cnVlfSwiaWF0IjoxNzE2NDY3NDIzLCJuYmYiOjE3MTY0Njc0MjMsImV4cCI6MTcxNjQ4OTAyMywiaXNzIjoiQVBJVVdiRUs3Qmd2NHVrIiwic3ViIjoiQWlzaGEiLCJqdGkiOiJBaXNoYSJ9.oibOT2ghOdOUfwqGrFNmcEN7zkwitcH1xi_PuVRmWaQ';
+    const token = dynamicToken;
     try {
       await this.livekitService.connectToRoom(wsURL, token);
       this.isMeetingStarted = true;
@@ -169,11 +185,22 @@ export class LiveKitRoomComponent {
     const previousMessage = this.allMessages[index - 1];
     return currentMessage.senderName !== previousMessage.senderName;
   }
+
   sendMessage() {
-    const msg = this.chatForm.value;
-    this.livekitService.sendChatMessage({ msg });
+    const msg = this.chatForm.value.message;
+    const recipient = this.chatForm.value.participant;
+    this.livekitService.sendChatMessage({ msg, recipient });
+
     this.chatForm.reset();
   }
+  toggleRaiseHand() {
+    if (this.localParticipant.handRaised) {
+      this.livekitService.lowerHand(this.localParticipant);
+    } else {
+      this.livekitService.raiseHand(this.localParticipant);
+    }
+  }
+
   ngAfterViewInit(): void {
     this.screenShareTrackSubscription =
       this.livekitService.screenShareTrackSubscribed.subscribe(
@@ -215,11 +242,24 @@ export class LiveKitRoomComponent {
         );
       }
     );
-  }
 
-  // ngOnDestroy(): void {
-  //   this.screenShareTrackSubscription.unsubscribe();
-  // }
+    this.livekitService.handRaised.subscribe((event) => {
+      console.log('Hand raised event:', event);
+
+      const participant = this.remoteParticipantNames.find(
+        (p: any) => p.identity === event.participant?.identity
+      );
+      if (participant) {
+        participant.handRaised = event.handRaised;
+      }
+
+      if (event.handRaised) {
+        this.openSnackBar(`${event?.participant?.identity} raised hand`);
+      } else {
+        this.openSnackBar(`${event?.participant?.identity} lowered hand`);
+      }
+    });
+  }
 
   async leaveBtn() {
     this.livekitService.disconnectRoom();
@@ -229,9 +269,6 @@ export class LiveKitRoomComponent {
 
   // ==================== header=========================
   async toggleScreenShare() {
-    // if (this.livekitService.isRemoteScreenSharing$) {
-    //   this.iconColor = 'grey';
-    // }
     try {
       await this.livekitService.toggleScreenShare();
       this.isScreenSharing = !this.isScreenSharing;

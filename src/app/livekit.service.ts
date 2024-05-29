@@ -46,6 +46,10 @@ export class LiveKitService {
     message: any;
     participant: RemoteParticipant | undefined;
   }>();
+  public handRaised = new EventEmitter<{
+    participant: RemoteParticipant | undefined;
+    handRaised: boolean;
+  }>();
   messageEmitter = new EventEmitter<any>();
   messages: { sender: string; text: string; timestamp: Date }[] = [];
   constructor(private snackBar: MatSnackBar) {}
@@ -57,17 +61,31 @@ export class LiveKitService {
     this.audioVideoHandler();
     this.updateParticipantNames();
   }
-  getLocalParticipant() {
-    return this.room.localParticipant;
+
+  async raiseHand(participant: any) {
+    participant.handRaised = true;
+    const message = {
+      type: 'handRaise',
+      participantId: participant.identity,
+      handRaised: true,
+    };
+    await this.publishHandRaiseLowerMessage(message);
   }
-  private updateParticipantNames() {
-    this.participantNames = Array.from(this.room.remoteParticipants.values());
-    this.participantNamesUpdated.emit(this.participantNames);
 
-    this.loacalParticipant = this.room.localParticipant;
-    this.localParticipantData.emit(this.loacalParticipant);
+  async lowerHand(participant: any) {
+    participant.handRaised = false;
+    const message = {
+      type: 'handRaise',
+      participantId: participant.identity,
+      handRaised: false,
+    };
+    await this.publishHandRaiseLowerMessage(message);
+  }
 
-    console.log('participants remote', this.participantNames);
+  private async publishHandRaiseLowerMessage(message: any) {
+    const strData = JSON.stringify(message);
+    const data = new TextEncoder().encode(strData);
+    await this.room!.localParticipant.publishData(data, { reliable: true });
   }
 
   disconnectRoom() {
@@ -75,21 +93,33 @@ export class LiveKitService {
       this.room.disconnect();
     }
   }
+
   async sendChatMessage(message: any) {
     try {
       // Encode message
       const strData = JSON.stringify({
         id: crypto.randomUUID(),
-        ...message.msg,
+        message: message.msg,
+        recipient: message.recipient,
         timestamp: Date.now(),
       });
       const data = new TextEncoder().encode(strData);
       const dataObj = JSON.parse(strData);
-      await this.room.localParticipant.publishData(data, { reliable: true });
+
+      const destinationIdentities = message.recipient
+        ? [message.recipient]
+        : [];
+      // Publish data with recipient information
+      await this.room.localParticipant.publishData(data, {
+        reliable: true,
+        destinationIdentities: destinationIdentities,
+      });
+
+      // Emit the message
       this.messageEmitter.emit(dataObj);
-      // console.log('Message sent successfully:', dataObj);
+      console.log('Message sent successfully:', dataObj);
     } catch (error: any) {
-      // console.error('Error sending message:', error);
+      console.error('Error sending message:', error);
       this.openSnackBar(`Send message Failed. ${error}`);
     }
   }
@@ -113,6 +143,12 @@ export class LiveKitService {
         console.log('mesg', JSON.parse(strData));
         console.log('participant', participant);
         this.msgDataReceived.emit({ message, participant });
+        if (message.type === 'handRaise') {
+          this.handRaised.emit({
+            participant: participant,
+            handRaised: message.handRaised,
+          });
+        }
       }
     );
     this.room.on(RoomEvent.TrackMuted, this.handleTrackMuted.bind(this));
@@ -309,6 +345,18 @@ export class LiveKitService {
     });
   }
 
+  getLocalParticipant() {
+    return this.room.localParticipant;
+  }
+  private updateParticipantNames() {
+    this.participantNames = Array.from(this.room.remoteParticipants.values());
+    this.participantNamesUpdated.emit(this.participantNames);
+
+    this.loacalParticipant = this.room.localParticipant;
+    this.localParticipantData.emit(this.loacalParticipant);
+
+    console.log('participants remote', this.participantNames);
+  }
   handleParticipantDisconnected(participant: RemoteParticipant) {
     console.log('Participant disconnected:', participant);
     this.openSnackBar(

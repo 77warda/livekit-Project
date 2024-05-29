@@ -1,11 +1,22 @@
 <div *ngIf="!isMeetingStarted" class="container">
   <div class="form">
-    <div>
+    <form
+      [formGroup]="startForm"
+      (ngSubmit)="startMeeting()"
+      class="os-content-card-footer"
+    >
       <h1>Start Meeting</h1>
+      <label for="token">Enter token here</label>
+      <input
+        type="text"
+        class="sendTerm"
+        placeholder="Enter your token"
+        formControlName="token"
+      />
       <div class="startMeeting-container">
-        <button (click)="startMeeting()" class="startBtn">Start Meeting</button>
+        <button type="submit" class="startBtn">Start Meeting</button>
       </div>
-    </div>
+    </form>
   </div>
 </div>
 <ng-container *ngIf="isMeetingStarted">
@@ -14,6 +25,9 @@
       <div class="left-header">
         <button class="grid-view" matTooltip="View">
           <i class="far fa-th-large"></i>
+        </button>
+        <button *ngIf="localParticipant.isLocal" (click)="toggleRaiseHand()">
+          {{ localParticipant.handRaised ? "Lower Hand" : "Raise Hand" }}
         </button>
         <div *ngIf="isScreenRecording" class="screen-recording">
           <i class="far fa-record-vinyl"></i>
@@ -169,28 +183,45 @@
                 </div>
               </div>
             </div>
-          </div>
-          <form
-            [formGroup]="chatForm"
-            (ngSubmit)="sendMessage()"
-            class="os-content-card-footer"
-          >
-            <div class="add"><i class="fas fa-plus"></i></div>
-            <div class="search">
-              <input
-                type="text"
-                class="sendTerm"
-                placeholder="send a message"
-                formControlName="message"
-              />
-              <div class="emoji">
-                <i class="fas fa-face-smile"></i>
-              </div>
+            <div class="new-footer-card">
+              <form [formGroup]="chatForm" (ngSubmit)="sendMessage()" class="">
+                <div class="dropdwn">
+                  <label for="participant">To: </label>
+                  <div class="select-dropdown">
+                    <select formControlName="participant">
+                      <option disabled selected value="">
+                        Select One Option
+                      </option>
+                      <option value="1">EveryOne</option>
+                      <option
+                        *ngFor="let participant of remoteParticipantNames"
+                        [value]="participant.identity"
+                      >
+                        {{ participant.identity }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <div class="footer-flex">
+                  <!-- <div class="add"><i class="fas fa-plus"></i></div> -->
+                  <div class="search">
+                    <input
+                      type="text"
+                      class="sendTerm"
+                      placeholder="send a message"
+                      formControlName="message"
+                    />
+                    <div class="emoji">
+                      <i class="fas fa-face-smile"></i>
+                    </div>
+                  </div>
+                  <button type="submit" class="sendButton">
+                    <i class="send fas fa-paper-plane"></i>
+                  </button>
+                </div>
+              </form>
             </div>
-            <button type="submit" class="sendButton">
-              <i class="send fas fa-paper-plane"></i>
-            </button>
-          </form>
+          </div>
         </div>
       </div>
     </div>
@@ -214,6 +245,10 @@
                 <p>{{ extractInitials(localParticipant.identity) }}</p>
               </div>
               <div class="name">{{ localParticipant.identity }}(You)</div>
+
+              <span *ngIf="localParticipant.handRaised" class="raised-hand-icon"
+                >✋</span
+              >
             </div>
             <div class="right-side">
               <div class="screen-share-icon">
@@ -250,6 +285,9 @@
                 <p>{{ extractInitials(participant.identity) }}</p>
               </div>
               <div class="name">{{ participant.identity }}</div>
+              <span *ngIf="participant.handRaised" class="raised-hand-icon"
+                >✋</span
+              >
             </div>
             <div class="right-side">
               <div class="video-icon">
