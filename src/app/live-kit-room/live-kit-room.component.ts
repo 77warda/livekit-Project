@@ -121,21 +121,12 @@ export class LiveKitRoomComponent {
       // this.localParticipant = data.find((p: any) => p.isLocal);
       console.log('local Participant name updated:', this.localParticipant);
     });
-
-    this.livekitService.messageEmitter.subscribe((data: any) => {
-      console.log('data', data);
-      const sendMessage = data?.message;
-      const sendingTime = data?.timestamp;
-      this.allMessages.push({ sendMessage, sendingTime, type: 'sent' });
-      this.sortMessages();
-      this.scrollToBottom();
-    });
   }
 
   async startMeeting() {
     const dynamicToken = this.startForm.value.token;
     console.log('token is', dynamicToken);
-    const wsURL = 'wss://vc-ua59wquz.livekit.cloud';
+    const wsURL = 'wss://warda-ldb690y8.livekit.cloud';
     const token = dynamicToken;
     try {
       await this.livekitService.connectToRoom(wsURL, token);
@@ -243,16 +234,45 @@ export class LiveKitRoomComponent {
       }
     );
 
+    // this.livekitService.handRaised.subscribe((event) => {
+    //   console.log('Hand raised event:', event);
+
+    //   const participant = this.remoteParticipantNames.find(
+    //     (p: any) => p.identity === event.participant?.identity
+    //   );
+    //   if (participant) {
+    //     participant.handRaised = event.handRaised;
+    //   }
+
+    //   if (event.handRaised) {
+    //     this.openSnackBar(`${event?.participant?.identity} raised hand`);
+    //   } else {
+    //     this.openSnackBar(`${event?.participant?.identity} lowered hand`);
+    //   }
+    // });
     this.livekitService.handRaised.subscribe((event) => {
       console.log('Hand raised event:', event);
 
-      const participant = this.remoteParticipantNames.find(
+      // Find the participant locally
+      const localParticipant = this.localParticipant.find(
         (p: any) => p.identity === event.participant?.identity
       );
-      if (participant) {
-        participant.handRaised = event.handRaised;
+
+      // Find the participant remotely
+      const remoteParticipant = this.remoteParticipantNames.find(
+        (p: any) => p.identity === event.participant?.identity
+      );
+
+      // Update hand raise status for both local and remote participants
+      if (localParticipant) {
+        localParticipant.handRaised = event.handRaised;
       }
 
+      if (remoteParticipant) {
+        remoteParticipant.handRaised = event.handRaised;
+      }
+
+      // Show snackbar based on the hand raise event
       if (event.handRaised) {
         this.openSnackBar(`${event?.participant?.identity} raised hand`);
       } else {

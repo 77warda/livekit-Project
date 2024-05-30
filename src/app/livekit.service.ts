@@ -27,7 +27,7 @@ export class LiveKitService {
   remoteVideoTrackSubscribed = new EventEmitter<RemoteTrack>();
   remoteParticipantName: string = '';
   remoteAudioTrackSubscribed = new EventEmitter();
-  private isScreenSharingEnabled = false;
+  isScreenSharingEnabled = false;
   private screenSharingInProgress = false;
   private isOtherParticipantSharing = false;
   videoStatusChanged = new EventEmitter<boolean>();
@@ -56,9 +56,9 @@ export class LiveKitService {
 
   async connectToRoom(wsURL: string, token: string): Promise<void> {
     this.room = new Room();
+    this.audioVideoHandler();
     await this.room.connect(wsURL, token);
     console.log('Connected to room', this.room);
-    this.audioVideoHandler();
     this.updateParticipantNames();
   }
 
@@ -158,6 +158,9 @@ export class LiveKitService {
       RoomEvent.TrackSubscribed,
       this.handleTrackSubscribed.bind(this)
     );
+    this.room.on(RoomEvent.ParticipantConnected, (participant) =>
+      this.updateParticipantNames()
+    );
     this.room.on(
       RoomEvent.ParticipantDisconnected,
       this.handleParticipantDisconnected.bind(this)
@@ -176,6 +179,14 @@ export class LiveKitService {
     this.room.on(
       RoomEvent.LocalTrackUnpublished,
       (publication: LocalTrackPublication, participant: LocalParticipant) => {
+        if (publication.source === Track.Source.ScreenShare) {
+          this.remoteScreenShare = false;
+        }
+      }
+    );
+    this.room.on(
+      RoomEvent.TrackUnpublished,
+      (publication: RemoteTrackPublication, participant: RemoteParticipant) => {
         if (publication.source === Track.Source.ScreenShare) {
           this.remoteScreenShare = false;
         }
@@ -258,6 +269,77 @@ export class LiveKitService {
           }
         }
         this.screenShareTrackSubscribed.emit(publication.track);
+        // if (publication.source === Track.Source.ScreenShare) {
+        //   this.remoteScreenShare = true;
+        //   setTimeout(() => {
+        //     const el2 = document.createElement('div');
+        //     el2.setAttribute('class', 'lk-participant-tile');
+        //     el2.setAttribute(
+        //       'style',
+        //       ` --lk-speaking-indicator-width: 2.5px;
+        //     position: relative;
+        //     display: flex;
+        //     flex-direction: column;
+        //     height:100%;
+        //     gap: 0.375rem;
+        //     overflow: hidden;
+        //     border-radius: 0.5rem;`
+        //     );
+        //     const screenShareTrack = publication.track?.attach();
+        //     if (screenShareTrack) {
+        //       const container = document.querySelector('.lk-focus-layout');
+        //       console.log('screenshare container', container);
+        //       // el2.appendChild(container);
+
+        //       screenShareTrack.setAttribute(
+        //         'style',
+        //         'width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000; object-fit: cover;  object-fit: contain;background-color: #1e1e1e;'
+        //       );
+        //       const el3 = document.createElement('div');
+        //       el3.setAttribute('class', 'lk-participant-metadata');
+        //       el3.setAttribute(
+        //         'style',
+        //         `position: absolute;
+        //       right: 0.25rem;
+        //       bottom: 0.25rem;
+        //       left: 0.25rem;
+        //       display: flex;
+        //       flex-direction: row;
+        //       align-items: center;
+        //       justify-content: space-between;
+        //       gap: 0.5rem;
+        //       line-height: 1;`
+        //       );
+        //       const el4 = document.createElement('div');
+        //       el4.setAttribute('class', 'lk-participant-metadata-item');
+        //       el4.setAttribute(
+        //         'style',
+        //         `display: flex;
+        //       align-items: center;
+        //       padding: 0.25rem;
+        //       background-color: rgba(0, 0, 0, 0.5);
+        //       border-radius: 0.25rem;`
+        //       );
+        //       const el5 = document.createElement('span');
+        //       el5.setAttribute('class', 'lk-participant-name');
+        //       el5.setAttribute(
+        //         'style',
+        //         ` font-size: 0.875rem;
+        //       color: white;
+        //       `
+        //       );
+        //       el2.appendChild(screenShareTrack);
+        //       el2.appendChild(el3);
+        //       el3.appendChild(el4);
+        //       el4.appendChild(el5);
+        //       el5.innerText = participant.identity;
+        //       container?.appendChild(el2);
+        //     } else {
+        //       console.error('Remote screen share container not found');
+        //       this.openSnackBar(`Screen Share not Enabled. Try again later`);
+        //     }
+        //   }, 100);
+        // }
         if (publication.source === Track.Source.ScreenShare) {
           this.remoteScreenShare = true;
           setTimeout(() => {
@@ -325,7 +407,6 @@ export class LiveKitService {
               container?.appendChild(el2);
             } else {
               console.error('Remote screen share container not found');
-              this.openSnackBar(`Screen Share not Enabled. Try again later`);
             }
           }, 100);
         }
@@ -374,6 +455,7 @@ export class LiveKitService {
         }
       });
     }
+    this.updateParticipantNames();
   }
 
   attachTrackToElement(track: any, elementId: string): HTMLElement | null {
@@ -663,7 +745,6 @@ export class LiveKitService {
         });
       });
       // Check if any remote participant is already sharing screen
-      // let remoteParticipantSharingScreen = false;
       this.room.remoteParticipants.forEach((participant) => {
         participant.trackPublications.forEach((publication) => {
           if (
