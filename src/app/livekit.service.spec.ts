@@ -7,10 +7,13 @@ import { MatDialogModule } from '@angular/material/dialog';
 import {
   LocalParticipant,
   Participant,
+  RemoteParticipant,
   Room,
+  RoomEvent,
   Track,
   TrackPublication,
 } from 'livekit-client';
+import { EventEmitter } from '@angular/core';
 
 describe('LivekitService', () => {
   TestBed.configureTestingModule({
@@ -387,4 +390,337 @@ describe('LivekitService', () => {
 
     document.body.removeChild(container);
   });
+  describe('attach track to element', () => {
+    it('should attach video track to element and return the attached element', () => {
+      const track = {
+        kind: 'video',
+        source: Track.Source.Camera,
+        attach: jasmine
+          .createSpy('attach')
+          .and.returnValue(document.createElement('video')),
+      } as any;
+
+      const container = document.createElement('div');
+      container.id = 'videoContainer';
+      document.body.appendChild(container);
+
+      const attachedElement = service.attachTrackToElement(
+        track,
+        'videoContainer'
+      );
+
+      expect(track.attach).toHaveBeenCalled();
+      expect(attachedElement).toBeInstanceOf(HTMLElement);
+
+      document.body.removeChild(container);
+    });
+
+    it('should not attach track if elementId is not found', () => {
+      const track = {
+        kind: 'video',
+        source: Track.Source.Camera,
+        attach: jasmine.createSpy('attach'),
+      } as any;
+
+      spyOn(console, 'error');
+
+      const attachedElement = service.attachTrackToElement(
+        track,
+        'nonExistentContainer'
+      );
+
+      expect(track.attach).not.toHaveBeenCalled();
+      expect(console.error).toHaveBeenCalledWith(
+        'Remote video container not found'
+      );
+      expect(attachedElement).toBeNull();
+    });
+
+    it('should not attach track if track kind is not video', () => {
+      const track = {
+        kind: 'audio',
+        source: Track.Source.Microphone,
+        attach: jasmine.createSpy('attach'),
+      } as any;
+
+      const container = document.createElement('div');
+      container.id = 'audioContainer';
+      document.body.appendChild(container);
+
+      const attachedElement = service.attachTrackToElement(
+        track,
+        'audioContainer'
+      );
+
+      expect(track.attach).not.toHaveBeenCalled();
+      expect(attachedElement).toBeNull();
+
+      document.body.removeChild(container);
+    });
+
+    it('should not attach track if track source is not camera', () => {
+      const track = {
+        kind: 'video',
+        source: Track.Source.ScreenShare,
+        attach: jasmine.createSpy('attach'),
+      } as any;
+
+      const container = document.createElement('div');
+      container.id = 'screenShareContainer';
+      document.body.appendChild(container);
+
+      const attachedElement = service.attachTrackToElement(
+        track,
+        'screenShareContainer'
+      );
+
+      expect(track.attach).not.toHaveBeenCalled();
+      expect(attachedElement).toBeNull();
+
+      document.body.removeChild(container);
+    });
+  });
+  describe('handle participant disconnected', () => {
+    beforeEach(() => {
+      spyOn(service, 'openSnackBar').and.stub();
+      spyOn(service, 'updateParticipantNames').and.stub();
+    });
+    it('should handle participant disconnection, show snackbar, and update participant names', () => {
+      const participant: RemoteParticipant = {
+        identity: 'participant1',
+      } as RemoteParticipant;
+
+      // Create mock DOM structure
+      const container = document.createElement('div');
+      container.classList.add('lk-grid-layout');
+
+      const participantTile = document.createElement('div');
+      participantTile.classList.add('lk-participant-tile');
+
+      const nameElement = document.createElement('div');
+      nameElement.classList.add('lk-participant-name');
+      nameElement.textContent = 'participant1';
+
+      participantTile.appendChild(nameElement);
+      container.appendChild(participantTile);
+      document.body.appendChild(container);
+
+      spyOn(console, 'log');
+
+      // Call the method
+      service.handleParticipantDisconnected(participant);
+
+      // Check that the snackbar was shown
+      expect(service.openSnackBar).toHaveBeenCalledWith(
+        'Participant "participant1" has disconnected.'
+      );
+
+      // Check that the participant tile was removed
+      const remainingTiles = container.querySelectorAll('.lk-participant-tile');
+      expect(remainingTiles.length).toBe(0);
+
+      // Check that updateParticipantNames was called
+      expect(service.updateParticipantNames).toHaveBeenCalled();
+
+      // Clean up
+      document.body.removeChild(container);
+    });
+
+    it('should handle participant disconnection without container', () => {
+      const participant: RemoteParticipant = {
+        identity: 'participant1',
+      } as RemoteParticipant;
+
+      spyOn(console, 'log');
+
+      // Call the method without adding the container to the DOM
+      service.handleParticipantDisconnected(participant);
+
+      // Check that the snackbar was shown
+      expect(service.openSnackBar).toHaveBeenCalledWith(
+        'Participant "participant1" has disconnected.'
+      );
+
+      // Check that updateParticipantNames was called
+      expect(service.updateParticipantNames).toHaveBeenCalled();
+    });
+
+    it('should handle participant disconnection without matching participant tiles', () => {
+      const participant: RemoteParticipant = {
+        identity: 'participant1',
+      } as RemoteParticipant;
+
+      // Create mock DOM structure
+      const container = document.createElement('div');
+      container.classList.add('lk-grid-layout');
+
+      const participantTile = document.createElement('div');
+      participantTile.classList.add('lk-participant-tile');
+
+      const nameElement = document.createElement('div');
+      nameElement.classList.add('lk-participant-name');
+      nameElement.textContent = 'participant2';
+
+      participantTile.appendChild(nameElement);
+      container.appendChild(participantTile);
+      document.body.appendChild(container);
+
+      spyOn(console, 'log');
+
+      // Call the method
+      service.handleParticipantDisconnected(participant);
+
+      // Check that the snackbar was shown
+      expect(service.openSnackBar).toHaveBeenCalledWith(
+        'Participant "participant1" has disconnected.'
+      );
+
+      // Check that the participant tile was not removed
+      const remainingTiles = container.querySelectorAll('.lk-participant-tile');
+      expect(remainingTiles.length).toBe(1);
+
+      // Check that updateParticipantNames was called
+      expect(service.updateParticipantNames).toHaveBeenCalled();
+
+      // Clean up
+      document.body.removeChild(container);
+    });
+  });
+  describe('get local participant', () => {
+    it('should return the local participant from the room', () => {
+      const localParticipant: LocalParticipant = {} as LocalParticipant;
+      const room: Room = {
+        localParticipant,
+      } as Room;
+
+      // Mock the room in the service
+      service['room'] = room;
+
+      const result = service.getLocalParticipant();
+
+      expect(result).toBe(localParticipant);
+    });
+
+    it('should return undefined if room is not set', () => {
+      // Ensure room is not set
+      service['room'] = undefined as any;
+
+      const result = service.getLocalParticipant();
+
+      expect(result).toBeUndefined();
+    });
+  });
+  describe('send chat message', () => {
+    it('should send a chat message with the correct data and recipient', async () => {
+      const mockRoom = {
+        localParticipant: {
+          publishData: (data: any, options: any) => {},
+        },
+      };
+      const mockMessageEmitter = spyOn(service.messageEmitter, 'emit');
+
+      service.room = mockRoom as any;
+
+      // service['messageEmitter'] = mockMessageEmitter;
+      const publishDataSpy = spyOn(
+        service.room.localParticipant,
+        'publishData'
+      );
+      const message = {
+        msg: 'Hello, world!',
+        recipient: 'user-123',
+      };
+
+      spyOn(crypto, 'randomUUID').and.returnValue(
+        'mock-uuid' as `${string}-${string}-${string}-${string}-${string}`
+      ); // Fix here
+
+      const expectedDataObj = {
+        id: 'mock-uuid',
+        message: message.msg,
+        recipient: message.recipient,
+        timestamp: jasmine.any(Number),
+      };
+
+      await service.sendChatMessage(message);
+
+      expect(publishDataSpy).toHaveBeenCalledTimes(1);
+      expect(publishDataSpy).toHaveBeenCalledWith(jasmine.any(Uint8Array), {
+        reliable: true,
+        destinationIdentities: [message.recipient],
+      });
+
+      expect(mockMessageEmitter).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle error when sending chat message fails', async () => {
+      const mockRoom = {
+        localParticipant: {
+          publishData: (data: any, options: any) => {},
+        },
+      };
+      const mockMessageEmitter = spyOn(service.messageEmitter, 'emit');
+
+      service.room = mockRoom as any;
+      const publishDataSpy = spyOn(
+        service.room.localParticipant,
+        'publishData'
+      );
+      const message = {
+        msg: 'Hello, world!',
+        recipient: 'user-123',
+      };
+      const mockError = new Error('Publish failed');
+
+      spyOn(crypto, 'randomUUID').and.returnValue(
+        'mock-uuid' as `${string}-${string}-${string}-${string}-${string}`
+      ); // Fix here
+
+      publishDataSpy.and.throwError(mockError);
+
+      await service.sendChatMessage(message);
+
+      expect(publishDataSpy).toHaveBeenCalled();
+      expect(mockMessageEmitter).not.toHaveBeenCalled();
+    });
+  });
+  describe('Disconnect room', () => {
+    it('should call disconnect on the room if room is set', () => {
+      const room = jasmine.createSpyObj('Room', ['disconnect']);
+      // Mock the room in the service
+      service['room'] = room as any;
+
+      // Call the method
+      service.disconnectRoom();
+
+      // Check that disconnect was called
+      expect(room.disconnect).toHaveBeenCalled();
+    });
+
+    it('should not call disconnect if room is not set', () => {
+      const room = jasmine.createSpyObj('Room', ['disconnect']);
+      // Ensure room is not set
+      service['room'] = undefined as any;
+
+      // Call the method
+      service.disconnectRoom();
+
+      // Check that disconnect was not called
+      expect(room.disconnect).not.toHaveBeenCalled();
+    });
+  });
+  describe('Audio video handler', () => {
+    it('should attach track muted event handler to the room', () => {
+      const mockRoom = jasmine.createSpyObj<Room>('Room', ['on']);
+      service['room'] = mockRoom;
+      // Verify that the event handler is attached to the Room's 'TrackMuted' event
+      expect(mockRoom.on).toHaveBeenCalledWith(
+        RoomEvent.TrackMuted,
+        jasmine.any(Function)
+      );
+    });
+  });
+  // describe('Room event handlers', () => {
+
+  // });
 });

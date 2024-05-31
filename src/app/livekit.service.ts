@@ -269,77 +269,6 @@ export class LiveKitService {
           }
         }
         this.screenShareTrackSubscribed.emit(publication.track);
-        // if (publication.source === Track.Source.ScreenShare) {
-        //   this.remoteScreenShare = true;
-        //   setTimeout(() => {
-        //     const el2 = document.createElement('div');
-        //     el2.setAttribute('class', 'lk-participant-tile');
-        //     el2.setAttribute(
-        //       'style',
-        //       ` --lk-speaking-indicator-width: 2.5px;
-        //     position: relative;
-        //     display: flex;
-        //     flex-direction: column;
-        //     height:100%;
-        //     gap: 0.375rem;
-        //     overflow: hidden;
-        //     border-radius: 0.5rem;`
-        //     );
-        //     const screenShareTrack = publication.track?.attach();
-        //     if (screenShareTrack) {
-        //       const container = document.querySelector('.lk-focus-layout');
-        //       console.log('screenshare container', container);
-        //       // el2.appendChild(container);
-
-        //       screenShareTrack.setAttribute(
-        //         'style',
-        //         'width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000; object-fit: cover;  object-fit: contain;background-color: #1e1e1e;'
-        //       );
-        //       const el3 = document.createElement('div');
-        //       el3.setAttribute('class', 'lk-participant-metadata');
-        //       el3.setAttribute(
-        //         'style',
-        //         `position: absolute;
-        //       right: 0.25rem;
-        //       bottom: 0.25rem;
-        //       left: 0.25rem;
-        //       display: flex;
-        //       flex-direction: row;
-        //       align-items: center;
-        //       justify-content: space-between;
-        //       gap: 0.5rem;
-        //       line-height: 1;`
-        //       );
-        //       const el4 = document.createElement('div');
-        //       el4.setAttribute('class', 'lk-participant-metadata-item');
-        //       el4.setAttribute(
-        //         'style',
-        //         `display: flex;
-        //       align-items: center;
-        //       padding: 0.25rem;
-        //       background-color: rgba(0, 0, 0, 0.5);
-        //       border-radius: 0.25rem;`
-        //       );
-        //       const el5 = document.createElement('span');
-        //       el5.setAttribute('class', 'lk-participant-name');
-        //       el5.setAttribute(
-        //         'style',
-        //         ` font-size: 0.875rem;
-        //       color: white;
-        //       `
-        //       );
-        //       el2.appendChild(screenShareTrack);
-        //       el2.appendChild(el3);
-        //       el3.appendChild(el4);
-        //       el4.appendChild(el5);
-        //       el5.innerText = participant.identity;
-        //       container?.appendChild(el2);
-        //     } else {
-        //       console.error('Remote screen share container not found');
-        //       this.openSnackBar(`Screen Share not Enabled. Try again later`);
-        //     }
-        //   }, 100);
-        // }
         if (publication.source === Track.Source.ScreenShare) {
           this.remoteScreenShare = true;
           setTimeout(() => {
@@ -427,9 +356,9 @@ export class LiveKitService {
   }
 
   getLocalParticipant() {
-    return this.room.localParticipant;
+    return this.room?.localParticipant;
   }
-  private updateParticipantNames() {
+  updateParticipantNames() {
     this.participantNames = Array.from(this.room.remoteParticipants.values());
     this.participantNamesUpdated.emit(this.participantNames);
 
