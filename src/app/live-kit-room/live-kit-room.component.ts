@@ -129,6 +129,7 @@ export class LiveKitRoomComponent {
     const wsURL = 'wss://warda-ldb690y8.livekit.cloud';
     const token = dynamicToken;
     try {
+      this.livekitService.audioVideoHandler();
       await this.livekitService.connectToRoom(wsURL, token);
       this.isMeetingStarted = true;
     } catch (error: any) {

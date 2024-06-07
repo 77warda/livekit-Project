@@ -10,7 +10,7 @@
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "sourceMap": true,
+    // "sourceMap": true,
     "declaration": false,
     "downlevelIteration": true,
     "experimentalDecorators": true,
@@ -24,6 +24,10 @@
       "dom"
     ]
   },
+  // "exclude": [
+  //   "cypress/**/*.ts",
+  //   "cypress.config.ts"
+  // ],
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,

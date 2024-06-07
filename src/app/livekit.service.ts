@@ -36,7 +36,7 @@ export class LiveKitService {
   screenShareTrackSubscribed = new EventEmitter<any>();
   remoteScreenShare = false;
   private encoder = new TextEncoder();
-  private decoder = new TextDecoder();
+  decoder = new TextDecoder();
   participantNamesUpdated = new EventEmitter<string[]>();
   localParticipantData = new EventEmitter<any>();
   private participantNames: any;
@@ -55,8 +55,7 @@ export class LiveKitService {
   constructor(private snackBar: MatSnackBar) {}
 
   async connectToRoom(wsURL: string, token: string): Promise<void> {
-    this.room = new Room();
-    this.audioVideoHandler();
+    // this.audioVideoHandler();
     await this.room.connect(wsURL, token);
     console.log('Connected to room', this.room);
     this.updateParticipantNames();
@@ -125,12 +124,9 @@ export class LiveKitService {
   }
 
   audioVideoHandler() {
+    this.room = new Room();
     this.participants = this.room.numParticipants;
     console.log('prrr now', this.participants);
-    // this.room.on(RoomEvent.MediaDevicesError, (error: Error) => {
-    //   console.log('screen share', MediaDeviceFailure.getFailure(error));
-    //   this.openSnackBar(`Screen Share Failed: ${error.message}`);
-    // });
     this.room.on(
       RoomEvent.DataReceived,
       (
@@ -361,7 +357,8 @@ export class LiveKitService {
   updateParticipantNames() {
     this.participantNames = Array.from(this.room.remoteParticipants.values());
     this.participantNamesUpdated.emit(this.participantNames);
-
+    console.log('logging ', this.room.localParticipant);
+    console.log('logging 3', this.participantNames);
     this.loacalParticipant = this.room.localParticipant;
     this.localParticipantData.emit(this.loacalParticipant);
 

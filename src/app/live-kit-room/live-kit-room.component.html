@@ -1,4 +1,4 @@
-<div *ngIf="!isMeetingStarted" class="container">
+<div *ngIf="!isMeetingStarted" class="container" data-test="meetingForm">
   <div class="form">
     <form
       [formGroup]="startForm"
@@ -14,13 +14,15 @@
         formControlName="token"
       />
       <div class="startMeeting-container">
-        <button type="submit" class="startBtn">Start Meeting</button>
+        <button data-cy="submit" type="submit" class="startBtn">
+          Start Meeting
+        </button>
       </div>
     </form>
   </div>
 </div>
 <ng-container *ngIf="isMeetingStarted">
-  <div class="os-main-content">
+  <div class="os-main-content" data-test="meetingStarted">
     <header class="header">
       <div class="left-header">
         <button class="grid-view" matTooltip="View">
