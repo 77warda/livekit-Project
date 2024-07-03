@@ -1,4 +1,8 @@
-<div *ngIf="!isMeetingStarted" class="container" data-test="meetingForm">
+<div
+  *ngIf="!(isMeetingStarted$ | async)"
+  class="container"
+  data-test="meetingForm"
+>
   <div class="form">
     <form
       [formGroup]="startForm"
@@ -21,10 +25,10 @@
     </form>
   </div>
 </div>
-<ng-container *ngIf="isMeetingStarted">
+<ng-container *ngIf="isMeetingStarted$ | async">
   <div class="os-main-content" data-test="meetingStarted">
     <header class="header">
-      <div class="left-header">
+      <div class="left-header" data-test="left-header">
         <button class="grid-view" matTooltip="View">
           <i class="far fa-th-large"></i>
         </button>
@@ -61,7 +65,7 @@
           <i class="fas fa-ellipsis-h"></i>
         </button>
         <div class="line"></div>
-        <button class="video" (click)="toggleVideo()">
+        <button data-test="video-test" class="video" (click)="toggleVideo()">
           <i
             class="fas"
             [ngClass]="{
@@ -140,7 +144,10 @@
   </div>
 
   <div class="closeChatSideWindow" (click)="closeChatSideWindow()">
-    <div *ngIf="chatSideWindowVisible" class="chat-side-window-container">
+    <div
+      *ngIf="chatSideWindowVisible$ | async"
+      class="chat-side-window-container"
+    >
       <div class="chat-side-window" (click)="$event.stopPropagation()">
         <div class="chat-detail">
           <div class="os-content-card-nav">
@@ -234,7 +241,7 @@
     (click)="closeParticipantSideWindow()"
   >
     <div
-      *ngIf="participantSideWindowVisible"
+      *ngIf="participantSideWindowVisible$ | async"
       class="participants-side-window-container"
     >
       <div class="participants-side-window" (click)="$event.stopPropagation()">

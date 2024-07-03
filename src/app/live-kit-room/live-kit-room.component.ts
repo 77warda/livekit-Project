@@ -10,10 +10,23 @@ import {
 } from 'livekit-client';
 import { LiveKitService } from '../livekit.service';
 import { FormBuilder, FormGroup } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { ErrorDialogComponent } from '../error-dialog/error-dialog.component';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Store, select } from '@ngrx/store';
+import {
+  selectAllMessages,
+  selectChatSideWindowVisible,
+  selectIsMeetingStarted,
+  selectIsMicOn,
+  selectIsScreenSharing,
+  selectIsVideoOn,
+  selectParticipantSideWindowVisible,
+  selectStream,
+  selectUnreadMessagesCount,
+} from '../redux/selectors';
+import * as LiveKitRoomActions from '../redux/actions';
 
 const GRIDCOLUMN: { [key: number]: string } = {
   1: '1fr',
@@ -29,6 +42,17 @@ const GRIDCOLUMN: { [key: number]: string } = {
   styleUrls: ['./live-kit-room.component.scss'],
 })
 export class LiveKitRoomComponent {
+  // selectors
+  isMeetingStarted$!: Observable<boolean>;
+  stream$!: Observable<MediaStream | undefined>;
+  allMessages$!: Observable<any[]>;
+  unreadMessagesCount$!: Observable<number>;
+  isVideoOn$!: Observable<boolean>;
+  isMicOn$!: Observable<boolean>;
+  isScreenSharing$!: Observable<boolean>;
+  participantSideWindowVisible$!: Observable<boolean>;
+  chatSideWindowVisible$!: Observable<boolean>;
+
   @ViewChild('messageContainer') messageContainer!: ElementRef | any;
   attachedTrack: HTMLElement | null = null;
 
@@ -68,10 +92,39 @@ export class LiveKitRoomComponent {
     private formBuilder: FormBuilder,
     public livekitService: LiveKitService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private store: Store
   ) {}
 
   ngOnInit() {
+    this.livekitService.audioVideoHandler();
+    // ========================
+    this.isMeetingStarted$ = this.store.pipe(select(selectIsMeetingStarted));
+    this.isMeetingStarted$.subscribe((meetingstarted) => {
+      console.log('meeting started', meetingstarted);
+    });
+    this.stream$ = this.store.pipe(select(selectStream));
+    this.stream$.subscribe((stream) => {
+      console.log('stream started', stream);
+    });
+    this.allMessages$ = this.store.pipe(select(selectAllMessages));
+    this.allMessages$.subscribe((msg) => {
+      console.log('msg started', msg);
+    });
+    this.unreadMessagesCount$ = this.store.pipe(
+      select(selectUnreadMessagesCount)
+    );
+    this.isVideoOn$ = this.store.pipe(select(selectIsVideoOn));
+    this.isMicOn$ = this.store.pipe(select(selectIsMicOn));
+    this.isScreenSharing$ = this.store.pipe(select(selectIsScreenSharing));
+    this.participantSideWindowVisible$ = this.store.pipe(
+      select(selectParticipantSideWindowVisible)
+    );
+    this.chatSideWindowVisible$ = this.store.pipe(
+      select(selectChatSideWindowVisible)
+    );
+
+    // ==============================
     this.startForm = this.formBuilder.group({
       token: [''],
     });
@@ -121,6 +174,9 @@ export class LiveKitRoomComponent {
       // this.localParticipant = data.find((p: any) => p.isLocal);
       console.log('local Participant name updated:', this.localParticipant);
     });
+    if ((window as any).Cypress) {
+      (window as any).livekitService = this.livekitService;
+    }
   }
 
   async startMeeting() {
@@ -128,31 +184,32 @@ export class LiveKitRoomComponent {
     console.log('token is', dynamicToken);
     const wsURL = 'wss://warda-ldb690y8.livekit.cloud';
     const token = dynamicToken;
-    try {
-      this.livekitService.audioVideoHandler();
-      await this.livekitService.connectToRoom(wsURL, token);
-      this.isMeetingStarted = true;
-    } catch (error: any) {
-      console.error('Error starting meeting:', error);
-      this.dialog.open(ErrorDialogComponent, {
-        data: {
-          message: `Error starting meeting. Token is invalid. Try Again with a different Token`,
-        },
-      });
-      setTimeout(() => {
-        this.isMeetingStarted = false;
-      }, 3000);
-    }
-    try {
-      await this.livekitService.enableCameraAndMicrophone();
-    } catch (error: any) {
-      console.error('Error starting meeting:', error);
-      this.dialog.open(ErrorDialogComponent, {
-        data: {
-          message: `Error Connecting to Microphone and Camera`,
-        },
-      });
-    }
+    this.store.dispatch(LiveKitRoomActions.startMeeting({ wsURL, token }));
+    // try {
+    //   this.livekitService.audioVideoHandler();
+    //   await this.livekitService.connectToRoom(wsURL, token);
+    //   this.isMeetingStarted = true;
+    // } catch (error: any) {
+    //   console.error('Error starting meeting:', error);
+    //   this.dialog.open(ErrorDialogComponent, {
+    //     data: {
+    //       message: `Error starting meeting. Token is invalid. Try Again with a different Token`,
+    //     },
+    //   });
+    //   setTimeout(() => {
+    //     this.isMeetingStarted = false;
+    //   }, 3000);
+    // }
+    // try {
+    //   await this.livekitService.enableCameraAndMicrophone();
+    // } catch (error: any) {
+    //   console.error('Error starting meeting:', error);
+    //   this.dialog.open(ErrorDialogComponent, {
+    //     data: {
+    //       message: `Error Connecting to Microphone and Camera`,
+    //     },
+    //   });
+    // }
   }
   async startCamera() {
     this.stream = await this.livekitService.startCamera();
@@ -235,22 +292,6 @@ export class LiveKitRoomComponent {
       }
     );
 
-    // this.livekitService.handRaised.subscribe((event) => {
-    //   console.log('Hand raised event:', event);
-
-    //   const participant = this.remoteParticipantNames.find(
-    //     (p: any) => p.identity === event.participant?.identity
-    //   );
-    //   if (participant) {
-    //     participant.handRaised = event.handRaised;
-    //   }
-
-    //   if (event.handRaised) {
-    //     this.openSnackBar(`${event?.participant?.identity} raised hand`);
-    //   } else {
-    //     this.openSnackBar(`${event?.participant?.identity} lowered hand`);
-    //   }
-    // });
     this.livekitService.handRaised.subscribe((event) => {
       console.log('Hand raised event:', event);
 
@@ -291,6 +332,13 @@ export class LiveKitRoomComponent {
   // ==================== header=========================
   async toggleScreenShare() {
     try {
+      // this.isScreenSharing$.subscribe((isScreenSharing) => {
+      //   this.store.dispatch(
+      //     LiveKitRoomActions.toggleScreenShareSuccess({
+      //       isScreenSharing: !isScreenSharing,
+      //     })
+      //   );
+      // });
       await this.livekitService.toggleScreenShare();
       this.isScreenSharing = !this.isScreenSharing;
       console.log('testing', this.isScreenSharing);
@@ -312,31 +360,26 @@ export class LiveKitRoomComponent {
   }
 
   async toggleVideo() {
+    this.isVideoOn = !this.isVideoOn; // Toggle video state locally
     try {
       await this.livekitService.toggleVideo();
-      const localParticipant = this.livekitService.room.localParticipant;
-      this.isVideoOn =
-        localParticipant.isCameraEnabled &&
-        !localParticipant.getTrackPublication(Track.Source.Camera)?.isMuted;
-      this.stream = await this.livekitService.startCamera();
+      // this.isVideoOn$.subscribe((isVideoOn) => {
+      //   this.store.dispatch(
+      //     LiveKitRoomActions.toggleVideoSuccess({ isVideoOn: !isVideoOn })
+      //   );
+      // });
     } catch (error: any) {
       console.error('Error toggling video:', error);
-      this.openSnackBar(`Error video start: ${error.message}`);
+      this.openSnackBar(`⁠Error toggling video: ${error.message}`);
     }
   }
-  // async toggleVideo() {
-  //   this.isVideoOn = !this.isVideoOn; // Toggle video state locally
-  //   try {
-  //     await this.livekitService.toggleVideo();
-  //   } catch (error: any) {
-  //     console.error('Error toggling video:', error);
-  //     this.openSnackBar(`Error toggling video: ${error.message}`);
-  //   }
-  // }
 
   async toggleMic() {
     try {
       await this.livekitService.toggleMicrophone();
+      // this.isMicOn$.subscribe(isMicOn => {
+      //   this.store.dispatch(LiveKitRoomActions.toggleMicSuccess({ isMicOn: !isMicOn }));
+      // });
       this.isMicOn = !this.isMicOn;
       console.log('on/off', this.livekitService.toggleMicrophone);
     } catch (error: any) {
@@ -345,22 +388,26 @@ export class LiveKitRoomComponent {
     }
   }
   openParticipantSideWindow() {
-    this.participantSideWindowVisible = true;
-    this.chatSideWindowVisible = false;
+    // this.participantSideWindowVisible = true;
+    // this.chatSideWindowVisible = false;
+    this.store.dispatch(LiveKitRoomActions.openParticipantSideWindow());
   }
   closeParticipantSideWindow() {
-    this.participantSideWindowVisible = false;
+    // this.participantSideWindowVisible = false;
+    this.store.dispatch(LiveKitRoomActions.closeParticipantSideWindow());
   }
   openChatSideWindow() {
-    this.chatSideWindowVisible = !this.chatSideWindowVisible;
-    this.participantSideWindowVisible = false;
+    // this.chatSideWindowVisible = !this.chatSideWindowVisible;
+    // this.participantSideWindowVisible = false;
+    this.store.dispatch(LiveKitRoomActions.openChatSideWindow());
     if (this.chatSideWindowVisible) {
       this.unreadMessagesCount = 0;
       this.scrollToBottom();
     }
   }
   closeChatSideWindow() {
-    this.chatSideWindowVisible = false;
+    // this.chatSideWindowVisible = false;
+    this.store.dispatch(LiveKitRoomActions.closeChatSideWindow());
   }
   get GalleryGridColumnStyle() {
     if (this.livekitService.room.numParticipants <= 6) {
