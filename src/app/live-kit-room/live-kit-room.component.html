@@ -101,7 +101,7 @@
       </div>
     </header>
 
-    <ng-container
+    <!-- <ng-container
       *ngIf="
         isScreenSharing === true ||
         this.livekitService.remoteScreenShare === true
@@ -109,6 +109,59 @@
     >
       <div class="lk-focus-layout-wrapper">
         <div class="lk-focus-layout"></div>
+      </div>
+    </ng-container> -->
+    <!-- <ng-container
+      *ngIf="
+        isScreenSharing === true ||
+        this.livekitService.remoteScreenShare === true
+      "
+    >
+      <div class="lk-focus-layout-wrapper">
+        <div class="lk-focus-layout" [ngClass]="{ expanded: isExpanded }">
+          <button class="expand-btn" (click)="toggleExpand()">
+            <i class="fas fa-expand-alt"></i>
+          </button>
+        </div>
+      </div>
+    </ng-container> -->
+    <!-- <ng-container
+      *ngIf="
+        isScreenSharing === true ||
+        this.livekitService.remoteScreenShare === true
+      "
+    >
+      <div
+        class="lk-focus-layout-wrapper"
+        [style.grid-column]="isExpanded ? '3 / 9' : '1 / 9'"
+      >
+        <div
+          class="lk-focus-layout"
+          [style.grid-template-columns]="GalleryGridColumnStyle"
+          [ngClass]="{ expanded: isExpanded }"
+        ></div>
+      </div>
+    </ng-container> -->
+    <ng-container
+      *ngIf="
+        isScreenSharing === true ||
+        this.livekitService.remoteScreenShare === true
+      "
+    >
+      <div
+        class="lk-focus-layout-wrapper"
+        [ngClass]="{
+          'screen-share-layout-wrapper': this.livekitService.isExpanded === true
+        }"
+      >
+        <div
+          class="lk-focus-layout"
+          [ngClass]="{ expanded: livekitService.isExpanded }"
+          [ngClass]="{
+            'screen-share-layout': this.livekitService.isExpanded === true
+          }"
+          [style.grid-template-columns]="ScreenGalleryGridColumnStyle"
+        ></div>
       </div>
     </ng-container>
     <div

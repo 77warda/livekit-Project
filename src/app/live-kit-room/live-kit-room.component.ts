@@ -128,8 +128,9 @@ export class LiveKitRoomComponent {
     console.log('token is', dynamicToken);
     const wsURL = 'wss://warda-ldb690y8.livekit.cloud';
     const token = dynamicToken;
+    this.livekitService.audioVideoHandler();
+
     try {
-      this.livekitService.audioVideoHandler();
       await this.livekitService.connectToRoom(wsURL, token);
       this.isMeetingStarted = true;
     } catch (error: any) {
@@ -146,7 +147,7 @@ export class LiveKitRoomComponent {
     try {
       await this.livekitService.enableCameraAndMicrophone();
     } catch (error: any) {
-      console.error('Error starting meeting:', error);
+      console.error('Error Connecting to Microphone and Camera', error);
       this.dialog.open(ErrorDialogComponent, {
         data: {
           message: `Error Connecting to Microphone and Camera`,
@@ -382,4 +383,14 @@ export class LiveKitRoomComponent {
       duration: 3000, // duration in milliseconds
     });
   }
+  get ScreenGalleryGridColumnStyle() {
+    if (this.livekitService.screenShareCount <= 6) {
+      return GRIDCOLUMN[this.livekitService.screenShareCount];
+    } else {
+      return 'repeat(auto-fill, minmax(200px, 1fr))';
+    }
+  }
+  // get isExpanded(): boolean {
+  //   return this.livekitService.isExpanded;
+  // }
 }
