@@ -780,8 +780,72 @@ export class LiveKitService {
   //   }
   // }
 
+  // toggleExpand(element: any, participantId: any) {
+  //   const allElements = document.querySelectorAll('.lk-participant-tile');
+
+  //   // Check if the element is currently expanded
+  //   const isExpanded = element.getAttribute('data-expanded') === 'true';
+
+  //   if (isExpanded) {
+  //     // If the element is expanded, collapse it by resetting the styles
+  //     const originalStyle = element.getAttribute('data-original-style');
+  //     element.setAttribute('style', originalStyle);
+  //     element.setAttribute('data-expanded', 'false');
+
+  //     // Reset all other elements
+  //     allElements.forEach((el) => {
+  //       const originalStyle = el.getAttribute('data-original-style') || '';
+  //       el.setAttribute('style', originalStyle);
+  //       el.setAttribute('data-expanded', 'false');
+  //     });
+  //   } else {
+  //     // Save the original style
+  //     const originalStyle = element.getAttribute('style') || '';
+  //     element.setAttribute('data-original-style', originalStyle);
+
+  //     // If the element is not expanded, expand it by setting the expanded styles
+  //     element.setAttribute(
+  //       'style',
+  //       `
+  //           position: fixed;
+  //           bottom: 0;
+  //           left: 50%;
+  //           transform: translateX(-50%);
+  //           width: 55vw;
+  //           height: 90vh;
+  //           z-index: 10;
+  //           `
+  //     );
+  //     element.setAttribute('data-expanded', 'true');
+
+  //     // Make all other elements small and save their original styles
+  //     allElements.forEach((el) => {
+  //       if (el !== element) {
+  //         const originalStyle = el.getAttribute('style') || '';
+  //         el.setAttribute('data-original-style', originalStyle);
+
+  //         el.setAttribute(
+  //           'style',
+  //           `
+  //                   --lk-speaking-indicator-width: 1px;
+  //                   position: relative;
+  //                   display: flex;
+  //                   flex-direction: column;
+  //                   height: 50%;
+  //                   width: 60%;
+  //                   gap: 0.1rem;
+  //                   overflow: auto;
+  //                   border-radius: 0.25rem;
+  //                   `
+  //         );
+  //         el.setAttribute('data-expanded', 'false');
+  //       }
+  //     });
+  //   }
+  // }
   toggleExpand(element: any, participantId: any) {
-    const allElements = document.querySelectorAll('.lk-participant-tile');
+    const allElements = document.querySelectorAll('.lk-focus-layout');
+    const tileElements = document.querySelectorAll('.lk-participant-tile');
 
     // Check if the element is currently expanded
     const isExpanded = element.getAttribute('data-expanded') === 'true';
@@ -791,13 +855,6 @@ export class LiveKitService {
       const originalStyle = element.getAttribute('data-original-style');
       element.setAttribute('style', originalStyle);
       element.setAttribute('data-expanded', 'false');
-
-      // Reset all other elements
-      allElements.forEach((el) => {
-        const originalStyle = el.getAttribute('data-original-style') || '';
-        el.setAttribute('style', originalStyle);
-        el.setAttribute('data-expanded', 'false');
-      });
     } else {
       // Save the original style
       const originalStyle = element.getAttribute('style') || '';
@@ -807,40 +864,81 @@ export class LiveKitService {
       element.setAttribute(
         'style',
         `
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 55vw;
-            height: 90vh;
-            z-index: 10;
-            `
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 55vw;
+        height: 90vh;
+        z-index: 10;
+      `
       );
       element.setAttribute('data-expanded', 'true');
+    }
 
-      // Make all other elements small and save their original styles
-      allElements.forEach((el) => {
-        if (el !== element) {
-          const originalStyle = el.getAttribute('style') || '';
-          el.setAttribute('data-original-style', originalStyle);
+    // Make all other elements small and save their original styles
 
+    allElements.forEach((el) => {
+      if (el !== element) {
+        const originalStyle =
+          el.getAttribute('data-original-style') ||
+          el.getAttribute('style') ||
+          '';
+        el.setAttribute('data-original-style', originalStyle);
+
+        if (!isExpanded) {
           el.setAttribute(
             'style',
             `
-                    --lk-speaking-indicator-width: 1px;
-                    position: relative;
-                    display: flex;
-                    flex-direction: column;
-                    height: 50%;
-                    width: 60%;
-                    gap: 0.1rem;
-                    overflow: auto;
-                    border-radius: 0.25rem;
-                    `
+            --lk-speaking-indicator-width: 1px;
+            position: relative;
+            display: flex;
+            flex-direction: column !important;
+            height: 50%;
+            width: 100%;
+            gap: 0.1rem;
+            overflow: auto;
+            border-radius: 0.25rem;
+          `
           );
           el.setAttribute('data-expanded', 'false');
+        } else {
+          el.setAttribute('style', originalStyle);
+          el.setAttribute('data-expanded', 'false');
         }
-      });
-    }
+      }
+    });
+    tileElements.forEach((el) => {
+      if (el !== element) {
+        const originalStyle =
+          el.getAttribute('data-original-style') ||
+          el.getAttribute('style') ||
+          '';
+        el.setAttribute('data-original-style', originalStyle);
+
+        if (!isExpanded) {
+          el.setAttribute(
+            'style',
+            `
+            --lk-speaking-indicator-width: 1px;
+              position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 0.375rem;
+            border-radius: 0.5rem;
+            height: 50%;
+            width: 28%;
+            overflow: auto;
+            border-radius: 0.25rem;
+          `
+          );
+          el.setAttribute('data-expanded', 'false');
+        } else {
+          console.log('original', originalStyle);
+          el.setAttribute('style', originalStyle);
+          el.setAttribute('data-expanded', 'false');
+        }
+      }
+    });
   }
 }
