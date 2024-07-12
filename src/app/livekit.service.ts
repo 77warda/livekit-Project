@@ -844,6 +844,14 @@ export class LiveKitService {
   //   }
   // }
   toggleExpand(element: any, participantId: any) {
+    const originalTileElStyle = `--lk-speaking-indicator-width: 2.5px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        height:100%;
+        gap: 0.375rem;
+        overflow: hidden;
+        border-radius: 0.5rem;`;
     const allElements = document.querySelectorAll('.lk-focus-layout');
     const tileElements = document.querySelectorAll('.lk-participant-tile');
 
@@ -852,13 +860,13 @@ export class LiveKitService {
 
     if (isExpanded) {
       // If the element is expanded, collapse it by resetting the styles
-      const originalStyle = element.getAttribute('data-original-style');
-      element.setAttribute('style', originalStyle);
+      // const originalStyle = element.getAttribute('data-original-style');
+      element.setAttribute('style', originalTileElStyle);
       element.setAttribute('data-expanded', 'false');
     } else {
       // Save the original style
-      const originalStyle = element.getAttribute('style') || '';
-      element.setAttribute('data-original-style', originalStyle);
+      // const originalStyle = element.getAttribute('style') || '';
+      element.setAttribute('data-original-style', originalTileElStyle);
 
       // If the element is not expanded, expand it by setting the expanded styles
       element.setAttribute(
@@ -880,11 +888,11 @@ export class LiveKitService {
 
     allElements.forEach((el) => {
       if (el !== element) {
-        const originalStyle =
+        const originalFocusLayoutStyle =
           el.getAttribute('data-original-style') ||
           el.getAttribute('style') ||
           '';
-        el.setAttribute('data-original-style', originalStyle);
+        el.setAttribute('data-original-style', originalFocusLayoutStyle);
 
         if (!isExpanded) {
           el.setAttribute(
@@ -903,18 +911,18 @@ export class LiveKitService {
           );
           el.setAttribute('data-expanded', 'false');
         } else {
-          el.setAttribute('style', originalStyle);
+          el.setAttribute('style', originalFocusLayoutStyle);
           el.setAttribute('data-expanded', 'false');
         }
       }
     });
     tileElements.forEach((el) => {
       if (el !== element) {
-        const originalStyle =
-          el.getAttribute('data-original-style') ||
-          el.getAttribute('style') ||
-          '';
-        el.setAttribute('data-original-style', originalStyle);
+        // const originalStyle =
+        //   el.getAttribute('data-original-style') ||
+        //   el.getAttribute('style') ||
+        //   '';
+        el.setAttribute('data-original-style', originalTileElStyle);
 
         if (!isExpanded) {
           el.setAttribute(
@@ -934,8 +942,8 @@ export class LiveKitService {
           );
           el.setAttribute('data-expanded', 'false');
         } else {
-          console.log('original', originalStyle);
-          el.setAttribute('style', originalStyle);
+          console.log('original', originalTileElStyle);
+          el.setAttribute('style', originalTileElStyle);
           el.setAttribute('data-expanded', 'false');
         }
       }
