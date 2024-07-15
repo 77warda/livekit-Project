@@ -54,7 +54,7 @@ export const toggleScreenShare = createAction(
 );
 
 export const toggleScreenShareSuccess = createAction(
-  '[LiveKit Room] Toggle Screen Share Success',
+  '[LiveKit] Toggle Screen Share Success',
   props<{ isScreenSharing: boolean }>()
 );
 

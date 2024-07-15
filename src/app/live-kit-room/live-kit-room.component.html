@@ -83,7 +83,7 @@
             }"
           ></i>
         </button>
-        <button class="share" (click)="toggleScreenShare()">
+        <!-- <button class="share" (click)="toggleScreenShare()">
           <span class="material-symbols-outlined" *ngIf="!isScreenSharing">
             screen_share
           </span>
@@ -94,7 +94,23 @@
           >
             stop_screen_share
           </span>
+        </button> -->
+        <button class="share" (click)="toggleScreenShare()">
+          <span
+            class="material-symbols-outlined"
+            *ngIf="!(isScreenSharing$ | async)"
+          >
+            screen_share
+          </span>
+          <span
+            class="material-symbols-outlined"
+            *ngIf="isScreenSharing$ | async"
+            [ngStyle]="{ color: (iconColor$ | async) }"
+          >
+            stop_screen_share
+          </span>
         </button>
+
         <button class="leave-btn" (click)="leaveBtn()">
           <div class="phone-icon">
             <!-- <span class="material-symbols-outlined"> call_end </span> -->

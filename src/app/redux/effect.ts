@@ -19,10 +19,30 @@ export class LiveKitRoomEffects {
         from(
           this.livekitService.connectToRoom(action.wsURL, action.token)
         ).pipe(
-          tap(() => console.log('Starting meeting:', action)),
+          tap(() => console.log('Starting meet', action)),
           map(() => LiveKitRoomActions.startMeetingSuccess()),
           catchError((error) =>
             of(LiveKitRoomActions.startMeetingFailure({ error: error.message }))
+          )
+        )
+      )
+    )
+  );
+
+  toggleScreenShare$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.toggleScreenShare),
+      mergeMap(() =>
+        from(this.livekitService.toggleScreenShare()).pipe(
+          map((isScreenSharing: any) =>
+            LiveKitRoomActions.toggleScreenShareSuccess({ isScreenSharing })
+          ),
+          catchError((error) =>
+            of(
+              LiveKitRoomActions.toggleScreenShareFailure({
+                error: error.message,
+              })
+            )
           )
         )
       )
@@ -61,6 +81,22 @@ export class LiveKitRoomEffects {
           }),
           catchError((error) =>
             of(LiveKitRoomActions.startCameraFailure({ error: error.message }))
+          )
+        )
+      )
+    )
+  );
+
+  toggleMicrophone$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.toggleMic),
+      mergeMap(() =>
+        from(this.livekitService.toggleMicrophone()).pipe(
+          map((isMicOn: any) =>
+            LiveKitRoomActions.toggleMicSuccess({ isMicOn })
+          ),
+          catchError((error) =>
+            from([LiveKitRoomActions.toggleMicFailure({ error })])
           )
         )
       )

@@ -58,3 +58,8 @@ export const selectChatSideWindowVisible = createSelector(
   selectLiveKitRoomState,
   (state: LiveKitRoomState) => state.chatSideWindowVisible
 );
+
+export const selectIconColor = createSelector(
+  selectIsScreenSharing,
+  (isScreenSharing) => (isScreenSharing ? 'green' : 'black')
+);

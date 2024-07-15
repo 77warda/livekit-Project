@@ -18,6 +18,7 @@ import { Store, select } from '@ngrx/store';
 import {
   selectAllMessages,
   selectChatSideWindowVisible,
+  selectIconColor,
   selectIsMeetingStarted,
   selectIsMicOn,
   selectIsScreenSharing,
@@ -49,9 +50,10 @@ export class LiveKitRoomComponent {
   unreadMessagesCount$!: Observable<number>;
   isVideoOn$!: Observable<boolean>;
   isMicOn$!: Observable<boolean>;
-  isScreenSharing$!: Observable<boolean>;
   participantSideWindowVisible$!: Observable<boolean>;
   chatSideWindowVisible$!: Observable<boolean>;
+  isScreenSharing$!: Observable<boolean>;
+  iconColor$!: Observable<string>;
 
   @ViewChild('messageContainer') messageContainer!: ElementRef | any;
   attachedTrack: HTMLElement | null = null;
@@ -116,14 +118,14 @@ export class LiveKitRoomComponent {
     );
     this.isVideoOn$ = this.store.pipe(select(selectIsVideoOn));
     this.isMicOn$ = this.store.pipe(select(selectIsMicOn));
-    this.isScreenSharing$ = this.store.pipe(select(selectIsScreenSharing));
     this.participantSideWindowVisible$ = this.store.pipe(
       select(selectParticipantSideWindowVisible)
     );
     this.chatSideWindowVisible$ = this.store.pipe(
       select(selectChatSideWindowVisible)
     );
-
+    this.isScreenSharing$ = this.store.pipe(select(selectIsScreenSharing));
+    this.iconColor$ = this.store.pipe(select(selectIconColor));
     // ==============================
     this.startForm = this.formBuilder.group({
       token: [''],
@@ -332,25 +334,19 @@ export class LiveKitRoomComponent {
   // ==================== header=========================
   async toggleScreenShare() {
     try {
-      // this.isScreenSharing$.subscribe((isScreenSharing) => {
-      //   this.store.dispatch(
-      //     LiveKitRoomActions.toggleScreenShareSuccess({
-      //       isScreenSharing: !isScreenSharing,
-      //     })
-      //   );
-      // });
-      await this.livekitService.toggleScreenShare();
-      this.isScreenSharing = !this.isScreenSharing;
+      // await this.livekitService.toggleScreenShare();
+      // this.isScreenSharing = !this.isScreenSharing;
+      this.store.dispatch(LiveKitRoomActions.toggleScreenShare());
       console.log('testing', this.isScreenSharing);
-      if (this.isScreenSharing) {
-        this.iconColor = 'green';
-      } else {
-        this.iconColor = 'black';
-      }
-      if (this.livekitService.remoteParticipantSharingScreen === true) {
-        // this.isScreenSharingEnabled = false;
-        this.isScreenSharing = false;
-      }
+      // if (this.isScreenSharing) {
+      //   this.iconColor = 'green';
+      // } else {
+      //   this.iconColor = 'black';
+      // }
+      // if (this.livekitService.remoteParticipantSharingScreen === true) {
+      //   // this.isScreenSharingEnabled = false;
+      //   this.isScreenSharing = false;
+      // }
     } catch (error: any) {
       console.error('Error toggling video:', error);
 
@@ -363,11 +359,6 @@ export class LiveKitRoomComponent {
     this.isVideoOn = !this.isVideoOn; // Toggle video state locally
     try {
       await this.livekitService.toggleVideo();
-      // this.isVideoOn$.subscribe((isVideoOn) => {
-      //   this.store.dispatch(
-      //     LiveKitRoomActions.toggleVideoSuccess({ isVideoOn: !isVideoOn })
-      //   );
-      // });
     } catch (error: any) {
       console.error('Error toggling video:', error);
       this.openSnackBar(`⁠Error toggling video: ${error.message}`);
