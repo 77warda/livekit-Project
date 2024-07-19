@@ -26,22 +26,22 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 })
 export class LiveKitService {
   room!: Room;
-  remoteScreenSharers: any[] = [];
-  buttonClicked = new EventEmitter<string>();
-  private expandedScreens: { [id: string]: boolean } = {};
+  // remoteScreenSharers: any[] = [];
+  // buttonClicked = new EventEmitter<string>();
+  // private expandedScreens: { [id: string]: boolean } = {};
 
   remoteVideoTrackSubscribed = new EventEmitter<RemoteTrack>();
   remoteParticipantName: string = '';
   remoteAudioTrackSubscribed = new EventEmitter();
   isScreenSharingEnabled = false;
-  private screenSharingInProgress = false;
-  private isOtherParticipantSharing = false;
+  // private screenSharingInProgress = false;
+  // private isOtherParticipantSharing = false;
   videoStatusChanged = new EventEmitter<boolean>();
-  remoteParticipantSharingScreen!: boolean;
+  // remoteParticipantSharingScreen!: boolean;
   participants!: number;
   screenShareTrackSubscribed = new EventEmitter<any>();
   remoteScreenShare = false;
-  private encoder = new TextEncoder();
+  // private encoder = new TextEncoder();
   decoder = new TextDecoder();
   participantNamesUpdated = new EventEmitter<string[]>();
   localParticipantData = new EventEmitter<any>();
@@ -58,14 +58,16 @@ export class LiveKitService {
     handRaised: boolean;
   }>();
   messageEmitter = new EventEmitter<any>();
-  messages: { sender: string; text: string; timestamp: Date }[] = [];
-  private participantScreenShareState: { [participantId: string]: boolean } =
-    {};
+  // private participantScreenShares: Map<string, boolean> = new Map();
+  // messages: { sender: string; text: string; timestamp: Date }[] = [];
+  // private participantScreenShareState: { [participantId: string]: boolean } =
+  //   {};
+
   constructor(private snackBar: MatSnackBar) {}
 
   async connectToRoom(wsURL: string, token: string): Promise<void> {
     // this.audioVideoHandler();
-    await this.room.connect(wsURL, token);
+    await this.room.connect(wsURL, token, { autoSubscribe: false });
     console.log('Connected to room', this.room);
     this.updateParticipantNames();
   }
@@ -148,12 +150,12 @@ export class LiveKitService {
         console.log('mesg', JSON.parse(strData));
         console.log('participant', participant);
         this.msgDataReceived.emit({ message, participant });
-        if (message.type === 'handRaise') {
-          this.handRaised.emit({
-            participant: participant,
-            handRaised: message.handRaised,
-          });
-        }
+        // if (message.type === 'handRaise') {
+        //   this.handRaised.emit({
+        //     participant: participant,
+        //     handRaised: message.handRaised,
+        //   });
+        // }
       }
     );
     this.room.on(RoomEvent.TrackMuted, this.handleTrackMuted.bind(this));
@@ -163,9 +165,9 @@ export class LiveKitService {
       RoomEvent.TrackSubscribed,
       this.handleTrackSubscribed.bind(this)
     );
-    this.room.on(RoomEvent.ParticipantConnected, (participant) =>
-      this.updateParticipantNames()
-    );
+    this.room.on(RoomEvent.ParticipantConnected, (participant) => {
+      this.updateParticipantNames();
+    });
     this.room.on(
       RoomEvent.ParticipantDisconnected,
       this.handleParticipantDisconnected.bind(this)
@@ -180,11 +182,16 @@ export class LiveKitService {
 
     this.room.on(RoomEvent.TrackPublished, (publication, participant) => {
       publication.setSubscribed(true);
+      console.log(
+        `TrackPublished: ${publication.trackName} from ${participant.identity}`
+      );
     });
     this.room.on(
       RoomEvent.LocalTrackUnpublished,
       (publication: LocalTrackPublication, participant: LocalParticipant) => {
         if (publication.source === Track.Source.ScreenShare) {
+          console.log('hello', this.room.localParticipant.isScreenShareEnabled);
+          this.isScreenSharingEnabled = false;
           this.remoteScreenShare = false;
           this.screenShareCount--;
         }
@@ -461,7 +468,6 @@ export class LiveKitService {
 
   handleTrackSubscribed(
     track: RemoteTrack,
-
     publication: RemoteTrackPublication,
     participant: RemoteParticipant
   ) {
@@ -691,57 +697,8 @@ export class LiveKitService {
     }
   }
 
-  // async toggleScreenShare(): Promise<void> {
-  //   if (this.isScreenSharingEnabled === true) {
-  //     await this.room.localParticipant.setScreenShareEnabled(false);
-  //     this.isScreenSharingEnabled = false;
-  //     // const container = document.querySelector('.lk-focus-layout');
-  //     // if (container) {
-  //     //   container.remove();
-  //     // } else {
-  //     //   console.error('Local screen share container not found');
-  //     // }
-  //   } else {
-  //     this.remoteParticipantSharingScreen = false;
-  //     this.room.remoteParticipants.forEach((participant) => {
-  //       participant.trackPublications.forEach((publication) => {
-  //         if (
-  //           publication.track &&
-  //           publication.track.source === Track.Source.ScreenShare
-  //         ) {
-  //           // await this.room.localParticipant.setScreenShareEnabled(true);
-  //           // this.isScreenSharingEnabled = true;
-  //           this.remoteParticipantSharingScreen = true;
-  //         }
-  //       });
-  //     });
-  //     // Check if any remote participant is already sharing screen
-  //     // if (this.remoteParticipantSharingScreen) {
-  //     //   console.log('Another participant is already sharing their screen.');
-  //     //   const modal = document.getElementById('myModal') as HTMLElement;
-  //     //   const closeBtn = modal?.querySelector('.close') as HTMLElement;
-
-  //     //   modal?.setAttribute('style', 'display:block');
-
-  //     //   closeBtn.onclick = function () {
-  //     //     modal?.setAttribute('style', 'display:none');
-  //     //   };
-
-  //     //   window.onclick = function (event) {
-  //     //     if (event.target == modal) {
-  //     //       modal?.setAttribute('style', 'display:none');
-  //     //     }
-  //     //   };
-  //     // } else {
-  //     // No participant is sharing screen, proceed to start screen sharing
-  //     await this.room.localParticipant.setScreenShareEnabled(true);
-  //     this.isScreenSharingEnabled = true;
-  //     // }
-  //   }
-  // }
-
   async toggleScreenShare(): Promise<void> {
-    if (this.isScreenSharingEnabled === true) {
+    if (this.isScreenSharingEnabled) {
       await this.room.localParticipant.setScreenShareEnabled(false);
       this.isScreenSharingEnabled = false;
       const container = document.querySelector('.lk-focus-layout');

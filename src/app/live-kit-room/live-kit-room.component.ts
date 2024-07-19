@@ -32,10 +32,7 @@ export class LiveKitRoomComponent {
   @ViewChild('messageContainer') messageContainer!: ElementRef | any;
   attachedTrack: HTMLElement | null = null;
 
-  // sharedLayout!: boolean;
-  // withVideo!: boolean;
-  // isScreenSharingEnabled: boolean = false;
-  roomDetails: { wsURL: string; token: string } | null = null;
+  // roomDetails: { wsURL: string; token: string } | null = null;
   startForm!: FormGroup;
   chatForm!: FormGroup;
   isMeetingStarted = false;
@@ -43,10 +40,10 @@ export class LiveKitRoomComponent {
   // localParticipantName: string = '';
   screenShareTrackSubscription!: Subscription;
   screenShareTrack!: RemoteTrack | undefined;
-  // previousSenderName: string = '';
   unreadMessagesCount = 0;
   remoteParticipantNames: any;
   localParticipant: any;
+  handRaiseStates: { [identity: string]: boolean } = {};
 
   // ==================== header=========================
   participantSideWindowVisible = false;
@@ -57,10 +54,6 @@ export class LiveKitRoomComponent {
   isScreenRecording = true;
   recordingTime = '00:22:23';
   isScreenSharing = false;
-
-  // allParticipants: RemoteParticipant[] = [];
-  // receivedMessages: any[] = [];
-  // messageSent: any[] = [];
   allMessages: any[] = [];
   room!: Room;
 
@@ -80,23 +73,41 @@ export class LiveKitRoomComponent {
       participant: [''],
     });
     this.livekitService.msgDataReceived.subscribe((data) => {
-      console.log('Received message:', data.message);
-      console.log('Participant:', data.participant);
+      console.log('Received message:', data.message.handRaised);
 
-      const receivedMsg = data?.message?.message;
-      const senderName = data?.participant?.identity;
-      const receivingTime = data?.message?.timestamp;
-      this.allMessages.push({
-        senderName,
-        receivedMsg,
-        receivingTime,
-        type: 'received',
-      });
-      if (!this.chatSideWindowVisible) {
-        this.unreadMessagesCount++;
+      console.log('Participant:', data.participant);
+      if (data.message.handRaised === true) {
+        // console.log(`${data.participant} raised its hand`);
+        if (data.participant) {
+          // null check
+          this.handRaiseStates[data.participant.identity] = true;
+          this.openSnackBar(`${data.participant.identity} raised its hand`);
+        }
       }
-      this.scrollToBottom();
-      this.sortMessages();
+      if (data.message.handRaised === false) {
+        console.log(`${data.participant} lowered its hand`);
+        if (data.participant) {
+          // null check
+          this.handRaiseStates[data.participant.identity] = false;
+          this.openSnackBar(`${data.participant.identity} lowered its hand`);
+        }
+      }
+      if (data.message.type !== 'handRaise') {
+        const receivedMsg = data?.message?.message;
+        const senderName = data?.participant?.identity;
+        const receivingTime = data?.message?.timestamp;
+        this.allMessages.push({
+          senderName,
+          receivedMsg,
+          receivingTime,
+          type: 'received',
+        });
+        if (!this.chatSideWindowVisible) {
+          this.unreadMessagesCount++;
+        }
+        this.scrollToBottom();
+        this.sortMessages();
+      }
     });
     this.livekitService.messageEmitter.subscribe((data: any) => {
       console.log('data', data);
@@ -186,15 +197,37 @@ export class LiveKitRoomComponent {
 
     this.chatForm.reset();
   }
+
   toggleRaiseHand() {
+    console.log('raised');
     if (this.localParticipant.handRaised) {
+      this.localParticipant.handRaised = false;
       this.livekitService.lowerHand(this.localParticipant);
+      this.openSnackBar(`${this.localParticipant.identity} lowered hand`);
+      this.handRaiseStates[this.localParticipant.identity] = false;
     } else {
+      this.localParticipant.handRaised = true;
       this.livekitService.raiseHand(this.localParticipant);
+      this.openSnackBar(`${this.localParticipant.identity} raised hand`);
+      this.handRaiseStates[this.localParticipant.identity] = true;
     }
   }
 
   ngAfterViewInit(): void {
+    this.livekitService.remoteVideoTrackSubscribed.subscribe(
+      (
+        track: RemoteTrack,
+        publication: RemoteTrackPublication,
+        participant: RemoteParticipant
+      ) => {
+        this.livekitService.handleTrackSubscribed(
+          track,
+          publication,
+          participant
+        );
+        console.log('Warda video', track);
+      }
+    );
     this.screenShareTrackSubscription =
       this.livekitService.screenShareTrackSubscribed.subscribe(
         (track: RemoteTrack | undefined) => {
@@ -209,19 +242,7 @@ export class LiveKitRoomComponent {
           }
         }
       );
-    this.livekitService.remoteVideoTrackSubscribed.subscribe(
-      (
-        track: RemoteTrack,
-        publication: RemoteTrackPublication,
-        participant: RemoteParticipant
-      ) => {
-        this.livekitService.handleTrackSubscribed(
-          track,
-          publication,
-          participant
-        );
-      }
-    );
+
     this.livekitService.remoteAudioTrackSubscribed.subscribe(
       (
         track: RemoteTrack,
@@ -235,52 +256,6 @@ export class LiveKitRoomComponent {
         );
       }
     );
-
-    // this.livekitService.handRaised.subscribe((event) => {
-    //   console.log('Hand raised event:', event);
-
-    //   const participant = this.remoteParticipantNames.find(
-    //     (p: any) => p.identity === event.participant?.identity
-    //   );
-    //   if (participant) {
-    //     participant.handRaised = event.handRaised;
-    //   }
-
-    //   if (event.handRaised) {
-    //     this.openSnackBar(`${event?.participant?.identity} raised hand`);
-    //   } else {
-    //     this.openSnackBar(`${event?.participant?.identity} lowered hand`);
-    //   }
-    // });
-    this.livekitService.handRaised.subscribe((event) => {
-      console.log('Hand raised event:', event);
-
-      // Find the participant locally
-      const localParticipant = this.localParticipant.find(
-        (p: any) => p.identity === event.participant?.identity
-      );
-
-      // Find the participant remotely
-      const remoteParticipant = this.remoteParticipantNames.find(
-        (p: any) => p.identity === event.participant?.identity
-      );
-
-      // Update hand raise status for both local and remote participants
-      if (localParticipant) {
-        localParticipant.handRaised = event.handRaised;
-      }
-
-      if (remoteParticipant) {
-        remoteParticipant.handRaised = event.handRaised;
-      }
-
-      // Show snackbar based on the hand raise event
-      if (event.handRaised) {
-        this.openSnackBar(`${event?.participant?.identity} raised hand`);
-      } else {
-        this.openSnackBar(`${event?.participant?.identity} lowered hand`);
-      }
-    });
   }
 
   async leaveBtn() {
@@ -290,50 +265,44 @@ export class LiveKitRoomComponent {
   }
 
   // ==================== header=========================
+
   async toggleScreenShare() {
     try {
       await this.livekitService.toggleScreenShare();
-      this.isScreenSharing = !this.isScreenSharing;
-      console.log('testing', this.isScreenSharing);
-      if (this.isScreenSharing) {
+      console.log('testing', this.livekitService.isScreenSharingEnabled);
+      if (this.livekitService.isScreenSharingEnabled) {
         this.iconColor = 'green';
       } else {
         this.iconColor = 'black';
       }
-      if (this.livekitService.remoteParticipantSharingScreen === true) {
-        // this.isScreenSharingEnabled = false;
-        this.isScreenSharing = false;
-      }
     } catch (error: any) {
       console.error('Error toggling video:', error);
-
       this.openSnackBar(`Error Screen Sharing: ${error.message}`);
-      // Handle error (e.g., show an error message to the user)
     }
   }
 
-  async toggleVideo() {
-    try {
-      await this.livekitService.toggleVideo();
-      const localParticipant = this.livekitService.room.localParticipant;
-      this.isVideoOn =
-        localParticipant.isCameraEnabled &&
-        !localParticipant.getTrackPublication(Track.Source.Camera)?.isMuted;
-      this.stream = await this.livekitService.startCamera();
-    } catch (error: any) {
-      console.error('Error toggling video:', error);
-      this.openSnackBar(`Error video start: ${error.message}`);
-    }
-  }
   // async toggleVideo() {
-  //   this.isVideoOn = !this.isVideoOn; // Toggle video state locally
   //   try {
   //     await this.livekitService.toggleVideo();
+  //     const localParticipant = this.livekitService.room.localParticipant;
+  //     this.isVideoOn =
+  //       localParticipant.isCameraEnabled &&
+  //       !localParticipant.getTrackPublication(Track.Source.Camera)?.isMuted;
+  //     this.stream = await this.livekitService.startCamera();
   //   } catch (error: any) {
   //     console.error('Error toggling video:', error);
-  //     this.openSnackBar(`Error toggling video: ${error.message}`);
+  //     this.openSnackBar(`Error video start: ${error.message}`);
   //   }
   // }
+  async toggleVideo() {
+    this.isVideoOn = !this.isVideoOn; // Toggle video state locally
+    try {
+      await this.livekitService.toggleVideo();
+    } catch (error: any) {
+      console.error('Error toggling video:', error);
+      this.openSnackBar(`Error toggling video: ${error.message}`);
+    }
+  }
 
   async toggleMic() {
     try {
@@ -346,7 +315,7 @@ export class LiveKitRoomComponent {
     }
   }
   openParticipantSideWindow() {
-    this.participantSideWindowVisible = true;
+    this.participantSideWindowVisible = !this.participantSideWindowVisible;
     this.chatSideWindowVisible = false;
   }
   closeParticipantSideWindow() {
@@ -390,7 +359,4 @@ export class LiveKitRoomComponent {
       return 'repeat(auto-fill, minmax(200px, 1fr))';
     }
   }
-  // get isExpanded(): boolean {
-  //   return this.livekitService.isExpanded;
-  // }
 }

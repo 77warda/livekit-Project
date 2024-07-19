@@ -79,13 +79,17 @@
             }"
           ></i>
         </button>
+
         <button class="share" (click)="toggleScreenShare()">
-          <span class="material-symbols-outlined" *ngIf="!isScreenSharing">
+          <span
+            class="material-symbols-outlined"
+            *ngIf="!livekitService.isScreenSharingEnabled"
+          >
             screen_share
           </span>
           <span
             class="material-symbols-outlined"
-            *ngIf="isScreenSharing"
+            *ngIf="livekitService.isScreenSharingEnabled"
             [ngStyle]="{ color: iconColor }"
           >
             stop_screen_share
@@ -101,94 +105,46 @@
       </div>
     </header>
 
-    <!-- <ng-container
-      *ngIf="
-        isScreenSharing === true ||
-        this.livekitService.remoteScreenShare === true
-      "
-    >
-      <div class="lk-focus-layout-wrapper">
-        <div class="lk-focus-layout"></div>
-      </div>
-    </ng-container> -->
-    <!-- <ng-container
-      *ngIf="
-        isScreenSharing === true ||
-        this.livekitService.remoteScreenShare === true
-      "
-    >
-      <div class="lk-focus-layout-wrapper">
-        <div class="lk-focus-layout" [ngClass]="{ expanded: isExpanded }">
-          <button class="expand-btn" (click)="toggleExpand()">
-            <i class="fas fa-expand-alt"></i>
-          </button>
-        </div>
-      </div>
-    </ng-container> -->
-    <!-- <ng-container
-      *ngIf="
-        isScreenSharing === true ||
-        this.livekitService.remoteScreenShare === true
-      "
-    >
-      <div
-        class="lk-focus-layout-wrapper"
-        [style.grid-column]="isExpanded ? '3 / 9' : '1 / 9'"
-      >
-        <div
-          class="lk-focus-layout"
-          [style.grid-template-columns]="GalleryGridColumnStyle"
-          [ngClass]="{ expanded: isExpanded }"
-        ></div>
-      </div>
-    </ng-container> -->
     <ng-container
       *ngIf="
-        isScreenSharing === true ||
-        this.livekitService.remoteScreenShare === true
+        livekitService.isScreenSharingEnabled === true ||
+        livekitService.remoteScreenShare === true
       "
     >
       <div
         class="lk-focus-layout-wrapper"
         [ngClass]="{
-          'screen-share-layout-wrapper': this.livekitService.isExpanded === true
+          'screen-share-layout-wrapper': livekitService.isExpanded === true
         }"
       >
         <div
           class="lk-focus-layout"
           [ngClass]="{ expanded: livekitService.isExpanded }"
           [ngClass]="{
-            'screen-share-layout': this.livekitService.isExpanded === true
+            'screen-share-layout': livekitService.isExpanded === true
           }"
           [style.grid-template-columns]="ScreenGalleryGridColumnStyle"
         ></div>
       </div>
     </ng-container>
+
     <div
       class="lk-grid-layout-wrapper"
       [ngClass]="{
         'screen-share-layout-wrapper':
-          isScreenSharing === true ||
-          this.livekitService.remoteScreenShare === true
+          livekitService.isScreenSharingEnabled === true ||
+          livekitService.remoteScreenShare === true
       }"
     >
       <div
         class="lk-grid-layout"
         [ngClass]="{
           'screen-share-layout':
-            isScreenSharing === true ||
-            this.livekitService.remoteScreenShare === true
+            livekitService.isScreenSharingEnabled === true ||
+            livekitService.remoteScreenShare === true
         }"
         [style.grid-template-columns]="GalleryGridColumnStyle"
       ></div>
-    </div>
-    <!-- modal to show a person is already sharing screen  -->
-
-    <div id="myModal" class="modal">
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <p>Another participant is already sharing its screen.</p>
-      </div>
     </div>
   </div>
 
@@ -300,14 +256,21 @@
                 <p>{{ extractInitials(localParticipant.identity) }}</p>
               </div>
               <div class="name">{{ localParticipant.identity }}(You)</div>
-
-              <span *ngIf="localParticipant.handRaised" class="raised-hand-icon"
+              <span
+                *ngIf="handRaiseStates[localParticipant?.identity]"
+                class="raised-hand-icon"
                 >✋</span
               >
             </div>
             <div class="right-side">
               <div class="screen-share-icon">
-                <span class="material-symbols-outlined" *ngIf="isScreenSharing">
+                <span
+                  class="material-symbols-outlined"
+                  *ngIf="
+                    this.livekitService.isScreenSharingEnabled ||
+                    isScreenSharing
+                  "
+                >
                   screen_share
                 </span>
               </div>
@@ -340,7 +303,9 @@
                 <p>{{ extractInitials(participant.identity) }}</p>
               </div>
               <div class="name">{{ participant.identity }}</div>
-              <span *ngIf="participant.handRaised" class="raised-hand-icon"
+              <span
+                *ngIf="handRaiseStates[participant?.identity]"
+                class="raised-hand-icon"
                 >✋</span
               >
             </div>
