@@ -4,12 +4,12 @@ import { RemoteTrack } from 'livekit-client';
 
 export interface LiveKitRoomState {
   isMeetingStarted: boolean;
-  stream?: MediaStream;
   allMessages: any[];
   unreadMessagesCount: number;
   isVideoOn: boolean;
   isMicOn: boolean;
   isScreenSharing: boolean;
+  iconColor: string;
   participantSideWindowVisible: boolean;
   chatSideWindowVisible: boolean;
   error?: string;
@@ -22,6 +22,7 @@ export const initialState: LiveKitRoomState = {
   isVideoOn: false,
   isMicOn: false,
   isScreenSharing: false,
+  iconColor: 'black',
   participantSideWindowVisible: false,
   chatSideWindowVisible: false,
 };
@@ -47,20 +48,16 @@ export const liveKitRoomReducer = createReducer(
       error,
     })
   ),
-  on(LiveKitRoomActions.startCameraSuccess, (state, { stream }) => ({
-    ...state,
-    stream,
-  })),
-  on(LiveKitRoomActions.startCameraFailure, (state, { error }) => ({
-    ...state,
-    error,
-  })),
   on(
     LiveKitRoomActions.toggleScreenShareSuccess,
-    (state, { isScreenSharing }) => ({
-      ...state,
-      isScreenSharing,
-    })
+    (state, { isScreenSharing }) => {
+      console.log('Reducer: Screen Sharing Success', isScreenSharing);
+      return {
+        ...state,
+        isScreenSharing,
+        iconColor: isScreenSharing ? 'green' : 'black',
+      };
+    }
   ),
   on(LiveKitRoomActions.toggleScreenShareFailure, (state, { error }) => ({
     ...state,
@@ -82,25 +79,34 @@ export const liveKitRoomReducer = createReducer(
     ...state,
     error,
   })),
-  on(LiveKitRoomActions.openParticipantSideWindow, (state) => ({
+
+  on(LiveKitRoomActions.closeChatSideWindow, (state) => ({
     ...state,
-    participantSideWindowVisible: true,
     chatSideWindowVisible: false,
   })),
   on(LiveKitRoomActions.closeParticipantSideWindow, (state) => ({
     ...state,
     participantSideWindowVisible: false,
   })),
-  on(LiveKitRoomActions.openChatSideWindow, (state) => ({
+
+  on(LiveKitRoomActions.toggleParticipantSideWindow, (state) => ({
     ...state,
-    chatSideWindowVisible: true,
-    participantSideWindowVisible: false,
+    participantSideWindowVisible: !state.participantSideWindowVisible,
+    chatSideWindowVisible:
+      state.chatSideWindowVisible && !state.participantSideWindowVisible
+        ? false
+        : state.chatSideWindowVisible,
+  })),
+  on(LiveKitRoomActions.toggleChatSideWindow, (state) => ({
+    ...state,
+    chatSideWindowVisible: !state.chatSideWindowVisible,
     unreadMessagesCount: 0,
+    participantSideWindowVisible:
+      state.participantSideWindowVisible && !state.chatSideWindowVisible
+        ? false
+        : state.participantSideWindowVisible,
   })),
-  on(LiveKitRoomActions.closeChatSideWindow, (state) => ({
-    ...state,
-    chatSideWindowVisible: false,
-  })),
+
   on(LiveKitRoomActions.updateUnreadMessagesCount, (state, { count }) => ({
     ...state,
     unreadMessagesCount: count,
@@ -108,5 +114,37 @@ export const liveKitRoomReducer = createReducer(
   on(LiveKitRoomActions.updateMessages, (state, { allMessages }) => ({
     ...state,
     allMessages,
-  }))
+  })),
+  on(LiveKitRoomActions.receiveMessage, (state, { message, participant }) => {
+    const receivedMsg = message?.message;
+    const senderName = participant?.identity;
+    const receivingTime = message?.timestamp;
+    const newMessages = [
+      ...state.allMessages,
+      {
+        senderName,
+        receivedMsg,
+        receivingTime,
+        type: 'received',
+      },
+    ];
+    return {
+      ...state,
+      allMessages: newMessages,
+      unreadMessagesCount: state.chatSideWindowVisible
+        ? state.unreadMessagesCount
+        : state.unreadMessagesCount + 1,
+    };
+  }),
+  on(LiveKitRoomActions.sendMessage, (state, { message }) => {
+    const sendMessage = message;
+    const sendingTime = new Date();
+    return {
+      ...state,
+      allMessages: [
+        ...state.allMessages,
+        { sendMessage, sendingTime, type: 'sent' },
+      ],
+    };
+  })
 );

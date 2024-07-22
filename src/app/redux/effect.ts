@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { LiveKitService } from '../livekit.service';
 import * as LiveKitRoomActions from './actions';
-import { catchError, map, mergeMap, tap } from 'rxjs/operators';
+import { catchError, map, mergeMap, switchMap, tap } from 'rxjs/operators';
 import { of, from } from 'rxjs';
 
 @Injectable()
@@ -34,6 +34,9 @@ export class LiveKitRoomEffects {
       ofType(LiveKitRoomActions.toggleScreenShare),
       mergeMap(() =>
         from(this.livekitService.toggleScreenShare()).pipe(
+          // tap((isScreenSharing) =>
+          //   console.log('Effect: Result from service', isScreenSharing)
+          // ),
           map((isScreenSharing: any) =>
             LiveKitRoomActions.toggleScreenShareSuccess({ isScreenSharing })
           ),
@@ -48,7 +51,38 @@ export class LiveKitRoomEffects {
       )
     )
   );
+  toggleVideo$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.toggleVideo),
+      switchMap(() =>
+        this.livekitService.toggleVideo().pipe(
+          map((isVideoOn: boolean) =>
+            LiveKitRoomActions.toggleVideoSuccess({ isVideoOn })
+          ),
+          catchError((error) =>
+            of(LiveKitRoomActions.toggleVideoFailure({ error: error.message }))
+          )
+        )
+      )
+    )
+  );
 
+  toggleMicrophone$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.toggleMic),
+      mergeMap(() =>
+        from(this.livekitService.toggleMicrophone()).pipe(
+          tap((isMicOn) => console.log('microphone in effects', isMicOn)),
+          map((isMicOn: any) =>
+            LiveKitRoomActions.toggleMicSuccess({ isMicOn })
+          ),
+          catchError((error) =>
+            from([LiveKitRoomActions.toggleMicFailure({ error })])
+          )
+        )
+      )
+    )
+  );
   enableCameraAndMicrophone$ = createEffect(() =>
     this.actions$.pipe(
       ofType(LiveKitRoomActions.enableCameraAndMicrophone),
@@ -61,42 +95,6 @@ export class LiveKitRoomEffects {
                 error: error.message,
               })
             )
-          )
-        )
-      )
-    )
-  );
-
-  startCamera$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(LiveKitRoomActions.startCamera),
-      mergeMap(() =>
-        from(this.livekitService.startCamera()).pipe(
-          map((stream) => {
-            if (stream) {
-              return LiveKitRoomActions.startCameraSuccess({ stream });
-            } else {
-              throw new Error('Camera start failed: no stream returned');
-            }
-          }),
-          catchError((error) =>
-            of(LiveKitRoomActions.startCameraFailure({ error: error.message }))
-          )
-        )
-      )
-    )
-  );
-
-  toggleMicrophone$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(LiveKitRoomActions.toggleMic),
-      mergeMap(() =>
-        from(this.livekitService.toggleMicrophone()).pipe(
-          map((isMicOn: any) =>
-            LiveKitRoomActions.toggleMicSuccess({ isMicOn })
-          ),
-          catchError((error) =>
-            from([LiveKitRoomActions.toggleMicFailure({ error })])
           )
         )
       )

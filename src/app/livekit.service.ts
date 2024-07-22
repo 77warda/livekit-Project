@@ -18,6 +18,7 @@ import {
   setLogLevel,
 } from 'livekit-client';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { from, Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -41,6 +42,7 @@ export class LiveKitService {
   localParticipantData = new EventEmitter<any>();
   private participantNames: any;
   private loacalParticipant: any;
+  microphoneStatusChanged = new EventEmitter<boolean>();
 
   msgDataReceived = new EventEmitter<{
     message: any;
@@ -614,23 +616,42 @@ export class LiveKitService {
     }
     await this.room.localParticipant.enableCameraAndMicrophone();
   }
-  async toggleMicrophone(): Promise<void> {
+  // async toggleMicrophone(): Promise<void> {
+  //   if (!this.room) {
+  //     throw new Error('Room not Enabled.');
+  //   }
+  //   const localParticipant = this.room.localParticipant;
+  //   const isMuted = localParticipant.isMicrophoneEnabled;
+  //   await localParticipant.setMicrophoneEnabled(!isMuted);
+  // }
+  toggleMicrophone(): Observable<boolean> {
     if (!this.room) {
-      throw new Error('Room not Enabled.');
+      throw new Error('Room not enabled.');
     }
     const localParticipant = this.room.localParticipant;
     const isMuted = localParticipant.isMicrophoneEnabled;
-    await localParticipant.setMicrophoneEnabled(!isMuted);
+    return from(
+      localParticipant.setMicrophoneEnabled(!isMuted).then(() => {
+        const newMicStatus = !isMuted;
+        this.microphoneStatusChanged.emit(newMicStatus);
+        return newMicStatus;
+      })
+    );
   }
 
-  async toggleVideo(): Promise<void> {
+  toggleVideo(): Observable<boolean> {
     if (!this.room) {
-      throw new Error('Room not Enabled.');
+      throw new Error('Room not enabled.');
     }
     const localParticipant = this.room.localParticipant;
     const isVideoEnabled = localParticipant.isCameraEnabled;
-    await localParticipant.setCameraEnabled(!isVideoEnabled);
-    this.videoStatusChanged.emit(!isVideoEnabled); // Emit the updated video status
+    return from(
+      localParticipant.setCameraEnabled(!isVideoEnabled).then(() => {
+        const newVideoStatus = !isVideoEnabled;
+        this.videoStatusChanged.emit(newVideoStatus);
+        return newVideoStatus;
+      })
+    );
   }
 
   async startCamera(): Promise<MediaStream | undefined> {
@@ -646,63 +667,54 @@ export class LiveKitService {
     }
   }
 
-  async toggleScreenShare(): Promise<void> {
-    if (this.isScreenSharingEnabled === true) {
-      await this.room.localParticipant.setScreenShareEnabled(false);
-      this.isScreenSharingEnabled = false;
-      const container = document.querySelector('.lk-focus-layout');
-      if (container) {
-        container.remove();
+  async toggleScreenShare(): Promise<boolean> {
+    try {
+      if (this.isScreenSharingEnabled) {
+        await this.room.localParticipant.setScreenShareEnabled(false);
+        this.isScreenSharingEnabled = false;
+        const container = document.querySelector('.lk-focus-layout');
+        if (container) {
+          container.remove();
+        } else {
+          console.error('Local screen share container not found');
+        }
       } else {
-        console.error('Local screen share container not found');
-      }
-    } else {
-      this.remoteParticipantSharingScreen = false;
-      this.room.remoteParticipants.forEach((participant) => {
-        participant.trackPublications.forEach((publication) => {
-          if (
-            publication.track &&
-            publication.track.source === Track.Source.ScreenShare
-          ) {
-            // await this.room.localParticipant.setScreenShareEnabled(true);
-            // this.isScreenSharingEnabled = true;
-            this.remoteParticipantSharingScreen = true;
-          }
+        this.remoteParticipantSharingScreen = false;
+        this.room.remoteParticipants.forEach((participant) => {
+          participant.trackPublications.forEach((publication) => {
+            if (
+              publication.track &&
+              publication.track.source === Track.Source.ScreenShare
+            ) {
+              this.remoteParticipantSharingScreen = true;
+            }
+          });
         });
-      });
-      // Check if any remote participant is already sharing screen
-      this.room.remoteParticipants.forEach((participant) => {
-        participant.trackPublications.forEach((publication) => {
-          if (
-            publication.track &&
-            publication.track.source === Track.Source.ScreenShare
-          ) {
-            this.remoteParticipantSharingScreen = true;
-          }
-        });
-      });
 
-      if (this.remoteParticipantSharingScreen) {
-        // console.log('Another participant is already sharing their screen.');
-        const modal = document.getElementById('myModal') as HTMLElement;
-        const closeBtn = modal?.querySelector('.close') as HTMLElement;
+        if (this.remoteParticipantSharingScreen) {
+          const modal = document.getElementById('myModal') as HTMLElement;
+          const closeBtn = modal?.querySelector('.close') as HTMLElement;
 
-        modal?.setAttribute('style', 'display:block');
+          modal?.setAttribute('style', 'display:block');
 
-        closeBtn.onclick = function () {
-          modal?.setAttribute('style', 'display:none');
-        };
-
-        window.onclick = function (event) {
-          if (event.target == modal) {
+          closeBtn.onclick = function () {
             modal?.setAttribute('style', 'display:none');
-          }
-        };
-      } else {
-        // No participant is sharing screen, proceed to start screen sharing
-        await this.room.localParticipant.setScreenShareEnabled(true);
-        this.isScreenSharingEnabled = true;
+          };
+
+          window.onclick = function (event) {
+            if (event.target == modal) {
+              modal?.setAttribute('style', 'display:none');
+            }
+          };
+        } else {
+          await this.room.localParticipant.setScreenShareEnabled(true);
+          this.isScreenSharingEnabled = true;
+        }
       }
+      return this.isScreenSharingEnabled;
+    } catch (error) {
+      console.error('Error toggling screen share:', error);
+      throw error;
     }
   }
 

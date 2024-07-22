@@ -9,17 +9,47 @@ export const selectLiveKitRoomState =
 export const selectIsMeetingStarted = createSelector(
   selectLiveKitRoomState,
   (state: LiveKitRoomState) => {
-    console.log('hey this is ', state.isMeetingStarted);
+    console.log('Meeting started is ', state.isMeetingStarted);
     return state.isMeetingStarted;
   }
 );
 
-export const selectStream = createSelector(
+// export const selectStream = createSelector(
+//   selectLiveKitRoomState,
+//   (state: LiveKitRoomState) => {
+//     console.log('stream is ', state);
+//     return state.stream;
+//   }
+// );
+
+export const selectIsVideoOn = createSelector(
   selectLiveKitRoomState,
-  (state: LiveKitRoomState) => {
-    console.log('stream is ', state);
-    return state.stream;
-  }
+  (state: LiveKitRoomState) => state.isVideoOn
+);
+
+export const selectParticipantSideWindowVisible = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => state.participantSideWindowVisible
+);
+
+export const selectChatSideWindowVisible = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => state.chatSideWindowVisible
+);
+
+export const selectIsScreenSharing = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => state.isScreenSharing
+);
+
+export const selectIconColor = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => state.iconColor
+);
+
+export const selectIsMicOn = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => state.isMicOn
 );
 
 export const selectAllMessages = createSelector(
@@ -33,33 +63,4 @@ export const selectAllMessages = createSelector(
 export const selectUnreadMessagesCount = createSelector(
   selectLiveKitRoomState,
   (state: LiveKitRoomState) => state.unreadMessagesCount
-);
-export const selectIsVideoOn = createSelector(
-  selectLiveKitRoomState,
-  (state: LiveKitRoomState) => state.isVideoOn
-);
-
-export const selectIsMicOn = createSelector(
-  selectLiveKitRoomState,
-  (state: LiveKitRoomState) => state.isMicOn
-);
-
-export const selectIsScreenSharing = createSelector(
-  selectLiveKitRoomState,
-  (state: LiveKitRoomState) => state.isScreenSharing
-);
-
-export const selectParticipantSideWindowVisible = createSelector(
-  selectLiveKitRoomState,
-  (state: LiveKitRoomState) => state.participantSideWindowVisible
-);
-
-export const selectChatSideWindowVisible = createSelector(
-  selectLiveKitRoomState,
-  (state: LiveKitRoomState) => state.chatSideWindowVisible
-);
-
-export const selectIconColor = createSelector(
-  selectIsScreenSharing,
-  (isScreenSharing) => (isScreenSharing ? 'green' : 'black')
 );

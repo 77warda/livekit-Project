@@ -28,23 +28,6 @@ export const enableCameraAndMicrophoneFailure = createAction(
   props<{ error: string }>()
 );
 
-export const startCamera = createAction('[LiveKit Room] Start Camera');
-
-export const startCameraSuccess = createAction(
-  '[LiveKit Room] Start Camera Success',
-  props<{ stream: MediaStream }>()
-);
-
-export const startCameraFailure = createAction(
-  '[LiveKit Room] Start Camera Failure',
-  props<{ error: string }>()
-);
-
-export const sendMessage = createAction(
-  '[LiveKit Room] Send Message',
-  props<{ message: string; recipient: string }>()
-);
-
 export const toggleRaiseHand = createAction('[LiveKit Room] Toggle Raise Hand');
 
 export const leaveMeeting = createAction('[LiveKit Room] Leave Meeting');
@@ -87,20 +70,19 @@ export const toggleMicFailure = createAction(
   props<{ error: string }>()
 );
 
-export const openParticipantSideWindow = createAction(
-  '[LiveKit Room] Open Participant Side Window'
+export const toggleParticipantSideWindow = createAction(
+  '[LiveKit Room] Toggle Participant Side Window'
 );
 
-export const closeParticipantSideWindow = createAction(
-  '[LiveKit Room] Close Participant Side Window'
-);
-
-export const openChatSideWindow = createAction(
-  '[LiveKit Room] Open Chat Side Window'
+export const toggleChatSideWindow = createAction(
+  '[LiveKit Room] Toggle Chat Side Window'
 );
 
 export const closeChatSideWindow = createAction(
-  '[LiveKit Room] Close Chat Side Window'
+  '[LiveKit Room] Close Side Window'
+);
+export const closeParticipantSideWindow = createAction(
+  '[LiveKit Room] Close Side Window'
 );
 
 export const updateUnreadMessagesCount = createAction(
@@ -111,6 +93,15 @@ export const updateUnreadMessagesCount = createAction(
 export const updateMessages = createAction(
   '[LiveKit Room] Update Messages',
   props<{ allMessages: any[] }>()
+);
+
+export const receiveMessage = createAction(
+  '[Chat] Receive Message',
+  props<{ message: any; participant: any }>()
+);
+export const sendMessage = createAction(
+  '[LiveKit Room] Send Message',
+  props<{ message: string; recipient: string }>()
 );
 
 export const scrollToBottom = createAction('[LiveKit Room] Scroll To Bottom');
