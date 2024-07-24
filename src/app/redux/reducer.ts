@@ -1,6 +1,6 @@
 import { createReducer, on } from '@ngrx/store';
 import * as LiveKitRoomActions from './actions';
-import { RemoteTrack } from 'livekit-client';
+import { RemoteTrack, Track } from 'livekit-client';
 
 export interface LiveKitRoomState {
   isMeetingStarted: boolean;
@@ -32,6 +32,7 @@ export const liveKitRoomReducer = createReducer(
   on(LiveKitRoomActions.startMeetingSuccess, (state) => ({
     ...state,
     isMeetingStarted: true,
+    isVideoOn: false,
   })),
   on(LiveKitRoomActions.startMeetingFailure, (state, { error }) => ({
     ...state,
@@ -65,6 +66,7 @@ export const liveKitRoomReducer = createReducer(
   })),
   on(LiveKitRoomActions.toggleVideoSuccess, (state, { isVideoOn }) => ({
     ...state,
+
     isVideoOn,
   })),
   on(LiveKitRoomActions.toggleVideoFailure, (state, { error }) => ({

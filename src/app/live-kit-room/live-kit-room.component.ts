@@ -334,14 +334,14 @@ export class LiveKitRoomComponent {
 
   // ==================== header=========================
   async toggleScreenShare() {
-    try {
-      this.store.dispatch(LiveKitRoomActions.toggleScreenShare());
-    } catch (error: any) {
-      console.error('Error toggling video:', error);
+    this.store.dispatch(LiveKitRoomActions.toggleScreenShare());
+    // try {
+    // } catch (error: any) {
+    //   console.error('Error toggling video:', error);
 
-      this.openSnackBar(`Error Screen Sharing: ${error.message}`);
-      // Handle error (e.g., show an error message to the user)
-    }
+    //   this.openSnackBar(`Error Screen Sharing: ${error.message}`);
+    //   // Handle error (e.g., show an error message to the user)
+    // }
   }
 
   async toggleVideo() {

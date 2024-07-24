@@ -281,8 +281,8 @@
                 <i
                   class="fas"
                   [ngClass]="{
-                    'fa-video-slash': isVideoOn,
-                    'fa-video': !isVideoOn
+                    'fa-video': (isVideoOn$ | async),
+                    'fa-video-slash': !(isVideoOn$ | async)
                   }"
                 ></i>
               </div>
@@ -290,8 +290,8 @@
                 <i
                   class="fas"
                   [ngClass]="{
-                    'fa-microphone': isMicOn,
-                    'fa-microphone-slash': !isMicOn
+                    'fa-microphone': (isMicOn$ | async),
+                    'fa-microphone-slash': !(isMicOn$ | async)
                   }"
                 ></i>
               </div>

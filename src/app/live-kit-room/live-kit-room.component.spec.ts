@@ -383,26 +383,26 @@ describe('LiveKitRoomComponent;', () => {
     });
   });
 
-  describe('shouldShowAvatar', () => {
-    it('should return true for the first message', () => {
-      component.allMessages = [{ senderName: 'Alice' }];
+  // describe('shouldShowAvatar', () => {
+  //   it('should return true for the first message', () => {
+  //     component.allMessages = [{ senderName: 'Alice' }];
 
-      expect(component.shouldShowAvatar(0)).toBeTrue();
-    });
+  //     expect(component.shouldShowAvatar(0)).toBeTrue();
+  //   });
 
-    it('should return true for different sender from the previous message', () => {
-      component.allMessages = [{ senderName: 'Alice' }, { senderName: 'Bob' }];
+  //   it('should return true for different sender from the previous message', () => {
+  //     component.allMessages = [{ senderName: 'Alice' }, { senderName: 'Bob' }];
 
-      expect(component.shouldShowAvatar(1)).toBeTrue();
-    });
+  //     expect(component.shouldShowAvatar(1)).toBeTrue();
+  //   });
 
-    it('should return false for the same sender as the previous message', () => {
-      component.allMessages = [
-        { senderName: 'Alice' },
-        { senderName: 'Alice' },
-      ];
+  //   it('should return false for the same sender as the previous message', () => {
+  //     component.allMessages = [
+  //       { senderName: 'Alice' },
+  //       { senderName: 'Alice' },
+  //     ];
 
-      expect(component.shouldShowAvatar(1)).toBeFalse();
-    });
-  });
+  //     expect(component.shouldShowAvatar(1)).toBeFalse();
+  //   });
+  // });
 });

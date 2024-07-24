@@ -51,6 +51,7 @@ export class LiveKitRoomEffects {
       )
     )
   );
+
   toggleVideo$ = createEffect(() =>
     this.actions$.pipe(
       ofType(LiveKitRoomActions.toggleVideo),
@@ -83,21 +84,21 @@ export class LiveKitRoomEffects {
       )
     )
   );
-  enableCameraAndMicrophone$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(LiveKitRoomActions.enableCameraAndMicrophone),
-      mergeMap(() =>
-        from(this.livekitService.enableCameraAndMicrophone()).pipe(
-          map(() => LiveKitRoomActions.enableCameraAndMicrophoneSuccess()),
-          catchError((error) =>
-            of(
-              LiveKitRoomActions.enableCameraAndMicrophoneFailure({
-                error: error.message,
-              })
-            )
-          )
-        )
-      )
-    )
-  );
+  // enableCameraAndMicrophone$ = createEffect(() =>
+  //   this.actions$.pipe(
+  //     ofType(LiveKitRoomActions.enableCameraAndMicrophone),
+  //     mergeMap(() =>
+  //       from(this.livekitService.enableCameraAndMicrophone()).pipe(
+  //         map(() => LiveKitRoomActions.enableCameraAndMicrophoneSuccess()),
+  //         catchError((error) =>
+  //           of(
+  //             LiveKitRoomActions.enableCameraAndMicrophoneFailure({
+  //               error: error.message,
+  //             })
+  //           )
+  //         )
+  //       )
+  //     )
+  //   )
+  // );
 }
