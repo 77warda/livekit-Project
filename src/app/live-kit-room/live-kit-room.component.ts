@@ -134,57 +134,57 @@ export class LiveKitRoomComponent {
       message: [''],
       participant: [''],
     });
-    // this.livekitService.msgDataReceived.subscribe((data) => {
-    //   console.log('Received message:', data.message);
-    //   console.log('Participant:', data.participant);
+    this.livekitService.msgDataReceived.subscribe((data) => {
+      console.log('Received message:', data.message);
+      console.log('Participant:', data.participant);
 
-    //   const receivedMsg = data?.message?.message;
-    //   const senderName = data?.participant?.identity;
-    //   const receivingTime = data?.message?.timestamp;
-    //   this.allMessages.push({
-    //     senderName,
-    //     receivedMsg,
-    //     receivingTime,
-    //     type: 'received',
-    //   });
-    //   if (!this.chatSideWindowVisible) {
-    //     this.unreadMessagesCount++;
-    //   }
-    //   this.scrollToBottom();
-    //   this.sortMessages();
-    // });
-    // this.livekitService.messageEmitter.subscribe((data: any) => {
-    //   console.log('data', data);
-    //   const sendMessage = data?.message;
-    //   const sendingTime = data?.timestamp;
-    //   this.allMessages.push({ sendMessage, sendingTime, type: 'sent' });
-    //   this.sortMessages();
-    //   this.scrollToBottom();
-    // });
-    this.subscriptions.push(
-      this.livekitService.msgDataReceived.subscribe((data) => {
-        console.log('Received message:', data.message);
-        console.log('Participant:', data.participant);
-        this.store.dispatch(
-          LiveKitRoomActions.receiveMessage({
-            message: data.message,
-            participant: data.participant,
-          })
-        );
-      })
-    );
+      const receivedMsg = data?.message?.message;
+      const senderName = data?.participant?.identity;
+      const receivingTime = data?.message?.timestamp;
+      this.allMessages.push({
+        senderName,
+        receivedMsg,
+        receivingTime,
+        type: 'received',
+      });
+      if (!this.chatSideWindowVisible) {
+        this.unreadMessagesCount++;
+      }
+      this.scrollToBottom();
+      this.sortMessages();
+    });
+    this.livekitService.messageEmitter.subscribe((data: any) => {
+      console.log('data', data);
+      const sendMessage = data?.message;
+      const sendingTime = data?.timestamp;
+      this.allMessages.push({ sendMessage, sendingTime, type: 'sent' });
+      this.sortMessages();
+      this.scrollToBottom();
+    });
+    // this.subscriptions.push(
+    //   this.livekitService.msgDataReceived.subscribe((data) => {
+    //     console.log('Received message:', data.message);
+    //     console.log('Participant:', data.participant);
+    //     this.store.dispatch(
+    //       LiveKitRoomActions.receiveMessage({
+    //         message: data.message,
+    //         participant: data.participant,
+    //       })
+    //     );
+    //   })
+    // );
 
-    this.subscriptions.push(
-      this.livekitService.messageEmitter.subscribe((data: any) => {
-        console.log('data', data);
-        this.store.dispatch(
-          LiveKitRoomActions.sendMessage({
-            message: data.message,
-            recipient: data.recipient,
-          })
-        );
-      })
-    );
+    // this.subscriptions.push(
+    //   this.livekitService.messageEmitter.subscribe((data: any) => {
+    //     console.log('data', data);
+    //     this.store.dispatch(
+    //       LiveKitRoomActions.sendMessage({
+    //         message: data.message,
+    //         recipient: data.recipient,
+    //       })
+    //     );
+    //   })
+    // );
 
     this.attachedTrack = this.livekitService.attachTrackToElement(
       Track,
@@ -229,14 +229,14 @@ export class LiveKitRoomComponent {
         new Date(b.receivingTime || b.sendingTime).getTime()
     );
   }
-  // shouldShowAvatar(index: number): boolean {
-  //   if (index === 0) {
-  //     return true;
-  //   }
-  //   const currentMessage = this.allMessages[index];
-  //   const previousMessage = this.allMessages[index - 1];
-  //   return currentMessage.senderName !== previousMessage.senderName;
-  // }
+  shouldShowAvatar(index: number): boolean {
+    if (index === 0) {
+      return true;
+    }
+    const currentMessage = this.allMessages[index];
+    const previousMessage = this.allMessages[index - 1];
+    return currentMessage.senderName !== previousMessage.senderName;
+  }
 
   sendMessage() {
     const msg = this.chatForm.value.message;
@@ -345,6 +345,7 @@ export class LiveKitRoomComponent {
   }
 
   async toggleVideo() {
+    console.log('ts file Dispatching toggleVideo action');
     this.store.dispatch(LiveKitRoomActions.toggleVideo());
 
     // this.isVideoOn = !this.isVideoOn; // Toggle video state locally

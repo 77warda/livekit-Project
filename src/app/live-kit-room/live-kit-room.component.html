@@ -52,18 +52,18 @@
           <i class="fal fa-user-friends"></i>
         </button>
 
-        <!-- <button class="chat" matTooltip="Chat" (click)="openChatSideWindow()">
+        <button class="chat" matTooltip="Chat" (click)="openChatSideWindow()">
           <i class="far fa-comment-lines"></i>
           <span *ngIf="unreadMessagesCount > 0" class="badge"
             >0{{ unreadMessagesCount }}</span
           >
-        </button> -->
-        <button class="chat" matTooltip="Chat" (click)="openChatSideWindow()">
+        </button>
+        <!-- <button class="chat" matTooltip="Chat" (click)="openChatSideWindow()">
           <i class="far fa-comment-lines"></i>
           <span *ngIf="(unreadMessagesCount$ | async) || 0 > 0" class="badge">
             {{ (unreadMessagesCount$ | async) || 0 }}
           </span>
-        </button>
+        </button> -->
         <button class="emojis" matTooltip="React">
           <span class="material-symbols-outlined"> emoji_language </span>
         </button>
@@ -169,20 +169,20 @@
           </div>
           <div class="os-content-card-body">
             <div class="os-content-body" #messageContainer>
-              <div *ngFor="let message of allMessages$ | async; let i = index">
+              <div *ngFor="let message of allMessages; let i = index">
                 <div class="main-receiver" *ngIf="message.type === 'received'">
                   <div class="receive">
                     <div class="avatar">
-                      <!-- <p *ngIf="shouldShowAvatar(i)">
+                      <p *ngIf="shouldShowAvatar(i)">
                         {{ message.senderName.charAt(0).toUpperCase() }}
-                      </p> -->
+                      </p>
                     </div>
                     <div class="receive-msg">
                       <div class="head">
                         <div class="receiver-name">
-                          <!-- <h2 *ngIf="shouldShowAvatar(i)">
+                          <h2 *ngIf="shouldShowAvatar(i)">
                             {{ message.senderName }}
-                          </h2> -->
+                          </h2>
                         </div>
                         <div class="msg-tym">
                           {{ message.receivingTime | date : "shortTime" }}

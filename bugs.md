@@ -1,10 +1,5 @@
 # Meeting Issues and Updates
 
-## Initial Setup
-
-- **Video Status**: Initially, the video is off.
-- **Mic Status**: Initially, the mic is off.
-
 ## Current Issues
 
 1. **Avatar Display**:

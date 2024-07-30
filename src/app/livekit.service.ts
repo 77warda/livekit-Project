@@ -129,6 +129,10 @@ export class LiveKitService {
     this.room = new Room();
     this.participants = this.room.numParticipants;
     console.log('prrr now', this.participants);
+
+    this.room.on(RoomEvent.Connected, () => {
+      this.createAvatar(this.room.localParticipant);
+    });
     this.room.on(
       RoomEvent.DataReceived,
       (
@@ -524,6 +528,7 @@ export class LiveKitService {
             `Participant "${participant.identity}" has joined.`
           );
         }
+        this.handleTrackMuted(publication, participant);
       } else {
         console.error('Remote video container not found');
       }
@@ -640,6 +645,7 @@ export class LiveKitService {
   }
 
   toggleVideo(): Observable<boolean> {
+    console.log('hello');
     if (!this.room) {
       throw new Error('Room not enabled.');
     }
@@ -722,5 +728,96 @@ export class LiveKitService {
     this.snackBar.open(message, 'Close', {
       duration: 3000, // duration in milliseconds
     });
+  }
+  createAvatar(participant: Participant) {
+    const el2 = document.createElement('div');
+    el2.setAttribute('class', 'lk-participant-tile');
+    el2.setAttribute('id', `${participant.sid}`);
+    el2.setAttribute(
+      'style',
+      `
+       position: relative;
+       display: flex;
+       flex-direction: column;
+       gap: 0.375rem;
+       border-radius: 0.5rem;
+       width: 100%;
+       background-color: #000;
+     `
+    );
+
+    setTimeout(() => {
+      const container = document.querySelector('.lk-grid-layout');
+      if (container) {
+        // Create metadata container
+        const el3 = document.createElement('div');
+        el3.setAttribute('class', 'lk-participant-metadata');
+        el3.setAttribute(
+          'style',
+          `
+           position: absolute;
+           right: 0.25rem;
+           bottom: 0.25rem;
+           left: 0.25rem;
+           display: flex;
+           flex-direction: row;
+           align-items: center;
+           justify-content: space-between;
+           gap: 0.5rem;
+           line-height: 1;
+         `
+        );
+
+        // Create metadata item
+        const el4 = document.createElement('div');
+        el4.setAttribute('class', 'lk-participant-metadata-item');
+        el4.setAttribute(
+          'style',
+          `
+           display: flex;
+           align-items: center;
+           padding: 0.25rem;
+           background-color: rgba(0, 0, 0, 0.5);
+           border-radius: calc(var(--lk-border-radius) / 2);
+         `
+        );
+
+        // Create participant name element
+        const el5 = document.createElement('span');
+        el5.setAttribute('class', 'lk-participant-name');
+        el5.setAttribute(
+          'style',
+          `
+            font-size: 0.875rem;
+            color: white;
+          `
+        );
+        el5.innerText = participant.identity;
+
+        // Append elements
+        el4.appendChild(el5);
+        el3.appendChild(el4);
+        el2.appendChild(el3);
+
+        // Create avatar image
+        const imgElement = document.createElement('img');
+        imgElement.setAttribute('src', '../assets/avatar.png');
+        imgElement.style.cssText = `
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          object-fit: cover;
+          object-position: center;
+        `;
+        el2.appendChild(imgElement);
+
+        // Append participant tile to container
+        container.appendChild(el2);
+      }
+    }, 100);
   }
 }
