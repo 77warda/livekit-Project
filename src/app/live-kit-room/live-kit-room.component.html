@@ -35,10 +35,10 @@
         <button *ngIf="localParticipant.isLocal" (click)="toggleRaiseHand()">
           {{ localParticipant.handRaised ? "Lower Hand" : "Raise Hand" }}
         </button>
-        <div *ngIf="isScreenRecording" class="screen-recording">
+        <!-- <div *ngIf="isScreenRecording" class="screen-recording">
           <i class="far fa-record-vinyl"></i>
           <div class="timer">{{ recordingTime }}</div>
-        </div>
+        </div> -->
       </div>
       <div class="right-header">
         <button class="menu" matTooltip="Menu">
@@ -119,7 +119,7 @@
 
     <ng-container
       *ngIf="
-        isScreenSharing === true ||
+        (isScreenSharing$ | async) === true ||
         this.livekitService.remoteScreenShare === true
       "
     >
@@ -131,7 +131,7 @@
       class="lk-grid-layout-wrapper"
       [ngClass]="{
         'screen-share-layout-wrapper':
-          isScreenSharing === true ||
+          (isScreenSharing$ | async) === true ||
           this.livekitService.remoteScreenShare === true
       }"
     >
@@ -139,7 +139,7 @@
         class="lk-grid-layout"
         [ngClass]="{
           'screen-share-layout':
-            isScreenSharing === true ||
+            (isScreenSharing$ | async) === true ||
             this.livekitService.remoteScreenShare === true
         }"
         [style.grid-template-columns]="GalleryGridColumnStyle"
@@ -273,7 +273,10 @@
             </div>
             <div class="right-side">
               <div class="screen-share-icon">
-                <span class="material-symbols-outlined" *ngIf="isScreenSharing">
+                <span
+                  class="material-symbols-outlined"
+                  *ngIf="isScreenSharing$ | async"
+                >
                   screen_share
                 </span>
               </div>

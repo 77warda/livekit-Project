@@ -53,39 +53,36 @@ export class LiveKitRoomComponent {
   chatSideWindowVisible$!: Observable<boolean>;
   isScreenSharing$!: Observable<boolean>;
   iconColor$!: Observable<string>;
-  private subscriptions: Subscription[] = [];
+  // private subscriptions: Subscription[] = [];
   @ViewChild('messageContainer') messageContainer!: ElementRef | any;
   attachedTrack: HTMLElement | null = null;
 
-  // sharedLayout!: boolean;
-  // withVideo!: boolean;
-  // isScreenSharingEnabled: boolean = false;
   roomDetails: { wsURL: string; token: string } | null = null;
   startForm!: FormGroup;
   chatForm!: FormGroup;
   isMeetingStarted = false;
   stream: MediaStream | undefined;
-  // localParticipantName: string = '';
   screenShareTrackSubscription!: Subscription;
   screenShareTrack!: RemoteTrack | undefined;
+  // sharedLayout!: boolean;
+  // withVideo!: boolean;
+  // isScreenSharingEnabled: boolean = false;
+  // localParticipantName: string = '';
   // previousSenderName: string = '';
   unreadMessagesCount = 0;
   remoteParticipantNames: any;
   localParticipant: any;
 
   // ==================== header=========================
-  participantSideWindowVisible = false;
+  // participantSideWindowVisible = false;
   chatSideWindowVisible = false;
-  isVideoOn = false;
-  isMicOn = false;
-  iconColor = 'black';
-  isScreenRecording = true;
-  recordingTime = '00:22:23';
-  isScreenSharing = false;
+  // isVideoOn = false;
+  // isMicOn = false;
+  // iconColor = 'black';
+  // isScreenRecording = true;
+  // recordingTime = '00:22:23';
+  // isScreenSharing = false;
 
-  // allParticipants: RemoteParticipant[] = [];
-  // receivedMessages: any[] = [];
-  // messageSent: any[] = [];
   allMessages: any[] = [];
   room!: Room;
 
@@ -110,20 +107,10 @@ export class LiveKitRoomComponent {
     this.chatSideWindowVisible$ = this.store.pipe(
       select(selectChatSideWindowVisible)
     );
-    // this.stream$ = this.store.pipe(select(selectStream));
-    // this.stream$.subscribe((stream) => {
-    //   console.log('stream started', stream);
-    // });
     this.allMessages$ = this.store.pipe(select(selectAllMessages));
-    // this.allMessages$.subscribe((msg) => {
-    //   console.log('msg started', msg);
-    // });
     this.unreadMessagesCount$ = this.store.pipe(
       select(selectUnreadMessagesCount)
     );
-    // this.unreadMessagesCount$.subscribe((msg) => {
-    //   console.log('unread', msg);
-    // });
     this.isMicOn$ = this.store.pipe(select(selectIsMicOn));
 
     // ==============================
@@ -161,30 +148,6 @@ export class LiveKitRoomComponent {
       this.sortMessages();
       this.scrollToBottom();
     });
-    // this.subscriptions.push(
-    //   this.livekitService.msgDataReceived.subscribe((data) => {
-    //     console.log('Received message:', data.message);
-    //     console.log('Participant:', data.participant);
-    //     this.store.dispatch(
-    //       LiveKitRoomActions.receiveMessage({
-    //         message: data.message,
-    //         participant: data.participant,
-    //       })
-    //     );
-    //   })
-    // );
-
-    // this.subscriptions.push(
-    //   this.livekitService.messageEmitter.subscribe((data: any) => {
-    //     console.log('data', data);
-    //     this.store.dispatch(
-    //       LiveKitRoomActions.sendMessage({
-    //         message: data.message,
-    //         recipient: data.recipient,
-    //       })
-    //     );
-    //   })
-    // );
 
     this.attachedTrack = this.livekitService.attachTrackToElement(
       Track,
@@ -204,9 +167,9 @@ export class LiveKitRoomComponent {
       (window as any).livekitService = this.livekitService;
     }
   }
-  ngOnDestroy() {
-    this.subscriptions.forEach((sub) => sub.unsubscribe());
-  }
+  // ngOnDestroy() {
+  //   this.subscriptions.forEach((sub) => sub.unsubscribe());
+  // }
   async startMeeting() {
     const dynamicToken = this.startForm.value.token;
     console.log('token is', dynamicToken);
