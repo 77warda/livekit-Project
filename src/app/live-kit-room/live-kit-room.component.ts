@@ -57,10 +57,10 @@ export class LiveKitRoomComponent {
   @ViewChild('messageContainer') messageContainer!: ElementRef | any;
   attachedTrack: HTMLElement | null = null;
 
-  roomDetails: { wsURL: string; token: string } | null = null;
+  // roomDetails: { wsURL: string; token: string } | null = null;
   startForm!: FormGroup;
   chatForm!: FormGroup;
-  isMeetingStarted = false;
+  // isMeetingStarted = false;
   stream: MediaStream | undefined;
   screenShareTrackSubscription!: Subscription;
   screenShareTrack!: RemoteTrack | undefined;
@@ -75,7 +75,7 @@ export class LiveKitRoomComponent {
 
   // ==================== header=========================
   // participantSideWindowVisible = false;
-  chatSideWindowVisible = false;
+  // chatSideWindowVisible = false;
   // isVideoOn = false;
   // isMicOn = false;
   // iconColor = 'black';
@@ -134,9 +134,15 @@ export class LiveKitRoomComponent {
         receivingTime,
         type: 'received',
       });
-      if (!this.chatSideWindowVisible) {
-        this.unreadMessagesCount++;
-      }
+      // if (!this.chatSideWindowVisible) {
+      //   this.unreadMessagesCount++;
+      // }
+      this.chatSideWindowVisible$.subscribe((visible) => {
+        if (!visible) {
+          this.unreadMessagesCount++;
+          this.scrollToBottom();
+        }
+      });
       this.scrollToBottom();
       this.sortMessages();
     });
@@ -167,9 +173,21 @@ export class LiveKitRoomComponent {
       (window as any).livekitService = this.livekitService;
     }
   }
-  // ngOnDestroy() {
-  //   this.subscriptions.forEach((sub) => sub.unsubscribe());
-  // }
+
+  /**
+   * Initiates the start of a meeting by dispatching a `startMeeting` action
+   * with the WebSocket URL and a dynamic token obtained from the form value.
+   *
+   * This function:
+   * 1. Retrieves the token from the form value.
+   * 2. Logs the token to the console.
+   * 3. Defines the WebSocket URL.
+   * 4. Dispatches the `startMeeting` action with the WebSocket URL and token.
+   *
+   * @async
+   * @function
+   * @returns {Promise<void>} - A promise that resolves when the meeting has been initiated.
+   */
   async startMeeting() {
     const dynamicToken = this.startForm.value.token;
     console.log('token is', dynamicToken);
@@ -177,14 +195,48 @@ export class LiveKitRoomComponent {
     const token = dynamicToken;
     this.store.dispatch(LiveKitRoomActions.startMeeting({ wsURL, token }));
   }
+
+  /**
+   * Asynchronously starts the camera and assigns the resulting stream to the `stream` property.
+   *
+   * This function:
+   * 1. Calls the `startCamera` method from the `livekitService`.
+   * 2. Assigns the returned media stream to the `stream` property.
+   *
+   * @async
+   * @function
+   * @returns {Promise<void>} - A promise that resolves when the camera has started and the stream is assigned.
+   */
   async startCamera() {
     this.stream = await this.livekitService.startCamera();
   }
 
+  /**
+   * Extracts the initials from a given name by taking the first character of each word.
+   *
+   * This function:
+   * 1. Splits the name into words.
+   * 2. Maps each word to its first character.
+   * 3. Joins the characters to form the initials.
+   *
+   * @param {any} name - The name from which to extract initials.
+   * @returns {string} - The initials derived from the name.
+   */
   extractInitials(name: any) {
     const words = name.split(' ').map((word: any) => word.charAt(0));
     return words.join('');
   }
+
+  /**
+   * Sorts the `allMessages` array in ascending order based on the message's timestamp.
+   *
+   * This function:
+   * 1. Sorts messages by their `receivingTime` or `sendingTime` in ascending order.
+   * 2. Modifies the `allMessages` array in place.
+   *
+   * @function
+   * @returns {void}
+   */
   sortMessages() {
     this.allMessages.sort(
       (a, b) =>
@@ -192,6 +244,18 @@ export class LiveKitRoomComponent {
         new Date(b.receivingTime || b.sendingTime).getTime()
     );
   }
+
+  /**
+   * Determines whether the avatar should be shown for a message at a given index.
+   *
+   * This function:
+   * 1. Always shows the avatar for the first message.
+   * 2. Shows the avatar if the sender of the current message is different from the sender of the previous message.
+   *
+   * @param {number} index - The index of the message in the `allMessages` array.
+   * @returns {boolean} - `true` if the avatar should be shown, otherwise `false`.
+   */
+
   shouldShowAvatar(index: number): boolean {
     if (index === 0) {
       return true;
@@ -201,6 +265,17 @@ export class LiveKitRoomComponent {
     return currentMessage.senderName !== previousMessage.senderName;
   }
 
+  /**
+   * Sends a chat message using the LiveKit service and resets the chat form.
+   *
+   * This function:
+   * 1. Retrieves the message and recipient from the chat form.
+   * 2. Calls the `sendChatMessage` method of the LiveKit service with the message and recipient.
+   * 3. Resets the chat form.
+   *
+   * @function
+   * @returns {void}
+   */
   sendMessage() {
     const msg = this.chatForm.value.message;
     const recipient = this.chatForm.value.participant;
@@ -208,6 +283,19 @@ export class LiveKitRoomComponent {
 
     this.chatForm.reset();
   }
+
+  /**
+   * Toggles the raise hand status of the local participant.
+   *
+   * This function:
+   * 1. Checks the current hand raise status of the local participant.
+   * 2. If the hand is raised, calls the `lowerHand` method of the LiveKit service.
+   * 3. If the hand is not raised, calls the `raiseHand` method of the LiveKit service.
+   *
+   * @function
+   * @returns {void}
+   */
+
   toggleRaiseHand() {
     if (this.localParticipant.handRaised) {
       this.livekitService.lowerHand(this.localParticipant);
@@ -289,71 +377,105 @@ export class LiveKitRoomComponent {
     });
   }
 
-  async leaveBtn() {
-    this.livekitService.disconnectRoom();
-    this.isMeetingStarted = false;
-    this.openSnackBar(`You Left the meeting`);
+  /**
+   * Dispatches an action to leave the meeting.
+   *
+   * @async
+   * @function
+   * @returns {Promise<void>}
+   */
+  async leaveBtn(): Promise<void> {
+    this.store.dispatch(LiveKitRoomActions.leaveMeeting());
   }
 
-  // ==================== header=========================
-  async toggleScreenShare() {
+  /**
+   * Dispatches an action to toggle screen sharing.
+   *
+   * @async
+   * @function
+   * @returns {Promise<void>}
+   */
+  async toggleScreenShare(): Promise<void> {
     this.store.dispatch(LiveKitRoomActions.toggleScreenShare());
-    // try {
-    // } catch (error: any) {
-    //   console.error('Error toggling video:', error);
-
-    //   this.openSnackBar(`Error Screen Sharing: ${error.message}`);
-    //   // Handle error (e.g., show an error message to the user)
-    // }
   }
 
-  async toggleVideo() {
-    console.log('ts file Dispatching toggleVideo action');
+  /**
+   * Dispatches an action to toggle video.
+   *
+   * @async
+   * @function
+   * @returns {Promise<void>}
+   */
+  async toggleVideo(): Promise<void> {
     this.store.dispatch(LiveKitRoomActions.toggleVideo());
-
-    // this.isVideoOn = !this.isVideoOn; // Toggle video state locally
-    // try {
-    //   await this.livekitService.toggleVideo();
-    // } catch (error: any) {
-    //   console.error('Error toggling video:', error);
-    //   this.openSnackBar(`⁠Error toggling video: ${error.message}`);
-    // }
   }
 
-  async toggleMic() {
+  /**
+   * Dispatches an action to toggle the microphone.
+   *
+   * @async
+   * @function
+   * @returns {Promise<void>}
+   */
+  async toggleMic(): Promise<void> {
     this.store.dispatch(LiveKitRoomActions.toggleMic());
-    // try {
-    //   await this.livekitService.toggleMicrophone();
-    //   // this.isMicOn$.subscribe(isMicOn => {
-    //   //   this.store.dispatch(LiveKitRoomActions.toggleMicSuccess({ isMicOn: !isMicOn }));
-    //   // });
-    //   this.isMicOn = !this.isMicOn;
-    //   console.log('on/off', this.livekitService.toggleMicrophone);
-    // } catch (error: any) {
-    //   console.error('Error toggling mic:', error);
-    //   this.openSnackBar(`Error mic start: ${error.message}`);
-    // }
   }
-  openParticipantSideWindow() {
-    // this.participantSideWindowVisible = true;
-    // this.chatSideWindowVisible = false;
+
+  /**
+   * Dispatches an action to toggle the participant side window.
+   *
+   * @function
+   * @returns {void}
+   */
+  openParticipantSideWindow(): void {
     this.store.dispatch(LiveKitRoomActions.toggleParticipantSideWindow());
   }
-  openChatSideWindow() {
-    // this.chatSideWindowVisible = !this.chatSideWindowVisible;
-    // this.participantSideWindowVisible = false;
+
+  /**
+   * Dispatches an action to toggle the chat side window.
+   * Resets the unread messages count and scrolls to the bottom if the chat window is visible.
+   *
+   * @function
+   * @returns {void}
+   */
+  openChatSideWindow(): void {
     this.store.dispatch(LiveKitRoomActions.toggleChatSideWindow());
-    if (this.chatSideWindowVisible) {
-      this.unreadMessagesCount = 0;
-      this.scrollToBottom();
-    }
+    this.chatSideWindowVisible$.subscribe((visible) => {
+      if (visible) {
+        this.unreadMessagesCount = 0;
+        this.scrollToBottom();
+      }
+    });
   }
-  closeChatSideWindow() {
+
+  /**
+   * Dispatches an action to close the chat side window.
+   *
+   * @function
+   * @returns {void}
+   */
+  closeChatSideWindow(): void {
     this.store.dispatch(LiveKitRoomActions.closeChatSideWindow());
   }
-  closeParticipantSideWindow() {
+
+  /**
+   * Dispatches an action to close the participant side window.
+   *
+   * @function
+   * @returns {void}
+   */
+  closeParticipantSideWindow(): void {
     this.store.dispatch(LiveKitRoomActions.closeParticipantSideWindow());
   }
+
+  /**
+   * Returns the CSS grid column style based on the number of participants in the LiveKit room.
+   * If the number of participants is 6 or fewer, returns a predefined grid column style.
+   * If the number of participants is more than 6, returns a default grid column style.
+   *
+   * @readonly
+   * @type {string}
+   */
   get GalleryGridColumnStyle() {
     if (this.livekitService.room.numParticipants <= 6) {
       return GRIDCOLUMN[this.livekitService.room.numParticipants];
@@ -361,6 +483,14 @@ export class LiveKitRoomComponent {
       return 'repeat(auto-fill, minmax(200px, 1fr))';
     }
   }
+
+  /**
+   * Scrolls the message container to the bottom.
+   * Uses a timeout to ensure the scroll action occurs after the view has updated.
+   *
+   * @function
+   * @returns {void}
+   */
   scrollToBottom(): void {
     try {
       setTimeout(() => {
@@ -369,6 +499,15 @@ export class LiveKitRoomComponent {
       }, 100);
     } catch (err) {}
   }
+
+  /**
+   * Opens a snack bar with a given message.
+   * The snack bar includes a 'Close' action and automatically dismisses after 3 seconds.
+   *
+   * @param {string} message - The message to display in the snack bar.
+   * @function
+   * @returns {void}
+   */
   openSnackBar(message: string) {
     this.snackBar.open(message, 'Close', {
       duration: 3000, // duration in milliseconds

@@ -31,6 +31,14 @@ export const enableCameraAndMicrophoneFailure = createAction(
 export const toggleRaiseHand = createAction('[LiveKit Room] Toggle Raise Hand');
 
 export const leaveMeeting = createAction('[LiveKit Room] Leave Meeting');
+export const leaveMeetingSuccess = createAction(
+  '[Meeting] Leave Meeting Success'
+);
+
+export const leaveMeetingFailure = createAction(
+  '[Meeting] Leave Meeting Failure',
+  props<{ error: any }>()
+);
 
 export const toggleScreenShare = createAction(
   '[LiveKit Room] Toggle Screen Share'

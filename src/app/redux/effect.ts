@@ -4,12 +4,14 @@ import { LiveKitService } from '../livekit.service';
 import * as LiveKitRoomActions from './actions';
 import { catchError, map, mergeMap, switchMap, tap } from 'rxjs/operators';
 import { of, from } from 'rxjs';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Injectable()
 export class LiveKitRoomEffects {
   constructor(
     private actions$: Actions,
-    private livekitService: LiveKitService
+    private livekitService: LiveKitService,
+    private snackBar: MatSnackBar
   ) {}
 
   startMeeting$ = createEffect(() =>
@@ -96,6 +98,23 @@ export class LiveKitRoomEffects {
                 error: error.message,
               })
             )
+          )
+        )
+      )
+    )
+  );
+
+  leaveMeeting$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.leaveMeeting),
+      switchMap(() =>
+        this.livekitService.disconnectRoom().pipe(
+          map(() => {
+            this.snackBar.open('You Left the meeting', '', { duration: 2000 });
+            return LiveKitRoomActions.leaveMeetingSuccess();
+          }),
+          catchError((error) =>
+            of(LiveKitRoomActions.leaveMeetingFailure({ error }))
           )
         )
       )

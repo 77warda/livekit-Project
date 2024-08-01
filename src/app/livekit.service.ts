@@ -240,10 +240,21 @@ export class LiveKitService {
    *
    * @returns {void}
    */
+  // disconnectRoom() {
+  //   if (this.room) {
+  //     this.room.disconnect();
+  //   }
+  // }
   disconnectRoom() {
-    if (this.room) {
-      this.room.disconnect();
-    }
+    return new Observable<void>((observer) => {
+      if (this.room) {
+        this.room.disconnect();
+        observer.next();
+        observer.complete();
+      } else {
+        observer.complete();
+      }
+    });
   }
 
   /**

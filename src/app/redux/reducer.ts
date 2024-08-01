@@ -1,6 +1,6 @@
 import { createReducer, on } from '@ngrx/store';
 import * as LiveKitRoomActions from './actions';
-import { RemoteTrack, Track } from 'livekit-client';
+import { Participant, RemoteTrack, Track } from 'livekit-client';
 
 export interface LiveKitRoomState {
   isMeetingStarted: boolean;
@@ -13,6 +13,7 @@ export interface LiveKitRoomState {
   participantSideWindowVisible: boolean;
   chatSideWindowVisible: boolean;
   error?: string;
+  participants: Participant[];
 }
 
 export const initialState: LiveKitRoomState = {
@@ -25,6 +26,7 @@ export const initialState: LiveKitRoomState = {
   iconColor: 'black',
   participantSideWindowVisible: false,
   chatSideWindowVisible: false,
+  participants: [],
 };
 
 export const liveKitRoomReducer = createReducer(
@@ -148,5 +150,13 @@ export const liveKitRoomReducer = createReducer(
         { sendMessage, sendingTime, type: 'sent' },
       ],
     };
-  })
+  }),
+  on(LiveKitRoomActions.leaveMeetingSuccess, (state) => ({
+    ...state,
+    isMeetingStarted: false,
+  })),
+  on(LiveKitRoomActions.leaveMeetingFailure, (state, { error }) => ({
+    ...state,
+    error,
+  }))
 );

@@ -54,7 +54,9 @@
 
         <button class="chat" matTooltip="Chat" (click)="openChatSideWindow()">
           <i class="far fa-comment-lines"></i>
-          <span *ngIf="unreadMessagesCount > 0" class="badge"
+          <span
+            *ngIf="!(chatSideWindowVisible$ | async) && unreadMessagesCount > 0"
+            class="badge"
             >0{{ unreadMessagesCount }}</span
           >
         </button>
