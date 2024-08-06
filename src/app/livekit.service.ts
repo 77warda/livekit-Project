@@ -181,6 +181,7 @@ export class LiveKitService {
     await this.room.connect(wsURL, token);
     console.log('Connected to room', this.room);
     this.updateParticipantNames();
+    this.remoteParticipantAfterLocal();
   }
 
   /**
@@ -297,6 +298,25 @@ export class LiveKitService {
     }
   }
 
+  remoteParticipantAfterLocal() {
+    // also subscribe to tracks published before participant joined
+
+    const remoteParticipants = Array.from(
+      this.room.remoteParticipants.values()
+    );
+    console.log('above data', remoteParticipants);
+    remoteParticipants.forEach((participant) => {
+      console.log('warda', participant);
+      this.createAvatar(participant);
+      const eachRemoteParticipant = Array.from(
+        participant.trackPublications.values()
+      );
+      eachRemoteParticipant.forEach((publication) => {
+        publication.setSubscribed(true);
+        console.log('warda Rasool', participant);
+      });
+    });
+  }
   /**
    * Handles audio and video events in the LiveKit room.
    *
@@ -381,9 +401,10 @@ export class LiveKitService {
      * @event RoomEvent.ParticipantConnected
      * @param {Participant} participant - The participant who connected.
      */
-    this.room.on(RoomEvent.ParticipantConnected, (participant) =>
-      this.updateParticipantNames()
-    );
+    this.room.on(RoomEvent.ParticipantConnected, (participant) => {
+      this.updateParticipantNames();
+      this.createAvatar(participant);
+    });
     /**
      * Event triggered when a participant disconnects from the room.
      *
@@ -395,13 +416,6 @@ export class LiveKitService {
       this.handleParticipantDisconnected.bind(this)
     );
 
-    // also subscribe to tracks published before participant joined
-    this.room.remoteParticipants.forEach((participant) => {
-      participant.trackPublications.forEach((publication) => {
-        publication.setSubscribed(true);
-        this.createAvatar(this.room.localParticipant);
-      });
-    });
     /**
      * Event triggered when a track is published.
      * Automatically subscribes to the track.
@@ -462,6 +476,7 @@ export class LiveKitService {
       (publication: LocalTrackPublication, participant: LocalParticipant) => {
         if (publication.track?.source === Track.Source.Camera) {
           const participantTile = document.getElementById(`${participant.sid}`);
+          console.log('testing avatar', participantTile);
           if (participantTile) {
             // Remove the avatar image if it exists
             const avatarImg = participantTile.querySelector('img');
@@ -775,92 +790,9 @@ export class LiveKitService {
   ) {
     console.log('testing', publication);
     if (track.kind === 'video' && track.source === Track.Source.Camera) {
-      // const container = document.getElementById('remoteVideoContainer');
-      // if (container) {
-      //   const element = track.attach();
-      //   element.setAttribute('class', 'lk-participant-tile');
-      //   element.setAttribute(
-      //     'style',
-      //     'position: relative;  display: flex ;flex-direction: column ;gap: 0.375rem ; overflow: hidden ;border-radius: 0.5rem '
-      //   );
-      //   container.appendChild(element);
-      // } else {
-      //   console.error('Remote video container not found');
-      // }
-      // ===================================
-      // const el2 = document.createElement('div');
-      // el2.setAttribute('class', 'lk-participant-tile');
-      // el2.setAttribute('id', `${participant.sid}`);
-      // el2.setAttribute(
-      //   'style',
-      //   `position: relative;
-      //   display: flex;
-      //   flex-direction: column;
-      //   gap: 0.375rem;
-      //   border-radius: 0.5rem;
-      //   width:100%`
-      // );
-      // const container = document.querySelector('.lk-grid-layout');
-      // if (container) {
-      //   const element = track.attach();
-      //   el2.appendChild(element);
-      //   element.setAttribute(
-      //     'style',
-      //     'border-radius: 0.5rem;width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000; object-fit: cover;'
-      //   );
-      //   const el3 = document.createElement('div');
-      //   el3.setAttribute('class', 'lk-participant-metadata');
-      //   el3.setAttribute(
-      //     'style',
-      //     `position: absolute;
-      //         right: 0.25rem;
-      //         bottom: 0.25rem;
-      //         left: 0.25rem;
-      //         display: flex;
-      //         flex-direction: row;
-      //         align-items: center;
-      //         justify-content: space-between;
-      //         gap: 0.5rem;
-      //         line-height: 1;`
-      //   );
-      //   const el4 = document.createElement('div');
-      //   el4.setAttribute('class', 'lk-participant-metadata-item');
-      //   el4.setAttribute(
-      //     'style',
-      //     `display: flex;
-      //         align-items: center;
-      //         padding: 0.25rem;
-      //         background-color: rgba(0, 0, 0, 0.5);
-      //         border-radius: calc(var(--lk-border-radius) / 2);`
-      //   );
-      //   const el5 = document.createElement('span');
-      //   el5.setAttribute('class', 'lk-participant-name');
-      //   el5.setAttribute(
-      //     'style',
-      //     ` font-size: 0.875rem;
-      //         color: white;
-      //         `
-      //   );
-      //   el2.appendChild(el3);
-      //   el3.appendChild(el4);
-      //   el4.appendChild(el5);
-      //   el5.innerText = participant.identity;
-      //   container.appendChild(el2);
-      //   // container.appendChild(el3);
-      //   publication.setVideoQuality(VideoQuality.LOW);
-      //   this.remoteParticipantName = participant.identity; // Associate video element with participant
-      //   if (element) {
-      //     this.openSnackBar(
-      //       `Participant "${participant.identity}" has joined.`
-      //     );
-      //   }
-      //   this.handleTrackMuted(publication, participant);
-      // } else {
-      //   console.error('Remote video container not found');
-      // }
-
-      // =======================================
       const existingElement = document.getElementById(`${participant.sid}`);
+      console.log('testing avatar below', existingElement);
+
       if (existingElement) {
         // Remove the avatar image if it exists
         const avatarImg = existingElement.querySelector('img');
@@ -872,7 +804,7 @@ export class LiveKitService {
         const element = track.attach();
         element.setAttribute(
           'style',
-          'border-radius: 0.5rem; width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000;'
+          'border-radius: 0.5rem; width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000;object-fit: fill; -webkit-filter: blur(15px);-moz-filter: blur(15px);-o-filter: blur(15px);-ms-filter: blur(15px);filter: blur(15px)'
         );
         existingElement.appendChild(element);
 
@@ -937,6 +869,10 @@ export class LiveKitService {
         setTimeout(() => {
           const retryElement = document.getElementById(`${participant.sid}`);
           if (retryElement) {
+            const avatarImg = retryElement.querySelector('img');
+            if (avatarImg) {
+              retryElement.removeChild(avatarImg);
+            }
             const element = track.attach();
             element.setAttribute(
               'style',
@@ -1230,7 +1166,6 @@ export class LiveKitService {
        background-color: #000;
      `
     );
-
     setTimeout(() => {
       const container = document.querySelector('.lk-grid-layout');
       if (container) {
@@ -1252,7 +1187,6 @@ export class LiveKitService {
            line-height: 1;
          `
         );
-
         // Create metadata item
         const el4 = document.createElement('div');
         el4.setAttribute('class', 'lk-participant-metadata-item');
@@ -1266,7 +1200,6 @@ export class LiveKitService {
            border-radius: calc(var(--lk-border-radius) / 2);
          `
         );
-
         // Create participant name element
         const el5 = document.createElement('span');
         el5.setAttribute('class', 'lk-participant-name');
@@ -1278,12 +1211,10 @@ export class LiveKitService {
           `
         );
         el5.innerText = participant.identity;
-
         // Append elements
         el4.appendChild(el5);
         el3.appendChild(el4);
         el2.appendChild(el3);
-
         // Create avatar image
         const imgElement = document.createElement('img');
         imgElement.setAttribute('src', '../assets/avatar.png');
@@ -1299,7 +1230,6 @@ export class LiveKitService {
           object-position: center;
         `;
         el2.appendChild(imgElement);
-
         // Append participant tile to container
         container.appendChild(el2);
       }

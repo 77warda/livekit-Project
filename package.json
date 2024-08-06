@@ -6,7 +6,7 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test --karma-config ./karma.conf.js --include src/app/redux/reducer.spec.ts --code-coverage",
+    "test": "ng test --karma-config ./karma.conf.js --include src/app/redux/selectors.spec.ts --watch",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run"
   },
