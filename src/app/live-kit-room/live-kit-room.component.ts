@@ -122,46 +122,12 @@ export class LiveKitRoomComponent {
       message: [''],
       participant: [''],
     });
-    // this.livekitService.msgDataReceived.subscribe((data) => {
-    //   console.log('Received message:', data.message);
-    //   console.log('Participant:', data.participant);
-
-    //   const receivedMsg = data?.message?.message;
-    //   const senderName = data?.participant?.identity;
-    //   const receivingTime = data?.message?.timestamp;
-    //   this.allMessages.push({
-    //     senderName,
-    //     receivedMsg,
-    //     receivingTime,
-    //     type: 'received',
-    //   });
-    //   // if (!this.chatSideWindowVisible) {
-    //   //   this.unreadMessagesCount++;
-    //   // }
-    //   this.chatSideWindowVisible$.subscribe((visible) => {
-    //     if (!visible) {
-    //       this.unreadMessagesCount++;
-    //       this.scrollToBottom();
-    //     }
-    //   });
-    //   this.scrollToBottom();
-    //   this.sortMessages();
-    // });
-    // this.livekitService.messageEmitter.subscribe((data: any) => {
-    //   console.log('data', data);
-    //   const sendMessage = data?.message;
-    //   const sendingTime = data?.timestamp;
-    //   this.allMessages.push({ sendMessage, sendingTime, type: 'sent' });
-    //   this.sortMessages();
-    //   this.scrollToBottom();
-    // });
-
     this.livekitService.msgDataReceived.subscribe((data) => {
       console.log('Received message:', data.message.handRaised);
 
       console.log('Participant:', data.participant);
       if (data.message.handRaised === true) {
-        // console.log(`${data.participant} raised its hand`);
+        console.log(`${data.participant} raised its hand`);
         if (data.participant) {
           // null check
           this.handRaiseStates[data.participant.identity] = true;
@@ -349,11 +315,14 @@ export class LiveKitRoomComponent {
   toggleRaiseHand() {
     console.log('raised');
     if (this.localParticipant.handRaised) {
+      console.log('lowered handdddd');
+
       this.localParticipant.handRaised = false;
       this.livekitService.lowerHand(this.localParticipant);
       this.openSnackBar(`${this.localParticipant.identity} lowered hand`);
       this.handRaiseStates[this.localParticipant.identity] = false;
     } else {
+      console.log('raised handdddd');
       this.localParticipant.handRaised = true;
       this.livekitService.raiseHand(this.localParticipant);
       this.openSnackBar(`${this.localParticipant.identity} raised hand`);
@@ -402,36 +371,6 @@ export class LiveKitRoomComponent {
         );
       }
     );
-
-    this.livekitService.handRaised.subscribe((event) => {
-      console.log('Hand raised event:', event);
-
-      // Find the participant locally
-      const localParticipant = this.localParticipant.find(
-        (p: any) => p.identity === event.participant?.identity
-      );
-
-      // Find the participant remotely
-      const remoteParticipant = this.remoteParticipantNames.find(
-        (p: any) => p.identity === event.participant?.identity
-      );
-
-      // Update hand raise status for both local and remote participants
-      if (localParticipant) {
-        localParticipant.handRaised = event.handRaised;
-      }
-
-      if (remoteParticipant) {
-        remoteParticipant.handRaised = event.handRaised;
-      }
-
-      // Show snackbar based on the hand raise event
-      if (event.handRaised) {
-        this.openSnackBar(`${event?.participant?.identity} raised hand`);
-      } else {
-        this.openSnackBar(`${event?.participant?.identity} lowered hand`);
-      }
-    });
   }
 
   /**

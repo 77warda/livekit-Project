@@ -269,7 +269,9 @@
               </div>
               <div class="name">{{ localParticipant.identity }}(You)</div>
 
-              <span *ngIf="localParticipant.handRaised" class="raised-hand-icon"
+              <span
+                *ngIf="handRaiseStates[localParticipant?.identity]"
+                class="raised-hand-icon"
                 >✋</span
               >
             </div>
@@ -311,7 +313,9 @@
                 <p>{{ extractInitials(participant.identity) }}</p>
               </div>
               <div class="name">{{ participant.identity }}</div>
-              <span *ngIf="participant.handRaised" class="raised-hand-icon"
+              <span
+                *ngIf="handRaiseStates[participant?.identity]"
+                class="raised-hand-icon"
                 >✋</span
               >
             </div>
