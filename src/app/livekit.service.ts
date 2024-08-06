@@ -192,6 +192,15 @@ export class LiveKitService {
    * @param {string} participant.identity - The unique identity of the participant.
    * @returns {Promise<void>} A promise that resolves when the hand raise message is published.
    */
+  // async raiseHand(participant: any) {
+  //   participant.handRaised = true;
+  //   const message = {
+  //     type: 'handRaise',
+  //     participantId: participant.identity,
+  //     handRaised: true,
+  //   };
+  //   await this.publishHandRaiseLowerMessage(message);
+  // }
   async raiseHand(participant: any) {
     participant.handRaised = true;
     const message = {
@@ -201,14 +210,7 @@ export class LiveKitService {
     };
     await this.publishHandRaiseLowerMessage(message);
   }
-  /**
-   * Raises the hand for a given participant and publishes a hand raise message.
-   *
-   * @async
-   * @param {object} participant - The participant object whose hand is to be lowered.
-   * @param {string} participant.identity - The unique identity of the participant.
-   * @returns {Promise<void>} A promise that resolves when the hand lower message is published.
-   */
+
   async lowerHand(participant: any) {
     participant.handRaised = false;
     const message = {
@@ -218,6 +220,29 @@ export class LiveKitService {
     };
     await this.publishHandRaiseLowerMessage(message);
   }
+
+  private async publishHandRaiseLowerMessage(message: any) {
+    const strData = JSON.stringify(message);
+    const data = new TextEncoder().encode(strData);
+    await this.room!.localParticipant.publishData(data, { reliable: true });
+  }
+  /**
+   * Raises the hand for a given participant and publishes a hand raise message.
+   *
+   * @async
+   * @param {object} participant - The participant object whose hand is to be lowered.
+   * @param {string} participant.identity - The unique identity of the participant.
+   * @returns {Promise<void>} A promise that resolves when the hand lower message is published.
+   */
+  // async lowerHand(participant: any) {
+  //   participant.handRaised = false;
+  //   const message = {
+  //     type: 'handRaise',
+  //     participantId: participant.identity,
+  //     handRaised: false,
+  //   };
+  //   await this.publishHandRaiseLowerMessage(message);
+  // }
 
   /**
    * Publishes a hand raise/lower message to the room.
@@ -230,11 +255,11 @@ export class LiveKitService {
    * @param {boolean} message.handRaised - Indicates if the hand is raised or lowered.
    * @returns {Promise<void>} A promise that resolves when the message is published.
    */
-  private async publishHandRaiseLowerMessage(message: any) {
-    const strData = JSON.stringify(message);
-    const data = new TextEncoder().encode(strData);
-    await this.room!.localParticipant.publishData(data, { reliable: true });
-  }
+  // private async publishHandRaiseLowerMessage(message: any) {
+  //   const strData = JSON.stringify(message);
+  //   const data = new TextEncoder().encode(strData);
+  //   await this.room!.localParticipant.publishData(data, { reliable: true });
+  // }
 
   /**
    * Disconnects from the current LiveKit room if connected.

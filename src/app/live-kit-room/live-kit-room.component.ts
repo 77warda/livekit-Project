@@ -72,6 +72,7 @@ export class LiveKitRoomComponent {
   unreadMessagesCount = 0;
   remoteParticipantNames: any;
   localParticipant: any;
+  handRaiseStates: { [identity: string]: boolean } = {};
 
   // ==================== header=========================
   // participantSideWindowVisible = false;
@@ -121,30 +122,79 @@ export class LiveKitRoomComponent {
       message: [''],
       participant: [''],
     });
-    this.livekitService.msgDataReceived.subscribe((data) => {
-      console.log('Received message:', data.message);
-      console.log('Participant:', data.participant);
+    // this.livekitService.msgDataReceived.subscribe((data) => {
+    //   console.log('Received message:', data.message);
+    //   console.log('Participant:', data.participant);
 
-      const receivedMsg = data?.message?.message;
-      const senderName = data?.participant?.identity;
-      const receivingTime = data?.message?.timestamp;
-      this.allMessages.push({
-        senderName,
-        receivedMsg,
-        receivingTime,
-        type: 'received',
-      });
-      // if (!this.chatSideWindowVisible) {
-      //   this.unreadMessagesCount++;
-      // }
-      this.chatSideWindowVisible$.subscribe((visible) => {
-        if (!visible) {
-          this.unreadMessagesCount++;
-          this.scrollToBottom();
+    //   const receivedMsg = data?.message?.message;
+    //   const senderName = data?.participant?.identity;
+    //   const receivingTime = data?.message?.timestamp;
+    //   this.allMessages.push({
+    //     senderName,
+    //     receivedMsg,
+    //     receivingTime,
+    //     type: 'received',
+    //   });
+    //   // if (!this.chatSideWindowVisible) {
+    //   //   this.unreadMessagesCount++;
+    //   // }
+    //   this.chatSideWindowVisible$.subscribe((visible) => {
+    //     if (!visible) {
+    //       this.unreadMessagesCount++;
+    //       this.scrollToBottom();
+    //     }
+    //   });
+    //   this.scrollToBottom();
+    //   this.sortMessages();
+    // });
+    // this.livekitService.messageEmitter.subscribe((data: any) => {
+    //   console.log('data', data);
+    //   const sendMessage = data?.message;
+    //   const sendingTime = data?.timestamp;
+    //   this.allMessages.push({ sendMessage, sendingTime, type: 'sent' });
+    //   this.sortMessages();
+    //   this.scrollToBottom();
+    // });
+
+    this.livekitService.msgDataReceived.subscribe((data) => {
+      console.log('Received message:', data.message.handRaised);
+
+      console.log('Participant:', data.participant);
+      if (data.message.handRaised === true) {
+        // console.log(`${data.participant} raised its hand`);
+        if (data.participant) {
+          // null check
+          this.handRaiseStates[data.participant.identity] = true;
+          this.openSnackBar(`${data.participant.identity} raised its hand`);
         }
-      });
-      this.scrollToBottom();
-      this.sortMessages();
+      }
+      if (data.message.handRaised === false) {
+        console.log(`${data.participant} lowered its hand`);
+        if (data.participant) {
+          // null check
+          this.handRaiseStates[data.participant.identity] = false;
+          this.openSnackBar(`${data.participant.identity} lowered its hand`);
+        }
+      }
+      if (data.message.type !== 'handRaise') {
+        const receivedMsg = data?.message?.message;
+        const senderName = data?.participant?.identity;
+        const receivingTime = data?.message?.timestamp;
+        this.allMessages.push({
+          senderName,
+          receivedMsg,
+          receivingTime,
+          type: 'received',
+        });
+        this.chatSideWindowVisible$.subscribe((visible) => {
+          if (!visible) {
+            this.unreadMessagesCount++;
+            this.scrollToBottom();
+          }
+        });
+        this.scrollToBottom();
+        this.sortMessages();
+      }
     });
     this.livekitService.messageEmitter.subscribe((data: any) => {
       console.log('data', data);
@@ -297,10 +347,17 @@ export class LiveKitRoomComponent {
    */
 
   toggleRaiseHand() {
+    console.log('raised');
     if (this.localParticipant.handRaised) {
+      this.localParticipant.handRaised = false;
       this.livekitService.lowerHand(this.localParticipant);
+      this.openSnackBar(`${this.localParticipant.identity} lowered hand`);
+      this.handRaiseStates[this.localParticipant.identity] = false;
     } else {
+      this.localParticipant.handRaised = true;
       this.livekitService.raiseHand(this.localParticipant);
+      this.openSnackBar(`${this.localParticipant.identity} raised hand`);
+      this.handRaiseStates[this.localParticipant.identity] = true;
     }
   }
 
