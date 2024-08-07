@@ -22,7 +22,7 @@
     }
 }
 
-// styling for dropdown 
+// styling for dropdown
 .select-dropdown,
 .select-dropdown * {
     margin: 0;
@@ -33,13 +33,12 @@
 
 .select-dropdown {
     position: relative;
-    background-color: #E6E6E6;
+    background-color: #e6e6e6;
     border-radius: 4px;
     display: flex;
     align-items: center;
     justify-items: space-evenly;
     width: 70%;
-
 }
 
 .select-dropdown select {
@@ -93,7 +92,6 @@ input {
     &:focus {
         outline: none;
     }
-
 }
 
 .startMeeting-container {
@@ -136,7 +134,7 @@ input {
         color: #909092;
         display: flex;
         align-items: center;
-        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
     }
 
     .left-header {
@@ -182,6 +180,15 @@ input {
             background-color: #ededed;
             border-radius: 8px;
         }
+    }
+
+    .fa-hand-paper {
+        color: rgba(181, 181, 181, 0.816);
+
+    }
+
+    .hand-raised {
+        color: rgba(234, 168, 0, 0.816);
     }
 
     .more {
@@ -270,6 +277,10 @@ input {
         height: 35px;
         border-radius: 6px;
 
+        &:hover {
+            background-color: #ff5177;
+        }
+
         h2 {
             color: white;
             font-weight: 500;
@@ -292,8 +303,7 @@ input {
 //     width: 100%;
 // }
 
-
-// ===================gallery ====================== 
+// ===================gallery ======================
 .screenshare-container {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -307,7 +317,6 @@ input {
         grid-column: span 10;
         position: relative;
         height: 85vh;
-
 
         img {
             height: 100%;
@@ -323,7 +332,6 @@ input {
             color: #fff;
             border-radius: 5px;
             padding: 0.2rem 1rem;
-
         }
     }
 
@@ -362,8 +370,6 @@ input {
         }
     }
 
-
-
     // .grid-item3 {
     //   grid-column: span 3;
     //   position: relative;
@@ -371,9 +377,6 @@ input {
     //   flex-flow: row wrap;
     //   justify-content: center;
     //   gap: 5px 8px;
-
-
-
 
     // }
 }
@@ -411,10 +414,8 @@ input {
             color: #fff;
             border-radius: 5px;
             padding: 0.2rem 1rem;
-
         }
     }
-
 }
 
 .person-without-video {
@@ -459,7 +460,6 @@ input {
             justify-content: center;
             outline: 3px solid #ada23d;
             border: 2px solid transparent;
-
         }
     }
 }
@@ -509,7 +509,6 @@ input {
     color: #fff;
     border-radius: 5px;
     padding: 0.2rem 1rem;
-
 }
 
 /* Style individual video elements */
@@ -591,7 +590,7 @@ input {
     margin: 5px;
 }
 
-// modal styling 
+// modal styling
 
 .modal {
     display: none;
@@ -637,7 +636,7 @@ input {
 }
 
 .lk-focus-layout-wrapper {
-    --lk-control-bar-height: 85px;
+    --lk-control-bar-height: 40%;
     grid-column: 1 / 9;
     grid-row: 2 / 3;
     padding: 20px;
@@ -662,7 +661,7 @@ input {
     grid-column: 1 / 13;
     grid-row: 2 / 3;
     // overflow-y: scroll;
-    --lk-control-bar-height: 85px;
+    --lk-control-bar-height: 30%;
     flex-direction: column;
     align-items: center;
     position: relative;
@@ -729,13 +728,14 @@ input {
 .os-main-content {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    grid-template-rows: [nav] 65px 675px;
+    grid-template-rows: [nav] 85px 675px;
     overflow: hidden;
     background-color: hsl(233, 100%, 98%);
+    height: 100%;
 }
 
 // ==================================
-// participant side window 
+// participant side window
 
 .participants-side-window-container {
     position: fixed;
@@ -866,8 +866,8 @@ input {
 .chat-side-window-container {
     position: fixed;
     right: 0;
-    top: 9%;
-    height: 100vh;
+    top: 14%;
+    height: 90%;
     width: 100%;
     //   background-color: rgba(0, 0, 0, 0.5);
     z-index: 2;
@@ -875,8 +875,8 @@ input {
     .chat-side-window {
         position: fixed;
         right: 0;
-        top: 9%;
-        height: 100vh;
+        top: 14.5%;
+        height: 85%;
         width: 20rem;
         // background-color: #2b2b2b;
         background-color: white;
@@ -888,7 +888,8 @@ input {
             display: grid;
             overflow: hidden;
             grid-template-columns: 1fr;
-            grid-template-rows: [card-navbar] 60px [card-body] 412px [card-footer] 60px;
+            grid-template-rows: [card-navbar] 60px [card-body] 1fr [card-footer] 150px;
+            height: 100%;
 
             &::-webkit-scrollbar {
                 display: none;
@@ -1045,103 +1046,14 @@ input {
                                 font-size: 1em;
                                 display: flex;
                                 justify-content: flex-end;
-                                align-items: end;
+                                align-items: flex-end;
                             }
                         }
                     }
                 }
             }
 
-            // .os-content-card-footer {
-            //     // grid-row: card-footer;
-            //     // display: flex;
-            //     // justify-content: flex-start;
-            //     // padding: 0px 20px;
-            //     // align-items: center;
-            //     // background: #f9f9f9;
-            //     // border-top: 1px solid #cccccc;
-            //     // gap: 8px;
 
-            //     .add {
-            //         color: #888;
-            //         background-color: #ccc;
-            //         /* font-size: 1.8em; */
-            //         font-size: 26px;
-            //         border-radius: 100%;
-            //         cursor: pointer;
-            //         width: 35px;
-            //         height: 30px;
-            //         display: flex;
-            //         align-items: center;
-            //         justify-content: center;
-
-            //         i {
-            //             font-size: 16px;
-            //         }
-            //     }
-
-            //     .search {
-            //         width: 90%;
-            //         display: flex;
-            //         height: 40px;
-            //         // align-items: center;
-            //         position: relative;
-
-            //         .sendTerm {
-            //             width: 100%;
-            //             height: 100%;
-            //             padding-left: 20px;
-
-            //             border-radius: 10px;
-            //             border: 1px solid #ccc;
-            //             font-size: 1em;
-
-            //             // cursor: pointer;
-            //             &:focus {
-            //                 border: none;
-            //             }
-            //         }
-
-            //         input:focus {
-            //             border: none;
-            //         }
-
-            //         .emoji {
-            //             position: absolute;
-            //             top: 5px;
-            //             right: 20px;
-            //             font-size: 1.8em;
-            //             color: #939393;
-            //             cursor: pointer;
-            //         }
-            //     }
-
-            //     .sendButton {
-            //         // position: absolute;
-            //         // top: 5px;
-            //         // border: none;
-            //         border: none;
-            //         // right: 30px;
-            //         // margin-right: 30px;
-
-            //         font-size: 18px;
-            //         border-radius: 100%;
-            //         cursor: pointer;
-            //         width: 35px;
-            //         height: 30px;
-            //         display: flex;
-            //         align-items: center;
-            //         justify-content: center;
-            //         background-color: #0abab5;
-
-            //         .send {
-            //             padding-right: 4px;
-            //             font-size: 16px;
-            //             color: white;
-            //             // font-size: 0.8em;
-            //         }
-            //     }
-            // }
 
             .new-footer-card {
                 margin: 10px 0;
@@ -1149,6 +1061,7 @@ input {
                 background: #f9f9f9;
                 border-top: 1px solid #cccccc;
                 grid-column: 1/13;
+                grid-row: 3/4;
 
                 .dropdwn {
                     display: flex;
