@@ -7,17 +7,10 @@ import { MatDialogModule } from '@angular/material/dialog';
 import {
   DataPacket_Kind,
   LocalParticipant,
-  LocalTrackPublication,
-  Participant,
-  RemoteParticipant,
-  RemoteTrackPublication,
   Room,
   RoomEvent,
-  Track,
-  TrackPublication,
 } from 'livekit-client';
 import { EventEmitter } from '@angular/core';
-import { identity } from 'rxjs';
 
 describe('LivekitService', () => {
   TestBed.configureTestingModule({

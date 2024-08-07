@@ -3,9 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import {
   DataPacket_Kind,
   LocalParticipant,
-  LocalTrack,
   LocalTrackPublication,
-  MediaDeviceFailure,
   Participant,
   RemoteParticipant,
   RemoteTrack,
@@ -15,7 +13,6 @@ import {
   Track,
   TrackPublication,
   VideoQuality,
-  setLogLevel,
 } from 'livekit-client';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { from, Observable } from 'rxjs';
@@ -54,9 +51,6 @@ export class LiveKitService {
    */
   isScreenSharingEnabled = false;
 
-  private screenSharingInProgress = false;
-  private isOtherParticipantSharing = false;
-
   /**
    * Event emitter for when the video status changes.
    * @type {EventEmitter<boolean>}
@@ -92,7 +86,7 @@ export class LiveKitService {
    * @private
    * @type {TextEncoder}
    */
-  private encoder = new TextEncoder();
+  // private encoder = new TextEncoder();
 
   /**
    * A text decoder instance for decoding text.
@@ -131,6 +125,8 @@ export class LiveKitService {
    * @type {EventEmitter<boolean>}
    */
   microphoneStatusChanged = new EventEmitter<boolean>();
+  screenShareCount = 0;
+  isExpanded: boolean = false;
 
   /**
    * Event emitter for when a message is received.
@@ -192,15 +188,6 @@ export class LiveKitService {
    * @param {string} participant.identity - The unique identity of the participant.
    * @returns {Promise<void>} A promise that resolves when the hand raise message is published.
    */
-  // async raiseHand(participant: any) {
-  //   participant.handRaised = true;
-  //   const message = {
-  //     type: 'handRaise',
-  //     participantId: participant.identity,
-  //     handRaised: true,
-  //   };
-  //   await this.publishHandRaiseLowerMessage(message);
-  // }
   async raiseHand(participant: any) {
     participant.handRaised = true;
     const message = {
@@ -211,6 +198,14 @@ export class LiveKitService {
     await this.publishHandRaiseLowerMessage(message);
   }
 
+  /**
+   * Raises the hand for a given participant and publishes a hand raise message.
+   *
+   * @async
+   * @param {object} participant - The participant object whose hand is to be lowered.
+   * @param {string} participant.identity - The unique identity of the participant.
+   * @returns {Promise<void>} A promise that resolves when the hand lower message is published.
+   */
   async lowerHand(participant: any) {
     participant.handRaised = false;
     const message = {
@@ -220,29 +215,6 @@ export class LiveKitService {
     };
     await this.publishHandRaiseLowerMessage(message);
   }
-
-  private async publishHandRaiseLowerMessage(message: any) {
-    const strData = JSON.stringify(message);
-    const data = new TextEncoder().encode(strData);
-    await this.room!.localParticipant.publishData(data, { reliable: true });
-  }
-  /**
-   * Raises the hand for a given participant and publishes a hand raise message.
-   *
-   * @async
-   * @param {object} participant - The participant object whose hand is to be lowered.
-   * @param {string} participant.identity - The unique identity of the participant.
-   * @returns {Promise<void>} A promise that resolves when the hand lower message is published.
-   */
-  // async lowerHand(participant: any) {
-  //   participant.handRaised = false;
-  //   const message = {
-  //     type: 'handRaise',
-  //     participantId: participant.identity,
-  //     handRaised: false,
-  //   };
-  //   await this.publishHandRaiseLowerMessage(message);
-  // }
 
   /**
    * Publishes a hand raise/lower message to the room.
@@ -255,11 +227,11 @@ export class LiveKitService {
    * @param {boolean} message.handRaised - Indicates if the hand is raised or lowered.
    * @returns {Promise<void>} A promise that resolves when the message is published.
    */
-  // private async publishHandRaiseLowerMessage(message: any) {
-  //   const strData = JSON.stringify(message);
-  //   const data = new TextEncoder().encode(strData);
-  //   await this.room!.localParticipant.publishData(data, { reliable: true });
-  // }
+  private async publishHandRaiseLowerMessage(message: any) {
+    const strData = JSON.stringify(message);
+    const data = new TextEncoder().encode(strData);
+    await this.room!.localParticipant.publishData(data, { reliable: true });
+  }
 
   /**
    * Disconnects from the current LiveKit room if connected.
@@ -329,16 +301,13 @@ export class LiveKitService {
     const remoteParticipants = Array.from(
       this.room.remoteParticipants.values()
     );
-    console.log('above data', remoteParticipants);
     remoteParticipants.forEach((participant) => {
-      console.log('warda', participant);
       this.createAvatar(participant);
       const eachRemoteParticipant = Array.from(
         participant.trackPublications.values()
       );
       eachRemoteParticipant.forEach((publication) => {
         publication.setSubscribed(true);
-        console.log('warda Rasool', participant);
       });
     });
   }
@@ -350,7 +319,7 @@ export class LiveKitService {
   audioVideoHandler() {
     this.room = new Room();
     this.participants = this.room.numParticipants;
-    console.log('prrr now', this.participants);
+    console.log('total participants', this.participants);
     /**
      * Event triggered when the room is connected.
      * Creates an avatar for the local participant.
@@ -465,7 +434,9 @@ export class LiveKitService {
       RoomEvent.LocalTrackUnpublished,
       (publication: LocalTrackPublication, participant: LocalParticipant) => {
         if (publication.source === Track.Source.ScreenShare) {
+          this.isScreenSharingEnabled = false;
           this.remoteScreenShare = false;
+          this.screenShareCount--;
         }
       }
     );
@@ -484,6 +455,7 @@ export class LiveKitService {
       (publication: RemoteTrackPublication, participant: RemoteParticipant) => {
         if (publication.source === Track.Source.ScreenShare) {
           this.remoteScreenShare = false;
+          this.screenShareCount--;
         }
       }
     );
@@ -584,6 +556,7 @@ export class LiveKitService {
         this.screenShareTrackSubscribed.emit(publication.track);
         if (publication.source === Track.Source.ScreenShare) {
           this.remoteScreenShare = true;
+          this.screenShareCount++;
           setTimeout(() => {
             const el2 = document.createElement('div');
             el2.setAttribute('class', 'lk-participant-tile');
@@ -646,6 +619,15 @@ export class LiveKitService {
               el3.appendChild(el4);
               el4.appendChild(el5);
               el5.innerText = participant.identity;
+              const button = document.createElement('button');
+              button.setAttribute('class', 'lk-participant-button');
+              button.innerHTML = `<i class="fas fa-expand-alt"></i>`;
+              button.onclick = () => {
+                this.toggleExpand(el2, participant.identity);
+                console.log(`Button clicked for ${participant.identity}!`);
+              };
+
+              el3.appendChild(button);
               container?.appendChild(el2);
             } else {
               console.error('Remote screen share container not found');
@@ -813,10 +795,8 @@ export class LiveKitService {
     publication: RemoteTrackPublication,
     participant: RemoteParticipant
   ) {
-    console.log('testing', publication);
     if (track.kind === 'video' && track.source === Track.Source.Camera) {
       const existingElement = document.getElementById(`${participant.sid}`);
-      console.log('testing avatar below', existingElement);
 
       if (existingElement) {
         // Remove the avatar image if it exists
@@ -829,7 +809,7 @@ export class LiveKitService {
         const element = track.attach();
         element.setAttribute(
           'style',
-          'border-radius: 0.5rem; width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000;object-fit: fill; -webkit-filter: blur(15px);-moz-filter: blur(15px);-o-filter: blur(15px);-ms-filter: blur(15px);filter: blur(15px)'
+          'border-radius: 0.5rem; width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000;'
         );
         existingElement.appendChild(element);
 
@@ -922,6 +902,7 @@ export class LiveKitService {
     this.screenShareTrackSubscribed.emit(track);
     if (track.source === Track.Source.ScreenShare && track.kind === 'video') {
       this.remoteScreenShare = true;
+      this.screenShareCount++;
       setTimeout(() => {
         const el2 = document.createElement('div');
         el2.setAttribute('class', 'lk-participant-tile');
@@ -939,7 +920,13 @@ export class LiveKitService {
         const screenShareTrack = publication.track?.attach();
         if (screenShareTrack) {
           const container = document.querySelector('.lk-focus-layout');
-          console.log('screenshare container', container);
+          const lkFocusLayoutContainer =
+            document.querySelector('.lk-focus-layout');
+          const newScreenShareContainer = document.querySelector(
+            '#newScreenShareContainer'
+          );
+
+          // console.log('screenshare container', container);
           // el2.appendChild(container);
 
           screenShareTrack.setAttribute(
@@ -984,7 +971,21 @@ export class LiveKitService {
           el3.appendChild(el4);
           el4.appendChild(el5);
           el5.innerText = participant.identity;
-          container?.appendChild(el2);
+          // container?.appendChild(el2);
+
+          const button = document.createElement('button');
+          button.setAttribute('class', 'lk-participant-button');
+          button.innerHTML = `<i class="fas fa-expand-alt"></i>`;
+          button.onclick = () => {
+            this.toggleExpand(el2, participant.identity);
+            // el2.appendChild(button);
+
+            console.log(`Button clicked for ${participant.identity}!`);
+          };
+
+          el3.appendChild(button);
+          lkFocusLayoutContainer?.appendChild(el2);
+          newScreenShareContainer?.appendChild(el2.cloneNode(true));
         } else {
           console.error('Remote screen share container not found');
         }
@@ -1050,7 +1051,6 @@ export class LiveKitService {
    * @throws {Error} Throws an error if the room is not enabled.
    */
   toggleVideo(): Observable<boolean> {
-    console.log('hello');
     if (!this.room) {
       throw new Error('Room not enabled.');
     }
@@ -1074,18 +1074,18 @@ export class LiveKitService {
    *
    * @returns {Promise<MediaStream | undefined>} A promise that resolves to the media stream if successful, or undefined if an error occurs.
    */
-  async startCamera(): Promise<MediaStream | undefined> {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-      });
-      return stream;
-    } catch (error) {
-      console.error('Error accessing the camera:', error);
-      this.openSnackBar(`Error accessing the camera, ${error}`);
-      return undefined;
-    }
-  }
+  // async startCamera(): Promise<MediaStream | undefined> {
+  //   try {
+  //     const stream = await navigator.mediaDevices.getUserMedia({
+  //       video: true,
+  //     });
+  //     return stream;
+  //   } catch (error) {
+  //     console.error('Error accessing the camera:', error);
+  //     this.openSnackBar(`Error accessing the camera, ${error}`);
+  //     return undefined;
+  //   }
+  // }
 
   /**
    * Toggles screen sharing for the local participant in the room.
@@ -1098,57 +1098,23 @@ export class LiveKitService {
    * @returns {Promise<boolean>} A promise that resolves to the new screen sharing status (true if enabled, false if disabled).
    * @throws {Error} Throws an error if there is an issue toggling the screen share.
    */
+
   async toggleScreenShare(): Promise<boolean> {
-    try {
-      if (this.isScreenSharingEnabled) {
-        await this.room.localParticipant.setScreenShareEnabled(false);
-        this.isScreenSharingEnabled = false;
-        const container = document.querySelector('.lk-focus-layout');
-        if (container) {
-          container.remove();
-        } else {
-          console.error('Local screen share container not found');
-        }
+    if (this.isScreenSharingEnabled) {
+      await this.room.localParticipant.setScreenShareEnabled(false);
+      this.isScreenSharingEnabled = false;
+      const container = document.querySelector('.lk-focus-layout');
+      if (container) {
+        container.remove();
       } else {
-        this.remoteParticipantSharingScreen = false;
-        this.room.remoteParticipants.forEach((participant) => {
-          participant.trackPublications.forEach((publication) => {
-            if (
-              publication.track &&
-              publication.track.source === Track.Source.ScreenShare
-            ) {
-              this.remoteParticipantSharingScreen = true;
-            }
-          });
-        });
-
-        if (this.remoteParticipantSharingScreen) {
-          const modal = document.getElementById('myModal') as HTMLElement;
-          const closeBtn = modal?.querySelector('.close') as HTMLElement;
-
-          modal?.setAttribute('style', 'display:block');
-
-          closeBtn.onclick = function () {
-            modal?.setAttribute('style', 'display:none');
-          };
-
-          window.onclick = function (event) {
-            if (event.target == modal) {
-              modal?.setAttribute('style', 'display:none');
-            }
-          };
-        } else {
-          await this.room.localParticipant.setScreenShareEnabled(true);
-          this.isScreenSharingEnabled = true;
-        }
+        console.error('Local screen share container not found');
       }
-      return this.isScreenSharingEnabled;
-    } catch (error) {
-      console.error('Error toggling screen share:', error);
-      throw error;
+    } else {
+      await this.room.localParticipant.setScreenShareEnabled(true);
+      this.isScreenSharingEnabled = true;
     }
+    return this.isScreenSharingEnabled; // Return the updated screen sharing status
   }
-
   /**
    * Opens a snackbar with a given message.
    *
@@ -1259,5 +1225,112 @@ export class LiveKitService {
         container.appendChild(el2);
       }
     }, 100);
+  }
+
+  toggleExpand(element: any, participantId: any) {
+    const originalTileElStyle = `--lk-speaking-indicator-width: 2.5px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        height:100%;
+        gap: 0.375rem;
+        overflow: hidden;
+        border-radius: 0.5rem;`;
+    const allElements = document.querySelectorAll('.lk-focus-layout');
+    const tileElements = document.querySelectorAll('.lk-participant-tile');
+
+    // Check if the element is currently expanded
+    const isExpanded = element.getAttribute('data-expanded') === 'true';
+
+    if (isExpanded) {
+      // If the element is expanded, collapse it by resetting the styles
+      // const originalStyle = element.getAttribute('data-original-style');
+      element.setAttribute('style', originalTileElStyle);
+      element.setAttribute('data-expanded', 'false');
+    } else {
+      // Save the original style
+      // const originalStyle = element.getAttribute('style') || '';
+      element.setAttribute('data-original-style', originalTileElStyle);
+
+      // If the element is not expanded, expand it by setting the expanded styles
+      element.setAttribute(
+        'style',
+        `
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 55vw;
+        height: 90vh;
+        z-index: 10;
+      `
+      );
+      element.setAttribute('data-expanded', 'true');
+    }
+
+    // Make all other elements small and save their original styles
+
+    allElements.forEach((el) => {
+      if (el !== element) {
+        const originalFocusLayoutStyle =
+          el.getAttribute('data-original-style') ||
+          el.getAttribute('style') ||
+          '';
+        el.setAttribute('data-original-style', originalFocusLayoutStyle);
+
+        if (!isExpanded) {
+          el.setAttribute(
+            'style',
+            `
+            --lk-speaking-indicator-width: 1px;
+            position: relative;
+            display: flex;
+            flex-direction: column !important;
+            height: 50%;
+            width: 100%;
+            gap: 0.1rem;
+            overflow: auto;
+            border-radius: 0.25rem;
+          `
+          );
+          el.setAttribute('data-expanded', 'false');
+        } else {
+          el.setAttribute('style', originalFocusLayoutStyle);
+          el.setAttribute('data-expanded', 'false');
+        }
+      }
+    });
+    tileElements.forEach((el) => {
+      if (el !== element) {
+        // const originalStyle =
+        //   el.getAttribute('data-original-style') ||
+        //   el.getAttribute('style') ||
+        //   '';
+        el.setAttribute('data-original-style', originalTileElStyle);
+
+        if (!isExpanded) {
+          el.setAttribute(
+            'style',
+            `
+            --lk-speaking-indicator-width: 1px;
+              position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 0.375rem;
+            border-radius: 0.5rem;
+            height: 50%;
+            width: 28%;
+            overflow: auto;
+            border-radius: 0.25rem;
+          `
+          );
+          el.setAttribute('data-expanded', 'false');
+        } else {
+          console.log('original', originalTileElStyle);
+          el.setAttribute('style', originalTileElStyle);
+          el.setAttribute('data-expanded', 'false');
+        }
+      }
+    });
   }
 }

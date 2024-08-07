@@ -91,7 +91,7 @@
           ></i>
         </button>
 
-        <button class="share" (click)="toggleScreenShare()">
+        <!-- <button class="share" (click)="toggleScreenShare()">
           <span
             class="material-symbols-outlined"
             *ngIf="!(isScreenSharing$ | async)"
@@ -105,7 +105,36 @@
           >
             stop_screen_share
           </span>
+        </button> -->
+        <button class="share" (click)="toggleScreenShare()">
+          <span
+            class="material-symbols-outlined"
+            *ngIf="!livekitService.isScreenSharingEnabled"
+          >
+            screen_share
+          </span>
+          <span
+            class="material-symbols-outlined"
+            *ngIf="livekitService.isScreenSharingEnabled"
+            [ngStyle]="{ color: (iconColor$ | async) }"
+          >
+            stop_screen_share
+          </span>
         </button>
+        <!-- <button class="share" (click)="toggleScreenShare()">
+          <ng-container *ngIf="isScreenSharing$ | async as isScreenSharing">
+            <span class="material-symbols-outlined" *ngIf="!isScreenSharing">
+              screen_share
+            </span>
+            <span
+              class="material-symbols-outlined"
+              *ngIf="isScreenSharing"
+              [ngStyle]="{ color: (iconColor$ | async) }"
+            >
+              stop_screen_share
+            </span>
+          </ng-container>
+        </button> -->
 
         <button class="leave-btn" (click)="leaveBtn()">
           <h2>Leave</h2>
@@ -116,40 +145,46 @@
 
     <ng-container
       *ngIf="
-        (isScreenSharing$ | async) === true ||
-        this.livekitService.remoteScreenShare === true
+        livekitService.isScreenSharingEnabled === true ||
+        livekitService.remoteScreenShare === true
       "
     >
-      <div class="lk-focus-layout-wrapper">
-        <div class="lk-focus-layout"></div>
+      <div
+        class="lk-focus-layout-wrapper"
+        [ngClass]="{
+          'screen-share-layout-wrapper': livekitService.isExpanded === true
+        }"
+      >
+        <div
+          class="lk-focus-layout"
+          [ngClass]="{ expanded: livekitService.isExpanded }"
+          [ngClass]="{
+            'screen-share-layout': livekitService.isExpanded === true
+          }"
+          [style.grid-template-columns]="ScreenGalleryGridColumnStyle"
+        ></div>
       </div>
     </ng-container>
+
     <div
       class="lk-grid-layout-wrapper"
       [ngClass]="{
         'screen-share-layout-wrapper':
-          (isScreenSharing$ | async) === true ||
-          this.livekitService.remoteScreenShare === true
+          livekitService.isScreenSharingEnabled === true ||
+          livekitService.remoteScreenShare === true
       }"
     >
       <div
         class="lk-grid-layout"
         [ngClass]="{
           'screen-share-layout':
-            (isScreenSharing$ | async) === true ||
-            this.livekitService.remoteScreenShare === true
+            livekitService.isScreenSharingEnabled === true ||
+            livekitService.remoteScreenShare === true
         }"
         [style.grid-template-columns]="GalleryGridColumnStyle"
       ></div>
     </div>
     <!-- modal to show a person is already sharing screen  -->
-
-    <div id="myModal" class="modal">
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <p>Another participant is already sharing its screen.</p>
-      </div>
-    </div>
   </div>
 
   <div class="closeChatSideWindow" (click)="closeChatSideWindow()">
@@ -261,7 +296,9 @@
               </div>
               <div class="name">{{ localParticipant.identity }}(You)</div>
 
-              <span *ngIf="localParticipant.handRaised" class="raised-hand-icon"
+              <span
+                *ngIf="handRaiseStates[localParticipant?.identity]"
+                class="raised-hand-icon"
                 >✋</span
               >
             </div>
@@ -303,7 +340,9 @@
                 <p>{{ extractInitials(participant.identity) }}</p>
               </div>
               <div class="name">{{ participant.identity }}</div>
-              <span *ngIf="participant.handRaised" class="raised-hand-icon"
+              <span
+                *ngIf="handRaiseStates[participant?.identity]"
+                class="raised-hand-icon"
                 >✋</span
               >
             </div>

@@ -636,8 +636,8 @@ input {
 }
 
 .lk-focus-layout-wrapper {
-    --lk-control-bar-height: 40%;
-    grid-column: 1 / 9;
+    --lk-control-bar-height: 85px;
+    grid-column: 1 / 10;
     grid-row: 2 / 3;
     padding: 20px;
     position: relative;
@@ -647,13 +647,21 @@ input {
     height: calc(100% - var(--lk-control-bar-height));
 
     .lk-focus-layout {
-        // display: grid;
-        grid-template-columns: 1fr 5fr;
         grid-gap: var(--lk-grid-gap);
         gap: var(--lk-grid-gap);
         width: 100%;
         max-height: 100%;
         padding: var(--lk-grid-gap);
+        display: grid;
+        grid-template-columns: 1fr;
+        position: relative;
+
+        .expand-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 999;
+        }
     }
 }
 
@@ -661,7 +669,7 @@ input {
     grid-column: 1 / 13;
     grid-row: 2 / 3;
     // overflow-y: scroll;
-    --lk-control-bar-height: 30%;
+    --lk-control-bar-height: 85px;
     flex-direction: column;
     align-items: center;
     position: relative;
@@ -674,7 +682,7 @@ input {
 
     &.screen-share-layout-wrapper {
         margin-left: 20px;
-        grid-column: 9 / 13; // Change grid-column when screenShareTrack is true
+        grid-column: 10 / 13; // Change grid-column when screenShareTrack is true
         overflow-y: hidden;
         height: 90%;
         padding: 10px 10px 0 10px;

@@ -44,7 +44,6 @@ const GRIDCOLUMN: { [key: number]: string } = {
 export class LiveKitRoomComponent {
   // selectors
   isMeetingStarted$!: Observable<boolean>;
-  stream$!: Observable<MediaStream | undefined>;
   allMessages$!: Observable<any[]>;
   unreadMessagesCount$!: Observable<number>;
   isVideoOn$!: Observable<boolean>;
@@ -53,53 +52,34 @@ export class LiveKitRoomComponent {
   chatSideWindowVisible$!: Observable<boolean>;
   isScreenSharing$!: Observable<boolean>;
   iconColor$!: Observable<string>;
+  iconColor = 'black';
+
   // private subscriptions: Subscription[] = [];
   @ViewChild('messageContainer') messageContainer!: ElementRef | any;
   attachedTrack: HTMLElement | null = null;
-
-  // roomDetails: { wsURL: string; token: string } | null = null;
   startForm!: FormGroup;
   chatForm!: FormGroup;
-  // isMeetingStarted = false;
-  stream: MediaStream | undefined;
   screenShareTrackSubscription!: Subscription;
   screenShareTrack!: RemoteTrack | undefined;
-  // sharedLayout!: boolean;
-  // withVideo!: boolean;
-  // isScreenSharingEnabled: boolean = false;
-  // localParticipantName: string = '';
-  // previousSenderName: string = '';
   unreadMessagesCount = 0;
   remoteParticipantNames: any;
   localParticipant: any;
   handRaiseStates: { [identity: string]: boolean } = {};
-
-  // ==================== header=========================
-  // participantSideWindowVisible = false;
-  // chatSideWindowVisible = false;
-  // isVideoOn = false;
-  // isMicOn = false;
-  // iconColor = 'black';
-  // isScreenRecording = true;
-  // recordingTime = '00:22:23';
-  // isScreenSharing = false;
-
   allMessages: any[] = [];
   room!: Room;
 
   constructor(
     private formBuilder: FormBuilder,
     public livekitService: LiveKitService,
-    private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private store: Store
   ) {}
 
   ngOnInit() {
     this.livekitService.audioVideoHandler();
-    // ========================
     this.isMeetingStarted$ = this.store.pipe(select(selectIsMeetingStarted));
     this.isScreenSharing$ = this.store.pipe(select(selectIsScreenSharing));
+
     this.iconColor$ = this.store.pipe(select(selectIconColor));
     this.isVideoOn$ = this.store.pipe(select(selectIsVideoOn));
     this.participantSideWindowVisible$ = this.store.pipe(
@@ -122,22 +102,26 @@ export class LiveKitRoomComponent {
       message: [''],
       participant: [''],
     });
+    this.chatSideWindowVisible$.subscribe((visible) => {
+      if (visible) {
+        this.unreadMessagesCount = 0;
+        this.scrollToBottom();
+      }
+    });
     this.livekitService.msgDataReceived.subscribe((data) => {
-      console.log('Received message:', data.message.handRaised);
+      // console.log('Received message:', data.message.handRaised);
 
       console.log('Participant:', data.participant);
       if (data.message.handRaised === true) {
-        console.log(`${data.participant} raised its hand`);
+        // console.log(`${data.participant} raised its hand`);
         if (data.participant) {
-          // null check
           this.handRaiseStates[data.participant.identity] = true;
           this.openSnackBar(`${data.participant.identity} raised its hand`);
         }
       }
       if (data.message.handRaised === false) {
-        console.log(`${data.participant} lowered its hand`);
+        // console.log(`${data.participant} lowered its hand`);
         if (data.participant) {
-          // null check
           this.handRaiseStates[data.participant.identity] = false;
           this.openSnackBar(`${data.participant.identity} lowered its hand`);
         }
@@ -158,6 +142,7 @@ export class LiveKitRoomComponent {
             this.scrollToBottom();
           }
         });
+
         this.scrollToBottom();
         this.sortMessages();
       }
@@ -210,21 +195,6 @@ export class LiveKitRoomComponent {
     const wsURL = 'wss://warda-ldb690y8.livekit.cloud';
     const token = dynamicToken;
     this.store.dispatch(LiveKitRoomActions.startMeeting({ wsURL, token }));
-  }
-
-  /**
-   * Asynchronously starts the camera and assigns the resulting stream to the `stream` property.
-   *
-   * This function:
-   * 1. Calls the `startCamera` method from the `livekitService`.
-   * 2. Assigns the returned media stream to the `stream` property.
-   *
-   * @async
-   * @function
-   * @returns {Promise<void>} - A promise that resolves when the camera has started and the stream is assigned.
-   */
-  async startCamera() {
-    this.stream = await this.livekitService.startCamera();
   }
 
   /**
@@ -313,16 +283,12 @@ export class LiveKitRoomComponent {
    */
 
   toggleRaiseHand() {
-    console.log('raised');
     if (this.localParticipant.handRaised) {
-      console.log('lowered handdddd');
-
       this.localParticipant.handRaised = false;
       this.livekitService.lowerHand(this.localParticipant);
       this.openSnackBar(`${this.localParticipant.identity} lowered hand`);
       this.handRaiseStates[this.localParticipant.identity] = false;
     } else {
-      console.log('raised handdddd');
       this.localParticipant.handRaised = true;
       this.livekitService.raiseHand(this.localParticipant);
       this.openSnackBar(`${this.localParticipant.identity} raised hand`);
@@ -436,12 +402,12 @@ export class LiveKitRoomComponent {
    */
   openChatSideWindow(): void {
     this.store.dispatch(LiveKitRoomActions.toggleChatSideWindow());
-    this.chatSideWindowVisible$.subscribe((visible) => {
-      if (visible) {
-        this.unreadMessagesCount = 0;
-        this.scrollToBottom();
-      }
-    });
+    // this.chatSideWindowVisible$.subscribe((visible) => {
+    //   if (visible) {
+    //     this.unreadMessagesCount = 0;
+    //     this.scrollToBottom();
+    //   }
+    // });
   }
 
   /**
@@ -508,5 +474,12 @@ export class LiveKitRoomComponent {
     this.snackBar.open(message, 'Close', {
       duration: 3000, // duration in milliseconds
     });
+  }
+  get ScreenGalleryGridColumnStyle() {
+    if (this.livekitService.screenShareCount <= 6) {
+      return GRIDCOLUMN[this.livekitService.screenShareCount];
+    } else {
+      return 'repeat(auto-fill, minmax(200px, 1fr))';
+    }
   }
 }
