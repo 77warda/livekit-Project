@@ -42,6 +42,15 @@
             [ngClass]="{ 'hand-raised': localParticipant.handRaised }"
           ></i>
         </button>
+        <div
+          class="websocket-status"
+          [ngClass]="{
+            'status-connected': webSocketStatus === 'connected',
+            'status-reconnecting': webSocketStatus === 'reconnecting',
+            'status-disconnected': webSocketStatus === 'disconnected'
+          }"
+        ></div>
+        <span>{{ webSocketStatus | titlecase }}</span>
       </div>
       <div class="right-header">
         <button

@@ -15,12 +15,26 @@ import {
   VideoQuality,
 } from 'livekit-client';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { from, Observable } from 'rxjs';
-
+import { BehaviorSubject, Observable, RetryConfig, from } from 'rxjs';
+import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 @Injectable({
   providedIn: 'root',
 })
 export class LiveKitService {
+  // websocket variables
+  // private webSocketUrl = 'wss://ws.postman-echo.com/raw';
+  private webSocketUrl = 'wss://echo.websocket.org/';
+
+  private socket$: WebSocketSubject<any> | undefined;
+  // Declare the BehaviorSubject for WebSocket status
+  private webSocketStatusSubject = new BehaviorSubject<
+    'connected' | 'disconnected' | 'reconnecting'
+  >('disconnected');
+  public webSocketStatus$: Observable<
+    'connected' | 'disconnected' | 'reconnecting'
+  > = this.webSocketStatusSubject.asObservable();
+  private maxReconnectAttempts = 10;
+  private reconnectAttempts = 0;
   /**
    * Represents the current room for the video conference.
    * @type {Room}
@@ -176,8 +190,117 @@ export class LiveKitService {
     // this.audioVideoHandler();
     await this.room.connect(wsURL, token);
     console.log('Connected to room', this.room);
+    this.connectWebSocket();
     this.updateParticipantNames();
     this.remoteParticipantAfterLocal();
+  }
+
+  // connectWebSocket() {
+  //   if (!this.socket$ || this.socket$.closed) {
+  //     this.socket$ = webSocket({
+  //       url: this.webSocketUrl,
+  //       closeObserver: {
+  //         next: () => {
+  //           this.webSocketStatusSubject.next('disconnected');
+  //           console.log('WebSocket connection closed');
+  //         },
+  //       },
+  //       openObserver: {
+  //         next: () => {
+  //           this.webSocketStatusSubject.next('connected');
+  //           console.log('WebSocket connection established');
+  //         },
+  //       },
+  //     });
+
+  //     this.socket$.subscribe(
+  //       (msg) => console.log('Received message:', msg),
+  //       (err) => {
+  //         console.error('WebSocket error:', err);
+  //         this.webSocketStatusSubject.next('reconnecting');
+  //         console.log('reconnecting...................');
+  //         this.showReconnectingSnackbar();
+  //         setTimeout(() => this.connectWebSocket(), 3000);
+  //       },
+  //       () => {
+  //         console.log('WebSocket completed');
+  //         console.log('disconnected....................');
+  //         this.webSocketStatusSubject.next('disconnected');
+  //       }
+  //     );
+  //   } else {
+  //     console.log('WebSocket connection already established');
+  //   }
+  // }
+  connectWebSocket() {
+    if (!this.socket$ || this.socket$.closed) {
+      this.socket$ = webSocket({
+        url: this.webSocketUrl,
+        closeObserver: {
+          next: () => {
+            this.webSocketStatusSubject.next('disconnected');
+            console.log('WebSocket connection closed');
+            this.socket$ = undefined;
+            this.triggerReconnectingState();
+          },
+        },
+        openObserver: {
+          next: () => {
+            this.webSocketStatusSubject.next('connected');
+            console.log('WebSocket connection established');
+            this.reconnectAttempts = 0;
+          },
+        },
+      });
+
+      this.socket$.subscribe(
+        (msg) => console.log('Received message:', msg),
+        (err) => {
+          console.error('WebSocket error:', err);
+          this.webSocketStatusSubject.next('reconnecting');
+          console.log('reconnecting...................');
+          this.triggerReconnectingState();
+          this.socket$ = undefined;
+        },
+        () => {
+          console.log('WebSocket completed');
+          this.webSocketStatusSubject.next('disconnected');
+          this.triggerReconnectingState();
+        }
+      );
+    } else {
+      console.log('WebSocket connection already established');
+    }
+  }
+
+  private triggerReconnectingState() {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      const delay = this.calculateBackoffDelay(this.reconnectAttempts);
+      this.webSocketStatusSubject.next('reconnecting');
+      console.log(
+        `Reconnecting in ${delay / 1000} seconds... (Attempt ${
+          this.reconnectAttempts + 1
+        })`
+      );
+
+      setTimeout(() => {
+        this.reconnectAttempts++;
+        console.log('Attempting to reconnect WebSocket...');
+        this.connectWebSocket();
+      }, delay);
+    } else {
+      console.log('Max reconnect attempts reached. Giving up.');
+      this.webSocketStatusSubject.next('disconnected');
+    }
+  }
+  private calculateBackoffDelay(attempt: number): number {
+    const baseDelay = 1000; // Start with 1 second
+    const maxDelay = 30000; // Cap the delay at 30 seconds
+    const exponentialBackoffDelay = Math.min(
+      baseDelay * Math.pow(2, attempt),
+      maxDelay
+    );
+    return exponentialBackoffDelay;
   }
 
   /**
@@ -806,11 +929,19 @@ export class LiveKitService {
         }
 
         // Attach the video track
+        // const blurProcessor = new TrackProcessor(BackgroundBlur(10));
+        // const blur = BackgroundBlur(10);
         const element = track.attach();
+        // element.setProcessor(blur);
         element.setAttribute(
           'style',
           'border-radius: 0.5rem; width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000;'
         );
+        // if (this.isPortraitMode()) {
+        //   element.setAttribute('style', 'filter: blur(70px);');
+        // } else {
+        //   element.setAttribute('style', 'filter: blur(70px);');
+        // }
         existingElement.appendChild(element);
 
         // Create metadata container if it doesn't already exist
@@ -1331,6 +1462,11 @@ export class LiveKitService {
           el.setAttribute('data-expanded', 'false');
         }
       }
+    });
+  }
+  private showReconnectingSnackbar() {
+    this.snackBar.open('Reconnecting...', 'Close', {
+      duration: 3000,
     });
   }
 }

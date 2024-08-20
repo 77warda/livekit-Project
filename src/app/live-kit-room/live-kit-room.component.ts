@@ -42,6 +42,10 @@ const GRIDCOLUMN: { [key: number]: string } = {
   styleUrls: ['./live-kit-room.component.scss'],
 })
 export class LiveKitRoomComponent {
+  // websocket variables
+  webSocketStatus: 'connected' | 'reconnecting' | 'disconnected' =
+    'disconnected';
+  private statusSubscription!: Subscription;
   // selectors
   isMeetingStarted$!: Observable<boolean>;
   allMessages$!: Observable<any[]>;
@@ -76,6 +80,7 @@ export class LiveKitRoomComponent {
   ) {}
 
   ngOnInit() {
+    // this.livekitService.connectWebSocket();
     this.livekitService.audioVideoHandler();
     this.isMeetingStarted$ = this.store.pipe(select(selectIsMeetingStarted));
     this.isScreenSharing$ = this.store.pipe(select(selectIsScreenSharing));
@@ -93,7 +98,15 @@ export class LiveKitRoomComponent {
       select(selectUnreadMessagesCount)
     );
     this.isMicOn$ = this.store.pipe(select(selectIsMicOn));
-
+    // web socket
+    this.statusSubscription = this.livekitService.webSocketStatus$.subscribe(
+      (status) => {
+        this.webSocketStatus = status;
+        console.log('WebSocket status updated:', status); // Log the current WebSocket status
+      }
+    );
+    // Call startMeeting in ngOnInit
+    this.startMeeting();
     // ==============================
     this.startForm = this.formBuilder.group({
       token: [''],

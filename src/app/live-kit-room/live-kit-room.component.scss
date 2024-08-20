@@ -1162,3 +1162,23 @@ input {
         opacity: 1;
     }
 }
+
+
+// web socket styling 
+.websocket-status {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+
+    &.status-connected {
+        background-color: green;
+    }
+
+    &.status-reconnecting {
+        background-color: yellow;
+    }
+
+    &.status-disconnected {
+        background-color: red;
+    }
+}

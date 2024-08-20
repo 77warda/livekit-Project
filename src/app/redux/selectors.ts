@@ -14,14 +14,6 @@ export const selectIsMeetingStarted = createSelector(
   }
 );
 
-// export const selectStream = createSelector(
-//   selectLiveKitRoomState,
-//   (state: LiveKitRoomState) => {
-//     console.log('stream is ', state);
-//     return state.stream;
-//   }
-// );
-
 export const selectIsVideoOn = createSelector(
   selectLiveKitRoomState,
   (state: LiveKitRoomState) => state.isVideoOn

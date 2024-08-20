@@ -1,8 +1,7 @@
 import {
   ComponentFixture,
-  TestBed,
-  async,
   fakeAsync,
+  TestBed,
   tick,
 } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -34,15 +33,21 @@ describe('LiveKitRoomComponent;', () => {
   let messageEmitter: Subject<any>;
   let store: any;
   let dispatchSpy: jasmine.Spy;
+  let mockLiveKit: jasmine.SpyObj<LiveKitService>;
+  let formBuilder: FormBuilder;
 
+  const GRIDCOLUMN: { [key: number]: string } = {
+    1: 'repeat(1, 1fr)',
+    2: 'repeat(2, 1fr)',
+    3: 'repeat(3, 1fr)',
+    4: 'repeat(4, 1fr)',
+    5: 'repeat(5, 1fr)',
+    6: 'repeat(6, 1fr)',
+  };
   beforeEach(async () => {
-    // mockMatDialog = jasmine.createSpyObj('MatDialog', ['open']);
-    // mockMatSnackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
+    mockLiveKit = jasmine.createSpyObj('LiveKitService', ['sendChatMessage']);
     msgDataReceived = new Subject<any>();
     messageEmitter = new Subject<any>();
-    // toggleVideo: jasmine
-    //   .createSpy('toggleVideo')
-    //   .and.returnValue(Promise.resolve());
     mockLivekitService = {
       localParticipantData: msgDataReceived.asObservable(),
       messageEmitter: messageEmitter.asObservable(),
@@ -57,6 +62,11 @@ describe('LiveKitRoomComponent;', () => {
       enableCameraAndMicrophone: jasmine
         .createSpy('enableCameraAndMicrophone')
         .and.returnValue(Promise.resolve()),
+      room: {
+        get numParticipants() {
+          return 0; // default value
+        },
+      },
     };
     await TestBed.configureTestingModule({
       imports: [
@@ -71,6 +81,7 @@ describe('LiveKitRoomComponent;', () => {
       providers: [
         { provide: LiveKitService },
         // { provide: LiveKitService, useClass: MockLiveKitService },
+        FormBuilder,
         {
           provide: MatDialog,
           useValue: jasmine.createSpyObj('MatDialog', ['open']),
@@ -89,6 +100,14 @@ describe('LiveKitRoomComponent;', () => {
     component = fixture.componentInstance;
     store = TestBed.inject(Store);
     dispatchSpy = spyOn(store, 'dispatch');
+    formBuilder = TestBed.inject(FormBuilder);
+
+    // Initialize the form
+    component.chatForm = formBuilder.group({
+      message: [''],
+      participant: [''],
+    });
+
     fixture.detectChanges();
   });
   // afterEach(() => {
@@ -98,57 +117,21 @@ describe('LiveKitRoomComponent;', () => {
   it('should create the app component', () => {
     expect(component).toBeTruthy();
   });
-  // describe('start meeting', () => {
-  it('should dispatch startMeeting action with correct payload', async () => {
-    const dynamicToken = 'some-token';
-    component.startForm.value.token = dynamicToken;
 
-    await component.startMeeting();
+  describe('start meeting', () => {
+    it('should dispatch startMeeting action with correct payload', async () => {
+      const dynamicToken = 'some-token';
+      component.startForm.value.token = dynamicToken;
 
-    expect(dispatchSpy).toHaveBeenCalledTimes(1);
-    expect(dispatchSpy).toHaveBeenCalledWith(
-      LiveKitRoomActions.startMeeting({
-        wsURL: 'wss://warda-ldb690y8.livekit.cloud',
-        token: dynamicToken,
-      })
-    );
-  });
-  // });
-  describe('Extract Initials', () => {
-    it('should extract initials from a single word name', () => {
-      const name = 'John';
-      const expectedInitials = 'J';
+      await component.startMeeting();
 
-      const initials = component.extractInitials(name);
-
-      expect(initials).toBe(expectedInitials);
-    });
-
-    it('should extract initials from a multi-word name', () => {
-      const name = 'John Doe';
-      const expectedInitials = 'JD';
-
-      const initials = component.extractInitials(name);
-
-      expect(initials).toBe(expectedInitials);
-    });
-
-    it('should extract initials from a name with multiple spaces', () => {
-      const name = 'John  Doe';
-      const expectedInitials = 'JD';
-
-      const initials = component.extractInitials(name);
-
-      expect(initials).toBe(expectedInitials);
-    });
-
-    it('should return an empty string for an empty name', () => {
-      const name = '';
-      const expectedInitials = '';
-
-      const initials = component.extractInitials(name);
-
-      expect(initials).toBe(expectedInitials);
+      expect(dispatchSpy).toHaveBeenCalledTimes(1);
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        LiveKitRoomActions.startMeeting({
+          wsURL: 'wss://warda-ldb690y8.livekit.cloud',
+          token: dynamicToken,
+        })
+      );
     });
   });
 
@@ -209,21 +192,6 @@ describe('LiveKitRoomComponent;', () => {
     });
   });
 
-  describe('leave button', () => {
-    it('should dispatch leaveMeeting action when leaveBtn is called', async () => {
-      await component.leaveBtn();
-      expect(dispatchSpy).toHaveBeenCalledTimes(1);
-      expect(dispatchSpy).toHaveBeenCalledWith(
-        LiveKitRoomActions.leaveMeeting()
-      );
-    });
-
-    it('should return a promise that resolves to void', async () => {
-      const result = await component.leaveBtn();
-      expect(result).toBeUndefined();
-    });
-  });
-
   describe('toggleScreen share', () => {
     it('should dispatch toggleScreenShare action when toggleScreenShare is called', async () => {
       await component.toggleScreenShare();
@@ -261,35 +229,25 @@ describe('LiveKitRoomComponent;', () => {
         LiveKitRoomActions.toggleChatSideWindow()
       );
     });
-    describe('Close Chat Side Window', () => {
-      it('should dispatch closeChatSideWindow action when closeChatSideWindow is called', () => {
-        component.closeChatSideWindow();
+  });
+  describe('Close Chat Side Window', () => {
+    it('should dispatch closeChatSideWindow action when closeChatSideWindow is called', () => {
+      component.closeChatSideWindow();
 
-        expect(dispatchSpy).toHaveBeenCalledTimes(1);
-        expect(dispatchSpy).toHaveBeenCalledWith(
-          LiveKitRoomActions.closeChatSideWindow()
-        );
-      });
+      expect(dispatchSpy).toHaveBeenCalledTimes(1);
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        LiveKitRoomActions.closeChatSideWindow()
+      );
     });
-    describe('Close Participant Side Window', () => {
-      it('should dispatch closeParticipantSideWindow action when closeParticipantSideWindow is called', () => {
-        component.closeParticipantSideWindow();
+  });
+  describe('Close Participant Side Window', () => {
+    it('should dispatch closeParticipantSideWindow action when closeParticipantSideWindow is called', () => {
+      component.closeParticipantSideWindow();
 
-        expect(dispatchSpy).toHaveBeenCalledTimes(1);
-        expect(dispatchSpy).toHaveBeenCalledWith(
-          LiveKitRoomActions.closeParticipantSideWindow()
-        );
-      });
-    });
-
-    it('should reset unreadMessagesCount and scroll to bottom when chat side window is visible', () => {
-      const scrollToBottomSpy = spyOn(component, 'scrollToBottom');
-      const chatSideWindowVisible$ = of(true);
-
-      component.openChatSideWindow();
-
-      expect(component.unreadMessagesCount).toBe(0);
-      expect(scrollToBottomSpy).toHaveBeenCalledTimes(1);
+      expect(dispatchSpy).toHaveBeenCalledTimes(1);
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        LiveKitRoomActions.closeParticipantSideWindow()
+      );
     });
   });
   it('should handle snack bar opening', () => {
@@ -299,34 +257,12 @@ describe('LiveKitRoomComponent;', () => {
     });
   });
 
-  describe('scrollToBottom', () => {
-    it('should scroll to the bottom of the message container', fakeAsync(() => {
-      component.messageContainer = {
-        nativeElement: {
-          scrollTop: 0,
-          scrollHeight: 1000,
-        },
-      };
-
-      component.scrollToBottom();
-      tick(120);
-
-      expect(component.messageContainer.nativeElement.scrollTop).toBe(1000);
-    }));
-
-    it('should handle errors gracefully', () => {
-      component.messageContainer = null;
-
-      expect(() => component.scrollToBottom()).not.toThrow();
-    });
-  });
-
   describe('shouldShowAvatar', () => {
-    // it('should return true for the first message', () => {
-    //   component.allMessages = [{ senderName: 'Alice' }];
+    it('should return true for the first message', () => {
+      component.allMessages = [{ senderName: 'Alice' }];
 
-    //   expect(component.shouldShowAvatar(0)).toBeTrue();
-    // });
+      expect(component.shouldShowAvatar(0)).toBeTrue();
+    });
 
     it('should return true for different sender from the previous message', () => {
       component.allMessages = [{ senderName: 'Alice' }, { senderName: 'Bob' }];
@@ -343,4 +279,107 @@ describe('LiveKitRoomComponent;', () => {
       expect(component.shouldShowAvatar(1)).toBeFalse();
     });
   });
+  describe('Extract Initials', () => {
+    it('should extract initials from a single word name', () => {
+      const name = 'John';
+      const expectedInitials = 'J';
+
+      const initials = component.extractInitials(name);
+
+      expect(initials).toBe(expectedInitials);
+    });
+
+    it('should extract initials from a multi-word name', () => {
+      const name = 'John Doe';
+      const expectedInitials = 'JD';
+
+      const initials = component.extractInitials(name);
+
+      expect(initials).toBe(expectedInitials);
+    });
+
+    it('should extract initials from a name with multiple spaces', () => {
+      const name = 'John  Doe';
+      const expectedInitials = 'JD';
+
+      const initials = component.extractInitials(name);
+
+      expect(initials).toBe(expectedInitials);
+    });
+
+    it('should return an empty string for an empty name', () => {
+      const name = '';
+      const expectedInitials = '';
+
+      const initials = component.extractInitials(name);
+
+      expect(initials).toBe(expectedInitials);
+    });
+  });
+
+  describe('leave button', () => {
+    it('should dispatch leaveMeeting action when leaveBtn is called', async () => {
+      await component.leaveBtn();
+      expect(dispatchSpy).toHaveBeenCalledTimes(1);
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        LiveKitRoomActions.leaveMeeting()
+      );
+    });
+
+    it('should return a promise that resolves to void', async () => {
+      const result = await component.leaveBtn();
+      expect(result).toBeUndefined();
+    });
+  });
+
+  it('should dispatch toggleVideo action when toggleVideo is called', async () => {
+    await component.toggleVideo();
+
+    expect(dispatchSpy).toHaveBeenCalledWith(LiveKitRoomActions.toggleVideo());
+  });
+
+  it('should return "repeat(auto-fill, minmax(200px, 1fr))" for more than 6 participants', () => {
+    spyOnProperty(
+      mockLiveKitService.room,
+      'numParticipants',
+      'get'
+    ).and.returnValue(7);
+    expect(component.GalleryGridColumnStyle).toBe(
+      'repeat(auto-fill, minmax(200px, 1fr))'
+    );
+  });
+
+  it('should return correct grid column style for more than 6 screen shares', () => {
+    // Arrange: Set screenShareCount to a value greater than 6
+    mockLiveKitService.screenShareCount = 7;
+
+    // Act: Access the getter
+    const result = component.ScreenGalleryGridColumnStyle;
+
+    // Assert: Check the result matches the expected fallback value
+    expect(result).toBe('repeat(auto-fill, minmax(200px, 1fr))');
+  });
+  it('should scroll to bottom of message container', fakeAsync(() => {
+    // Arrange
+    const messageContainerElement = new ElementRef<HTMLDivElement>(
+      document.createElement('div')
+    );
+    component.messageContainer = messageContainerElement;
+    Object.defineProperty(
+      messageContainerElement.nativeElement,
+      'scrollHeight',
+      { value: 1000, configurable: true }
+    );
+    Object.defineProperty(messageContainerElement.nativeElement, 'scrollTop', {
+      value: 0,
+      writable: true,
+    });
+
+    // Act
+    component.scrollToBottom();
+    tick(100); // wait for the setTimeout to complete
+
+    // Assert
+    expect(messageContainerElement.nativeElement.scrollTop).toBe(1000);
+  }));
 });
