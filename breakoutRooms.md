@@ -76,3 +76,49 @@ Breakout rooms can enhance collaboration and participation by allowing smaller g
 ### Conclusion
 
 The implementation of Breakout Rooms in the LiveKit video conference system will enhance the meeting experience by enabling smaller group discussions.
+
+#### 6. Implementing Different steps and Testing Breakout Rooms in the Browser
+
+1. **Create a "Breakout Rooms" Button in the Header**
+
+   - **Browser Action**: Add a button labeled "Breakout Rooms" to the header or main control panel of your video conferencing interface.
+   - **Expected Outcome**: This button will allow the host or participants to access the breakout room controls.
+
+2. **Click the "Breakout Rooms" Button**
+
+   - **Browser Action**: Click the "Breakout Rooms" button.
+   - **Expected Outcome**: A side panel should open, displaying options to create, join, or manage breakout rooms.
+
+3. **Create Breakout Rooms**
+
+   - **Browser Action**: In the opened side panel, click on "Create Breakout Rooms".
+   - **Expected Outcome**: A form should appear where you can specify the number of rooms, assign names, and set parameters like time limits for the sessions.
+
+4. **Assign Participants to Breakout Rooms**
+
+   - **Browser Action**: After creating the rooms, add participants into the different breakout rooms using a user-friendly interface.
+   - **Expected Outcome**: You should see the participants being assigned to different rooms, with the interface updating to reflect these changes.
+
+5. **Start the Breakout Sessions**
+
+   - **Browser Action**: Click a "Start Breakout Sessions" button or confirm your room assignments.
+   - **Expected Outcome**: Participants should be automatically moved into their assigned breakout rooms, and their video streams should transition to the new room.
+
+6. **Monitor or Join Breakout Rooms**
+
+   - **Browser Action**: As a host, select a breakout room from the interface to monitor or join the session.
+   - **Expected Outcome**: The host should be able to enter any breakout room, with their video and audio seamlessly switching to that room.
+
+7. **Set a Timer for Breakout Sessions**
+
+   - **Browser Action**: In the breakout room management panel, set a timer for the session duration.
+   - **Expected Outcome**: A countdown timer should be visible to participants, and notifications should be sent when time is running out or the session is about to end.
+
+8. **End Breakout Sessions and Return to Main Room**
+
+   - **Browser Action**: Click an "End Breakout Sessions" button when the session is complete or the timer runs out.
+   - **Expected Outcome**: All participants should be automatically moved back to the main room, and their video streams should reflect this transition.
+
+9. **Provide Feedback or Notifications**
+
+   - **Browser Action**: Ensure that participants receive notifications or alerts during key transitions, such as moving to a breakout room, session ending, or returning to the main room.
