@@ -122,3 +122,45 @@ The implementation of Breakout Rooms in the LiveKit video conference system will
 9. **Provide Feedback or Notifications**
 
    - **Browser Action**: Ensure that participants receive notifications or alerts during key transitions, such as moving to a breakout room, session ending, or returning to the main room.
+
+      <!-- ==================new flow for breakout room===============  -->
+
+## Create Breakout Room in the Header
+
+### Browser Action:
+
+The host can create a breakout room by selecting the option available in the header section of the interface.
+
+### Expected Outcome:
+
+A popup window appears for the host to manage the breakout room setup.
+
+## Host Creates a Breakout Room and Invites Participants
+
+### Browser Action:
+
+After creating the breakout room, the host will see a popup to add participants.
+
+### Expected Outcome:
+
+The host can assign participants to the breakout room using the popup interface.
+
+## Participant Receives Notification to Join Breakout Room
+
+### Browser Action:
+
+Participants will receive a popup notification with an invitation to join the breakout room.
+
+### Expected Outcome:
+
+The popup should appear on each participant's screen, prompting them to join the breakout room.
+
+## Participants Join Breakout Room
+
+### Browser Action:
+
+Participants can click to accept the invitation in the popup to join the breakout room.
+
+### Expected Outcome:
+
+Upon acceptance, participants are automatically moved into the breakout room and their video and audio transition to the new room.

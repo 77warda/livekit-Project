@@ -3,16 +3,71 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { LiveKitService } from '../livekit.service';
 import * as LiveKitRoomActions from './actions';
 import { catchError, map, mergeMap, switchMap, tap } from 'rxjs/operators';
-import { of, from } from 'rxjs';
+import { of, from, forkJoin } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MeetingService } from '../Meeting-Service/meeting.service';
 
 @Injectable()
 export class LiveKitRoomEffects {
   constructor(
     private actions$: Actions,
     private livekitService: LiveKitService,
+    private meetingService: MeetingService,
     private snackBar: MatSnackBar
   ) {}
+
+  // createMeeting$ = createEffect(() =>
+  //   this.actions$.pipe(
+  //     ofType(LiveKitRoomActions.createMeeting),
+  //     mergeMap((action) =>
+  //       this.meetingService
+  //         .createMeeting(action.participantName, action.roomName)
+  //         .pipe(
+  //           map((response) => {
+  //             return LiveKitRoomActions.startMeeting({
+  //               wsURL: 'wss://hassam-app-fu1y3ybu.livekit.cloud',
+  //               token: response.token,
+  //             });
+  //           }),
+  //           catchError((error) =>
+  //             of(LiveKitRoomActions.createMeetingFailure({ error }))
+  //           )
+  //         )
+  //     )
+  //   )
+  // );
+
+  createMeeting$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.createMeeting),
+      mergeMap((action) => {
+        // Map through all the participants and return an observable for each meeting creation
+        const participantObservables = action.participantNames.map(
+          (participantName) =>
+            this.meetingService
+              .createMeeting(participantName, action.roomName)
+              .pipe(
+                map((response) => response.token) // Extract the token from each response
+              )
+        );
+
+        // Combine all participant observables using forkJoin to wait until all have emitted their values
+        return from(participantObservables).pipe(
+          switchMap((observablesArray) => forkJoin(observablesArray)),
+          map((tokens) => {
+            // Once all tokens are available, we use the first token to start the meeting
+            return LiveKitRoomActions.startMeeting({
+              wsURL: 'wss://hassam-app-fu1y3ybu.livekit.cloud',
+              token: tokens[0], // Use one token (all participants are in the same room)
+            });
+          }),
+          catchError((error) =>
+            of(LiveKitRoomActions.createMeetingFailure({ error }))
+          )
+        );
+      })
+    )
+  );
 
   startMeeting$ = createEffect(() =>
     this.actions$.pipe(
@@ -21,7 +76,7 @@ export class LiveKitRoomEffects {
         from(
           this.livekitService.connectToRoom(action.wsURL, action.token)
         ).pipe(
-          tap(() => console.log('Starting meet', action)),
+          tap(() => console.log('Starting meeting with token:', action.token)),
           map(() => LiveKitRoomActions.startMeetingSuccess()),
           catchError((error) =>
             of(LiveKitRoomActions.startMeetingFailure({ error: error.message }))

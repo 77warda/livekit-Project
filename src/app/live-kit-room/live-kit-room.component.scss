@@ -15,10 +15,28 @@
     border-radius: 10px;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
 
-    h1 {
-        font-size: 22px;
-        font-weight: 500;
-        margin-bottom: 10px;
+    .startMeeting-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 10px;
+
+        .startBtn {
+            background-color: rgb(0, 28, 128);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &:hover {
+                background-color: darkblue;
+            }
+        }
     }
 }
 
@@ -73,45 +91,10 @@
 }
 
 /* Style each form control to be on a new line */
-.form div {
-    margin-bottom: 10px;
-}
 
-label {
-    display: block;
-    margin-bottom: 5px;
-}
 
-input {
-    display: block;
-    padding: 0.5rem;
-    border-radius: 5px;
-    border: none;
-    border: 1px solid #999;
 
-    &:focus {
-        outline: none;
-    }
-}
 
-.startMeeting-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 10px;
-}
-
-.startBtn {
-    background-color: rgb(0, 28, 128);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-
-    &:hover {
-        background-color: darkblue;
-    }
-}
 
 // ==================================================================
 .header {
@@ -588,51 +571,6 @@ input {
     top: 8%;
     right: 2px;
     margin: 5px;
-}
-
-// modal styling
-
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.4);
-}
-
-.modal-content {
-    background-color: #fefefe;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 43%;
-    text-align: center;
-    padding: auto 10px;
-    border-radius: 10px;
-
-    p {
-        font-size: 1.5rem;
-        margin: 10px;
-        font-weight: 500;
-    }
-}
-
-.close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-}
-
-.close:hover,
-.close:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
 }
 
 .lk-focus-layout-wrapper {
@@ -1180,5 +1118,242 @@ input {
 
     &.status-disconnected {
         background-color: red;
+    }
+}
+
+// Breakout room modal styling 
+.modal-overlay {
+    position: fixed;
+    top: 5%;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40rem;
+    max-width: 90%;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    z-index: 1001;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
+
+        h2 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+    }
+
+    .modal-body {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        height: 30vh;
+        overflow-y: auto;
+
+        .roomName {
+            display: flex;
+            margin: 15px 5px;
+
+            input {
+                margin-left: 10px;
+            }
+        }
+
+        label {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: inline;
+            width: 80px;
+        }
+
+        .rooms-msg {
+            color: green;
+            font-weight: 600;
+        }
+
+        .breakout-participant {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0 10px;
+            margin: 0 10px;
+
+            label {
+                margin-top: 3px;
+            }
+
+        }
+
+        .modal-body div {
+            margin-bottom: 15px;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+
+            .breakout-room-types {
+                display: flex;
+            }
+
+            input[type="radio"] {
+                margin-right: 10px;
+            }
+        }
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: space-between;
+        border-top: 1px solid #ddd;
+        padding-top: 10px;
+        margin-top: 15px;
+
+        .modal-close-btn {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+
+            &:hover {
+                background-color: #0056b3;
+            }
+        }
+
+        .modal-submit-btn {
+            background-color: #28a745;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+
+            &:hover {
+                background-color: #218838;
+            }
+        }
+    }
+}
+
+/* Modal Styles */
+.br-modal {
+    display: block;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+
+    /* Black background with opacity */
+    .br-modal-content {
+        background-color: #fff;
+        margin: 15% auto;
+        padding: 30px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 35rem;
+        border-radius: 20px;
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        p {
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .br-modal-flex {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+
+            button {
+                border: 1px solid #000;
+                color: #000;
+                padding: 10px 20px;
+                border-radius: 10px;
+                cursor: pointer;
+
+                &:hover {
+                    background-color: #eee;
+                }
+            }
+
+            button.join {
+                background-color: #007bff;
+                color: #fff;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+
+                &:hover {
+                    background-color: #0056b3;
+                }
+            }
+
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+
+            &:hover,
+            &:focus {
+                color: #000;
+                text-decoration: none;
+                cursor: pointer;
+            }
+        }
+    }
+}
+
+.mic-container {
+    background: black;
+
+    canvas {
+        height: 40vh;
+        width: 100%;
     }
 }

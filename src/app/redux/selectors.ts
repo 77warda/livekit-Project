@@ -41,7 +41,10 @@ export const selectIconColor = createSelector(
 
 export const selectIsMicOn = createSelector(
   selectLiveKitRoomState,
-  (state: LiveKitRoomState) => state.isMicOn
+  (state: LiveKitRoomState) => {
+    console.log('selector mic', state.isMicOn);
+    return state.isMicOn;
+  }
 );
 
 export const selectAllMessages = createSelector(

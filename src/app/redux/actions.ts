@@ -1,6 +1,20 @@
 import { createAction, props } from '@ngrx/store';
-import { RemoteTrack } from 'livekit-client';
 
+export const createMeeting = createAction(
+  '[LiveKit] Create Meeting',
+  props<{ participantNames: string[]; roomName: string }>() // Change to accept an array of participant names
+);
+
+export const createMeetingSuccess = createAction(
+  '[Meeting] Create Meeting Success',
+  props<{ token: string }>()
+);
+
+export const createMeetingFailure = createAction(
+  '[Meeting] Create Meeting Failure',
+  props<{ error: any }>()
+);
+// =======
 export const startMeeting = createAction(
   '[LiveKit Room] Start Meeting',
   props<{ wsURL: string; token: string }>()

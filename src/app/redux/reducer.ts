@@ -1,7 +1,5 @@
 import { createReducer, on } from '@ngrx/store';
 import * as LiveKitRoomActions from './actions';
-import { Participant, RemoteTrack, Track } from 'livekit-client';
-
 export interface LiveKitRoomState {
   isMeetingStarted: boolean;
   allMessages: any[];
@@ -13,6 +11,7 @@ export interface LiveKitRoomState {
   participantSideWindowVisible: boolean;
   chatSideWindowVisible: boolean;
   error?: string;
+  token: string | null;
 }
 
 export const initialState: LiveKitRoomState = {
@@ -25,10 +24,20 @@ export const initialState: LiveKitRoomState = {
   iconColor: 'black',
   participantSideWindowVisible: false,
   chatSideWindowVisible: false,
+  token: null,
 };
 
 export const liveKitRoomReducer = createReducer(
   initialState,
+  on(LiveKitRoomActions.createMeetingSuccess, (state, { token }) => ({
+    ...state,
+    token,
+  })),
+  on(LiveKitRoomActions.createMeetingFailure, (state, { error }) => ({
+    ...state,
+    token: null,
+    error,
+  })),
   on(LiveKitRoomActions.startMeetingSuccess, (state) => ({
     ...state,
     isMeetingStarted: true,
@@ -73,10 +82,13 @@ export const liveKitRoomReducer = createReducer(
     ...state,
     error,
   })),
-  on(LiveKitRoomActions.toggleMicSuccess, (state, { isMicOn }) => ({
-    ...state,
-    isMicOn,
-  })),
+  on(LiveKitRoomActions.toggleMicSuccess, (state, { isMicOn }) => {
+    console.log('Mic status in reducer (toggleMicSuccess):', isMicOn); // Debug
+    return {
+      ...state,
+      isMicOn,
+    };
+  }),
   on(LiveKitRoomActions.toggleMicFailure, (state, { error }) => ({
     ...state,
     error,

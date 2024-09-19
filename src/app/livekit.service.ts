@@ -15,8 +15,9 @@ import {
   VideoQuality,
 } from 'livekit-client';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { BehaviorSubject, Observable, RetryConfig, from } from 'rxjs';
+import { BehaviorSubject, Observable, RetryConfig, from, of } from 'rxjs';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -160,6 +161,11 @@ export class LiveKitService {
     handRaised: boolean;
   }>();
 
+  public breakoutRoom = new EventEmitter<{
+    participant: any;
+    roomName: string;
+  }>();
+
   /**
    * Event emitter for sending messages.
    * @type {EventEmitter<any>}
@@ -178,6 +184,7 @@ export class LiveKitService {
    */
   constructor(private snackBar: MatSnackBar) {}
 
+  private breakoutRoomCounter = 0;
   /**
    * Connects to a LiveKit room using the provided WebSocket URL and token.
    *
@@ -186,15 +193,15 @@ export class LiveKitService {
    * @param {string} token - The token used for authentication.
    * @returns {Promise<void>} A promise that resolves when the connection is established.
    */
+
   async connectToRoom(wsURL: string, token: string): Promise<void> {
     // this.audioVideoHandler();
     await this.room.connect(wsURL, token);
     console.log('Connected to room', this.room);
-    this.connectWebSocket();
+    // this.connectWebSocket();
     this.updateParticipantNames();
     this.remoteParticipantAfterLocal();
   }
-
   // connectWebSocket() {
   //   if (!this.socket$ || this.socket$.closed) {
   //     this.socket$ = webSocket({
@@ -203,12 +210,15 @@ export class LiveKitService {
   //         next: () => {
   //           this.webSocketStatusSubject.next('disconnected');
   //           console.log('WebSocket connection closed');
+  //           this.socket$ = undefined;
+  //           this.triggerReconnectingState();
   //         },
   //       },
   //       openObserver: {
   //         next: () => {
   //           this.webSocketStatusSubject.next('connected');
   //           console.log('WebSocket connection established');
+  //           this.reconnectAttempts = 0;
   //         },
   //       },
   //     });
@@ -219,89 +229,49 @@ export class LiveKitService {
   //         console.error('WebSocket error:', err);
   //         this.webSocketStatusSubject.next('reconnecting');
   //         console.log('reconnecting...................');
-  //         this.showReconnectingSnackbar();
-  //         setTimeout(() => this.connectWebSocket(), 3000);
+  //         this.triggerReconnectingState();
+  //         this.socket$ = undefined;
   //       },
   //       () => {
   //         console.log('WebSocket completed');
-  //         console.log('disconnected....................');
   //         this.webSocketStatusSubject.next('disconnected');
+  //         this.triggerReconnectingState();
   //       }
   //     );
   //   } else {
   //     console.log('WebSocket connection already established');
   //   }
   // }
-  connectWebSocket() {
-    if (!this.socket$ || this.socket$.closed) {
-      this.socket$ = webSocket({
-        url: this.webSocketUrl,
-        closeObserver: {
-          next: () => {
-            this.webSocketStatusSubject.next('disconnected');
-            console.log('WebSocket connection closed');
-            this.socket$ = undefined;
-            this.triggerReconnectingState();
-          },
-        },
-        openObserver: {
-          next: () => {
-            this.webSocketStatusSubject.next('connected');
-            console.log('WebSocket connection established');
-            this.reconnectAttempts = 0;
-          },
-        },
-      });
 
-      this.socket$.subscribe(
-        (msg) => console.log('Received message:', msg),
-        (err) => {
-          console.error('WebSocket error:', err);
-          this.webSocketStatusSubject.next('reconnecting');
-          console.log('reconnecting...................');
-          this.triggerReconnectingState();
-          this.socket$ = undefined;
-        },
-        () => {
-          console.log('WebSocket completed');
-          this.webSocketStatusSubject.next('disconnected');
-          this.triggerReconnectingState();
-        }
-      );
-    } else {
-      console.log('WebSocket connection already established');
-    }
-  }
+  // private triggerReconnectingState() {
+  //   if (this.reconnectAttempts < this.maxReconnectAttempts) {
+  //     const delay = this.calculateBackoffDelay(this.reconnectAttempts);
+  //     this.webSocketStatusSubject.next('reconnecting');
+  //     console.log(
+  //       `Reconnecting in ${delay / 1000} seconds... (Attempt ${
+  //         this.reconnectAttempts + 1
+  //       })`
+  //     );
 
-  private triggerReconnectingState() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      const delay = this.calculateBackoffDelay(this.reconnectAttempts);
-      this.webSocketStatusSubject.next('reconnecting');
-      console.log(
-        `Reconnecting in ${delay / 1000} seconds... (Attempt ${
-          this.reconnectAttempts + 1
-        })`
-      );
-
-      setTimeout(() => {
-        this.reconnectAttempts++;
-        console.log('Attempting to reconnect WebSocket...');
-        this.connectWebSocket();
-      }, delay);
-    } else {
-      console.log('Max reconnect attempts reached. Giving up.');
-      this.webSocketStatusSubject.next('disconnected');
-    }
-  }
-  private calculateBackoffDelay(attempt: number): number {
-    const baseDelay = 1000; // Start with 1 second
-    const maxDelay = 30000; // Cap the delay at 30 seconds
-    const exponentialBackoffDelay = Math.min(
-      baseDelay * Math.pow(2, attempt),
-      maxDelay
-    );
-    return exponentialBackoffDelay;
-  }
+  //     setTimeout(() => {
+  //       this.reconnectAttempts++;
+  //       console.log('Attempting to reconnect WebSocket...');
+  //       this.connectWebSocket();
+  //     }, delay);
+  //   } else {
+  //     console.log('Max reconnect attempts reached. Giving up.');
+  //     this.webSocketStatusSubject.next('disconnected');
+  //   }
+  // }
+  // private calculateBackoffDelay(attempt: number): number {
+  //   const baseDelay = 1000; // Start with 1 second
+  //   const maxDelay = 30000; // Cap the delay at 30 seconds
+  //   const exponentialBackoffDelay = Math.min(
+  //     baseDelay * Math.pow(2, attempt),
+  //     maxDelay
+  //   );
+  //   return exponentialBackoffDelay;
+  // }
 
   /**
    * Raises the hand for a given participant and publishes a hand raise message.
@@ -351,6 +321,30 @@ export class LiveKitService {
    * @returns {Promise<void>} A promise that resolves when the message is published.
    */
   private async publishHandRaiseLowerMessage(message: any) {
+    const strData = JSON.stringify(message);
+    const data = new TextEncoder().encode(strData);
+    await this.room!.localParticipant.publishData(data, { reliable: true });
+  }
+
+  async breakoutRoomAlert(participants: any[], roomNumber: number) {
+    this.breakoutRoomCounter++;
+
+    const roomName = `Breakout Room ${roomNumber}`;
+    const message = {
+      type: 'breakoutRoom',
+      participantIds: participants,
+      roomName: roomName,
+    };
+
+    await this.publishBreakoutRoom(message);
+    console.log(
+      `Breakout room ${roomNumber} assigned to participants: ${participants.join(
+        ', '
+      )}`
+    );
+  }
+
+  private async publishBreakoutRoom(message: any) {
     const strData = JSON.stringify(message);
     const data = new TextEncoder().encode(strData);
     await this.room!.localParticipant.publishData(data, { reliable: true });
@@ -479,6 +473,19 @@ export class LiveKitService {
             participant: participant,
             handRaised: message.handRaised,
           });
+        }
+        if (message.type === 'breakoutRoom') {
+          console.log(
+            `Breakout room assigned: ${message.roomName} from host "${participant?.identity}"`
+          );
+
+          // Ensure the message is only sent to the intended participant
+          if (participant) {
+            this.breakoutRoom.emit({
+              participant: participant,
+              roomName: message.roomName, // Use the room name from the message
+            });
+          }
         }
       }
     );
@@ -1157,18 +1164,44 @@ export class LiveKitService {
    * @returns {Observable<boolean>} An observable that emits the new microphone status.
    * @throws {Error} Throws an error if the room is not enabled.
    */
+  // toggleMicrophone(): Observable<boolean> {
+  //   if (!this.room) {
+  //     throw new Error('Room not enabled.');
+  //   }
+  //   const localParticipant = this.room.localParticipant;
+  //   const isMuted = localParticipant.isMicrophoneEnabled;
+  //   return from(
+  //     localParticipant.setMicrophoneEnabled(!isMuted).then(() => {
+  //       const newMicStatus = !isMuted;
+  //       this.microphoneStatusChanged.emit(newMicStatus);
+  //       return newMicStatus;
+  //     })
+  //   );
+  // }
   toggleMicrophone(): Observable<boolean> {
     if (!this.room) {
+      console.error('Room not initialized or enabled.');
       throw new Error('Room not enabled.');
     }
+
     const localParticipant = this.room.localParticipant;
     const isMuted = localParticipant.isMicrophoneEnabled;
+
+    console.log('Current microphone status before toggling:', isMuted); // Debug
+
     return from(
-      localParticipant.setMicrophoneEnabled(!isMuted).then(() => {
-        const newMicStatus = !isMuted;
-        this.microphoneStatusChanged.emit(newMicStatus);
-        return newMicStatus;
-      })
+      localParticipant
+        .setMicrophoneEnabled(!isMuted)
+        .then(() => {
+          const newMicStatus = !isMuted;
+          console.log('Microphone status after toggling:', newMicStatus); // Debug
+          this.microphoneStatusChanged.emit(newMicStatus);
+          return newMicStatus;
+        })
+        .catch((error) => {
+          console.error('Error setting microphone enabled:', error); // Debug
+          throw error;
+        })
     );
   }
 
