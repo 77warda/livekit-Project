@@ -14,4 +14,13 @@ export class MeetingService {
     const body = { participantName, roomName };
     return this.http.post<any>(this.apiUrl, body);
   }
+
+  sendMessage(
+    participantName: string,
+    roomName: string,
+    content: string
+  ): Observable<any> {
+    const body = { participantName, roomName, content };
+    return this.http.post<any>(this.apiUrl, body);
+  }
 }

@@ -17,6 +17,7 @@ import {
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { BehaviorSubject, Observable, RetryConfig, from, of } from 'rxjs';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
+import { MeetingService } from './Meeting-Service/meeting.service';
 
 @Injectable({
   providedIn: 'root',
@@ -165,7 +166,8 @@ export class LiveKitService {
     participant: any;
     roomName: string;
   }>();
-
+  breakoutRoomsData: Array<any> = [];
+  breakoutRoomsDataUpdated: EventEmitter<any[]> = new EventEmitter<any[]>();
   /**
    * Event emitter for sending messages.
    * @type {EventEmitter<any>}
@@ -182,7 +184,10 @@ export class LiveKitService {
    * Constructor for initializing the class.
    * @param {MatSnackBar} snackBar - The snack bar service for displaying notifications.
    */
-  constructor(private snackBar: MatSnackBar) {}
+  constructor(
+    private snackBar: MatSnackBar,
+    private meetingService: MeetingService
+  ) {}
 
   private breakoutRoomCounter = 0;
   /**
@@ -337,6 +342,15 @@ export class LiveKitService {
     };
 
     await this.publishBreakoutRoom(message);
+    this.breakoutRoomsData.push({
+      participantIds: message.participantIds,
+      roomName: message.roomName,
+      type: message.type,
+    });
+
+    // Emit the updated data
+    this.breakoutRoomsDataUpdated.emit(this.breakoutRoomsData);
+
     console.log(
       `Breakout room ${roomNumber} assigned to participants: ${participants.join(
         ', '
@@ -478,7 +492,6 @@ export class LiveKitService {
           console.log(
             `Breakout room assigned: ${message.roomName} from host "${participant?.identity}"`
           );
-
           // Ensure the message is only sent to the intended participant
           if (participant) {
             this.breakoutRoom.emit({
@@ -934,21 +947,11 @@ export class LiveKitService {
         if (avatarImg) {
           existingElement.removeChild(avatarImg);
         }
-
-        // Attach the video track
-        // const blurProcessor = new TrackProcessor(BackgroundBlur(10));
-        // const blur = BackgroundBlur(10);
         const element = track.attach();
-        // element.setProcessor(blur);
         element.setAttribute(
           'style',
           'border-radius: 0.5rem; width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000;'
         );
-        // if (this.isPortraitMode()) {
-        //   element.setAttribute('style', 'filter: blur(70px);');
-        // } else {
-        //   element.setAttribute('style', 'filter: blur(70px);');
-        // }
         existingElement.appendChild(element);
 
         // Create metadata container if it doesn't already exist
@@ -959,15 +962,15 @@ export class LiveKitService {
           el3.setAttribute(
             'style',
             `position: absolute;
-      right: 0.25rem;
-      bottom: 0.25rem;
-      left: 0.25rem;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-      line-height: 1;`
+            right: 0.25rem;
+            bottom: 0.25rem;
+            left: 0.25rem;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            line-height: 1;`
           );
 
           const el4 = document.createElement('div');
@@ -1146,15 +1149,6 @@ export class LiveKitService {
     }
     await this.room.localParticipant.enableCameraAndMicrophone();
   }
-  // async toggleMicrophone(): Promise<void> {
-  //   if (!this.room) {
-  //     throw new Error('Room not Enabled.');
-  //   }
-  //   const localParticipant = this.room.localParticipant;
-  //   const isMuted = localParticipant.isMicrophoneEnabled;
-  //   await localParticipant.setMicrophoneEnabled(!isMuted);
-  // }
-
   /**
    * Toggles the microphone status (enabled/disabled) for the local participant in the room.
    *
@@ -1164,20 +1158,7 @@ export class LiveKitService {
    * @returns {Observable<boolean>} An observable that emits the new microphone status.
    * @throws {Error} Throws an error if the room is not enabled.
    */
-  // toggleMicrophone(): Observable<boolean> {
-  //   if (!this.room) {
-  //     throw new Error('Room not enabled.');
-  //   }
-  //   const localParticipant = this.room.localParticipant;
-  //   const isMuted = localParticipant.isMicrophoneEnabled;
-  //   return from(
-  //     localParticipant.setMicrophoneEnabled(!isMuted).then(() => {
-  //       const newMicStatus = !isMuted;
-  //       this.microphoneStatusChanged.emit(newMicStatus);
-  //       return newMicStatus;
-  //     })
-  //   );
-  // }
+
   toggleMicrophone(): Observable<boolean> {
     if (!this.room) {
       console.error('Room not initialized or enabled.');
@@ -1384,12 +1365,136 @@ export class LiveKitService {
           object-fit: cover;
           object-position: center;
         `;
+        const audioElement = document.createElement('span');
+        audioElement.setAttribute('class', 'lk-participant-name');
+        audioElement.setAttribute(
+          'style',
+          `
+            font-size: 0.875rem;
+            color: white;
+          `
+        );
+        audioElement.innerText = participant.identity;
         el2.appendChild(imgElement);
         // Append participant tile to container
         container.appendChild(el2);
       }
     }, 100);
   }
+  // createAvatar(participant: Participant) {
+  //   const el2 = document.createElement('div');
+  //   el2.setAttribute('class', 'lk-participant-tile');
+  //   el2.setAttribute('id', `${participant.sid}`);
+  //   el2.setAttribute(
+  //     'style',
+  //     `
+  //      position: relative;
+  //      display: flex;
+  //      flex-direction: column;
+  //      gap: 0.375rem;
+  //      border-radius: 0.5rem;
+  //      width: 100%;
+  //      background-color: #000;
+  //    `
+  //   );
+  //   setTimeout(() => {
+  //     const container = document.querySelector('.lk-grid-layout');
+  //     if (container) {
+  //       // Create metadata container
+  //       const el3 = document.createElement('div');
+  //       el3.setAttribute('class', 'lk-participant-metadata');
+  //       el3.setAttribute(
+  //         'style',
+  //         `
+  //          position: absolute;
+  //          right: 0.25rem;
+  //          bottom: 0.25rem;
+  //          left: 0.25rem;
+  //          display: flex;
+  //          flex-direction: row;
+  //          align-items: center;
+  //          justify-content: space-between;
+  //          gap: 0.5rem;
+  //          line-height: 1;
+  //        `
+  //       );
+
+  //       // Create metadata item
+  //       const el4 = document.createElement('div');
+  //       el4.setAttribute('class', 'lk-participant-metadata-item');
+  //       el4.setAttribute(
+  //         'style',
+  //         `
+  //          display: flex;
+  //          align-items: center;
+  //          padding: 0.25rem;
+  //          background-color: rgba(0, 0, 0, 0.5);
+  //          border-radius: calc(var(--lk-border-radius) / 2);
+  //        `
+  //       );
+
+  //       // Create participant name element
+  //       const el5 = document.createElement('span');
+  //       el5.setAttribute('class', 'lk-participant-name');
+  //       el5.setAttribute(
+  //         'style',
+  //         `
+  //           font-size: 0.875rem;
+  //           color: white;
+  //         `
+  //       );
+  //       el5.innerText = participant.identity;
+  //       console.log('checking for audio', participant);
+
+  //       // Create mic-container div
+  //       const micContainer = document.createElement('div');
+  //       micContainer.setAttribute('class', 'mic-container');
+  //       micContainer.setAttribute(
+  //         'style',
+  //         `
+  //           background: rgba(255,255,255,0.3);
+  //           display: flex;
+  //           margin-left: 8px;
+  //           height: 10vh;
+  //           width: 100%;
+  //         `
+  //       );
+
+  //       // Create canvas element inside mic-container
+  //       const audioCanvas = document.createElement('canvas');
+  //       audioCanvas.setAttribute('class', 'audioCanvas');
+  //       audioCanvas.setAttribute('width', '100'); // Adjust width as needed
+  //       audioCanvas.setAttribute('height', '100'); // Adjust height as needed
+
+  //       // Append canvas to mic-container
+  //       micContainer.appendChild(audioCanvas);
+
+  //       // Append name and mic-container div
+  //       el4.appendChild(el5);
+  //       el4.appendChild(micContainer);
+  //       el3.appendChild(el4);
+  //       el2.appendChild(el3);
+
+  //       // Create avatar image
+  //       const imgElement = document.createElement('img');
+  //       imgElement.setAttribute('src', '../assets/avatar.png');
+  //       imgElement.style.cssText = `
+  //         position: absolute;
+  //         top: 50%;
+  //         left: 50%;
+  //         transform: translate(-50%, -50%);
+  //         width: 60px;
+  //         height: 60px;
+  //         border-radius: 50%;
+  //         object-fit: cover;
+  //         object-position: center;
+  //       `;
+
+  //       el2.appendChild(imgElement);
+  //       container.appendChild(el2);
+  //     }
+  //   }, 100);
+  // }
 
   toggleExpand(element: any, participantId: any) {
     const originalTileElStyle = `--lk-speaking-indicator-width: 2.5px;
@@ -1501,5 +1606,21 @@ export class LiveKitService {
     this.snackBar.open('Reconnecting...', 'Close', {
       duration: 3000,
     });
+  }
+  sendMessageToBreakoutRoom(
+    participantName: string,
+    roomName: string,
+    content: string
+  ) {
+    this.meetingService
+      .sendMessage(participantName, roomName, content)
+      .subscribe(
+        (response) => {
+          console.log('Message sent successfully:', response);
+        },
+        (error) => {
+          console.error('Error sending message:', error);
+        }
+      );
   }
 }

@@ -17,6 +17,20 @@
   </div>
 </div>
 <ng-container *ngIf="isMeetingStarted$ | async">
+  <div id="remoteAudioContainer"></div>
+  <div>
+    <h2>Send Message to Breakout Room</h2>
+
+    <!-- Input field to type the message -->
+    <input
+      type="text"
+      [(ngModel)]="messageContent"
+      placeholder="Enter your message"
+    />
+
+    <!-- Button to send the message -->
+    <button (click)="sendMessageToBreakoutRoom()">Send Message</button>
+  </div>
   <div class="os-main-content" data-test="meetingStarted">
     <header class="header">
       <div class="left-header" data-test="left-header">
@@ -51,6 +65,13 @@
         <span>{{ webSocketStatus | titlecase }}</span>
       </div>
       <div class="right-header">
+        <button
+          class="people"
+          matTooltip="Breakout Rooms"
+          (click)="openPBreakoutSideWindow()"
+        >
+          <i class="fas fa-th-large"></i>
+        </button>
         <button
           class="people"
           matTooltip="Participants"
@@ -372,7 +393,7 @@
       </div>
     </div>
   </div>
-
+  <!-- participant side window  -->
   <div
     class="closeParticipantSideWindow"
     (click)="closeParticipantSideWindow()"
@@ -467,6 +488,54 @@
       </div>
     </div>
   </div>
+  <!-- breakout side window  -->
+  <div class="closeBreakoutSideWindow" (click)="closeParticipantSideWindow()">
+    <div
+      *ngIf="breakoutSideWindowVisible$ | async"
+      class="breakout-side-window-container"
+    >
+      <div class="breakout-side-window" (click)="$event.stopPropagation()">
+        <h2>Breakout rooms</h2>
+
+        <div class="breakout-container">
+          <!-- Check if there are any breakout rooms -->
+          <div *ngIf="breakoutRoomsData.length > 0; else noRooms">
+            <!-- Iterate over breakoutRoomsData to display room names and participants -->
+            <div class="breakout" *ngFor="let room of breakoutRoomsData">
+              <div class="room">
+                <!-- Display Room Name -->
+                <div class="room-name">{{ room.roomName }}</div>
+
+                <!-- Check if there are any participants -->
+                <div
+                  *ngIf="room.participantIds.length > 0; else noParticipants"
+                >
+                  <!-- List Participants in this Room -->
+                  <ul class="participants-list">
+                    <li *ngFor="let participant of room.participantIds">
+                      {{ participant }}
+                    </li>
+                  </ul>
+                </div>
+
+                <!-- Display this message when participantIds array is empty -->
+                <ng-template #noParticipants>
+                  <div class="no-participants-msg">
+                    No participants in {{ room.roomName }}
+                  </div>
+                </ng-template>
+              </div>
+            </div>
+          </div>
+
+          <!-- Display this message if there are no breakout rooms -->
+          <ng-template #noRooms>
+            <div class="no-rooms-msg">No Breakout Rooms created</div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
 </ng-container>
 
 <!-- Breakout Room Modal -->
@@ -481,6 +550,7 @@
     </div>
   </div>
 </div>
-<div class="mic-container">
+
+<!-- <div class="mic-container">
   <canvas #audioCanvas></canvas>
-</div>
+</div> -->

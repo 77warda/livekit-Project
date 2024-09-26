@@ -125,5 +125,12 @@ export const sendMessage = createAction(
   '[LiveKit Room] Send Message',
   props<{ message: string; recipient: string }>()
 );
+export const toggleBreakoutSideWindow = createAction(
+  '[LiveKit Room] Toggle Participant Side Window'
+);
+
+export const closeBreakoutSideWindow = createAction(
+  '[LiveKit Room] Close Side Window'
+);
 
 export const scrollToBottom = createAction('[LiveKit Room] Scroll To Bottom');

@@ -9,6 +9,7 @@ export interface LiveKitRoomState {
   isScreenSharing: boolean;
   iconColor: string;
   participantSideWindowVisible: boolean;
+  breakoutSideWindowVisible: boolean;
   chatSideWindowVisible: boolean;
   error?: string;
   token: string | null;
@@ -23,6 +24,7 @@ export const initialState: LiveKitRoomState = {
   isScreenSharing: false,
   iconColor: 'black',
   participantSideWindowVisible: false,
+  breakoutSideWindowVisible: false,
   chatSideWindowVisible: false,
   token: null,
 };
@@ -111,6 +113,7 @@ export const liveKitRoomReducer = createReducer(
         ? false
         : state.chatSideWindowVisible,
   })),
+
   on(LiveKitRoomActions.toggleChatSideWindow, (state) => ({
     ...state,
     chatSideWindowVisible: !state.chatSideWindowVisible,
@@ -168,5 +171,17 @@ export const liveKitRoomReducer = createReducer(
   on(LiveKitRoomActions.leaveMeetingFailure, (state, { error }) => ({
     ...state,
     error,
+  })),
+  on(LiveKitRoomActions.toggleBreakoutSideWindow, (state) => ({
+    ...state,
+    breakoutSideWindowVisible: !state.breakoutSideWindowVisible,
+    chatSideWindowVisible:
+      state.chatSideWindowVisible && !state.breakoutSideWindowVisible
+        ? false
+        : state.chatSideWindowVisible,
+  })),
+  on(LiveKitRoomActions.closeBreakoutSideWindow, (state) => ({
+    ...state,
+    breakoutSideWindowVisible: false,
   }))
 );

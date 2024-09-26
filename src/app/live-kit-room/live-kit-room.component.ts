@@ -13,6 +13,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Store, select } from '@ngrx/store';
 import {
   selectAllMessages,
+  selectBreakoutSideWindowVisible,
   selectChatSideWindowVisible,
   selectIconColor,
   selectIsMeetingStarted,
@@ -49,6 +50,7 @@ export class LiveKitRoomComponent {
   isVideoOn$!: Observable<boolean>;
   isMicOn$!: Observable<boolean>;
   participantSideWindowVisible$!: Observable<boolean>;
+  breakoutSideWindowVisible$!: Observable<boolean>;
   chatSideWindowVisible$!: Observable<boolean>;
   isScreenSharing$!: Observable<boolean>;
   iconColor$!: Observable<string>;
@@ -66,6 +68,8 @@ export class LiveKitRoomComponent {
   private WIDTH = 1500;
   private HEIGHT = 1000;
   audioStream!: MediaStream;
+  messageContent: string = '';
+  breakoutRoomsData: any[] = [];
 
   // private subscriptions: Subscription[] = [];
   @ViewChild('messageContainer') messageContainer!: ElementRef | any;
@@ -101,6 +105,13 @@ export class LiveKitRoomComponent {
   ) {}
 
   ngOnInit() {
+    // this.livekitService.breakoutRoomsDataUpdated.subscribe((data: any[]) => {
+    //   this.breakoutRoomsData = data;
+    //   console.log(
+    //     'Received initial breakout room data:',
+    //     this.breakoutRoomsData
+    //   );
+    // });
     // this.livekitService.connectWebSocket();
     this.livekitService.audioVideoHandler();
     this.isMeetingStarted$ = this.store.pipe(select(selectIsMeetingStarted));
@@ -110,6 +121,9 @@ export class LiveKitRoomComponent {
     this.isVideoOn$ = this.store.pipe(select(selectIsVideoOn));
     this.participantSideWindowVisible$ = this.store.pipe(
       select(selectParticipantSideWindowVisible)
+    );
+    this.breakoutSideWindowVisible$ = this.store.pipe(
+      select(selectBreakoutSideWindowVisible)
     );
     this.chatSideWindowVisible$ = this.store.pipe(
       select(selectChatSideWindowVisible)
@@ -595,6 +609,9 @@ export class LiveKitRoomComponent {
   openParticipantSideWindow(): void {
     this.store.dispatch(LiveKitRoomActions.toggleParticipantSideWindow());
   }
+  openPBreakoutSideWindow(): void {
+    this.store.dispatch(LiveKitRoomActions.toggleBreakoutSideWindow());
+  }
 
   /**
    * Dispatches an action to toggle the chat side window.
@@ -633,6 +650,9 @@ export class LiveKitRoomComponent {
     this.store.dispatch(LiveKitRoomActions.closeParticipantSideWindow());
   }
 
+  closeBreakoutSideWindow(): void {
+    this.store.dispatch(LiveKitRoomActions.closeBreakoutSideWindow());
+  }
   /**
    * Returns the CSS grid column style based on the number of participants in the LiveKit room.
    * If the number of participants is 6 or fewer, returns a predefined grid column style.
@@ -765,6 +785,13 @@ export class LiveKitRoomComponent {
         const roomNumber = index + 1;
         this.livekitService.breakoutRoomAlert(roomParticipants, roomNumber);
       });
+      this.livekitService.breakoutRoomsDataUpdated.subscribe((data: any[]) => {
+        this.breakoutRoomsData = data;
+        console.log(
+          'Received breakout room data after form submission:',
+          this.breakoutRoomsData
+        );
+      });
     } else if (roomType === 'manual') {
       // Handle manual room creation logic here if required
     }
@@ -790,5 +817,16 @@ export class LiveKitRoomComponent {
     });
 
     return rooms;
+  }
+  sendMessageToBreakoutRoom() {
+    const participantName = 'John Doe'; // Replace with actual participant name
+    const roomName = 'Breakout Room 1'; // Replace with actual room name
+    const content = this.messageContent; // Get content from input
+
+    this.livekitService.sendMessageToBreakoutRoom(
+      participantName,
+      roomName,
+      content
+    );
   }
 }

@@ -16,27 +16,6 @@ export class LiveKitRoomEffects {
     private snackBar: MatSnackBar
   ) {}
 
-  // createMeeting$ = createEffect(() =>
-  //   this.actions$.pipe(
-  //     ofType(LiveKitRoomActions.createMeeting),
-  //     mergeMap((action) =>
-  //       this.meetingService
-  //         .createMeeting(action.participantName, action.roomName)
-  //         .pipe(
-  //           map((response) => {
-  //             return LiveKitRoomActions.startMeeting({
-  //               wsURL: 'wss://hassam-app-fu1y3ybu.livekit.cloud',
-  //               token: response.token,
-  //             });
-  //           }),
-  //           catchError((error) =>
-  //             of(LiveKitRoomActions.createMeetingFailure({ error }))
-  //           )
-  //         )
-  //     )
-  //   )
-  // );
-
   createMeeting$ = createEffect(() =>
     this.actions$.pipe(
       ofType(LiveKitRoomActions.createMeeting),
