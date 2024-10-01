@@ -168,6 +168,7 @@ export class LiveKitService {
   }>();
   breakoutRoomsData: Array<any> = [];
   breakoutRoomsDataUpdated: EventEmitter<any[]> = new EventEmitter<any[]>();
+  public broadcastMessageReceived: EventEmitter<any> = new EventEmitter<any>();
   /**
    * Event emitter for sending messages.
    * @type {EventEmitter<any>}
@@ -331,37 +332,72 @@ export class LiveKitService {
     await this.room!.localParticipant.publishData(data, { reliable: true });
   }
 
-  async breakoutRoomAlert(participants: any[], roomNumber: number) {
+  // async breakoutRoomAlert(participants: any[], roomNumber: number) {
+  //   this.breakoutRoomCounter++;
+
+  //   const roomName = `Breakout Room ${roomNumber}`;
+  //   const message = {
+  //     type: 'breakoutRoom',
+  //     participantIds: participants,
+  //     roomName: roomName,
+  //   };
+
+  //   await this.publishBreakoutRoom(message);
+  //   this.breakoutRoomsData.push({
+  //     participantIds: message.participantIds,
+  //     roomName: message.roomName,
+  //     type: message.type,
+  //   });
+
+  //   // Emit the updated data
+  //   this.breakoutRoomsDataUpdated.emit(this.breakoutRoomsData);
+
+  //   console.log(
+  //     `Breakout room ${roomNumber} assigned to participants: ${participants.join(
+  //       ', '
+  //     )}`
+  //   );
+  // }
+
+  async breakoutRoomAlert(participants: string[], roomName: string) {
     this.breakoutRoomCounter++;
 
-    const roomName = `Breakout Room ${roomNumber}`;
     const message = {
       type: 'breakoutRoom',
-      participantIds: participants,
+      participantIds: participants, // The selected participants
       roomName: roomName,
     };
+    console.log(`Publishing breakout room alert:`, message);
+    await this.publishBreakoutRoom(message, participants);
 
-    await this.publishBreakoutRoom(message);
+    // Store the room data for tracking
     this.breakoutRoomsData.push({
       participantIds: message.participantIds,
       roomName: message.roomName,
       type: message.type,
     });
 
-    // Emit the updated data
+    // Emit the updated breakout rooms data
     this.breakoutRoomsDataUpdated.emit(this.breakoutRoomsData);
 
     console.log(
-      `Breakout room ${roomNumber} assigned to participants: ${participants.join(
+      `Breakout room '${roomName}' assigned to participants: ${participants.join(
         ', '
       )}`
     );
   }
 
-  private async publishBreakoutRoom(message: any) {
+  private async publishBreakoutRoom(message: any, recipientIds: string[]) {
     const strData = JSON.stringify(message);
     const data = new TextEncoder().encode(strData);
-    await this.room!.localParticipant.publishData(data, { reliable: true });
+
+    // Make sure to pass the recipient IDs (selected participants)
+    const destinationIdentities = recipientIds.length ? recipientIds : [];
+
+    await this.room!.localParticipant.publishData(data, {
+      reliable: true,
+      destinationIdentities: destinationIdentities,
+    });
   }
 
   /**
@@ -492,6 +528,7 @@ export class LiveKitService {
           console.log(
             `Breakout room assigned: ${message.roomName} from host "${participant?.identity}"`
           );
+
           // Ensure the message is only sent to the intended participant
           if (participant) {
             this.breakoutRoom.emit({
@@ -499,6 +536,25 @@ export class LiveKitService {
               roomName: message.roomName, // Use the room name from the message
             });
           }
+        }
+        // Broadcast message functionality
+        if (message.type === 'broadcast') {
+          console.log(
+            `Broadcast message received: "${message.content}" from "${participant?.identity}"`
+          );
+
+          // Display a notification (snackbar or similar UI feedback)
+          if (participant) {
+            this.openSnackBar(
+              `Broadcast from ${participant.identity}: ${message.content}`
+            );
+          }
+
+          // Optionally, you can emit the broadcast message if needed
+          this.broadcastMessageReceived.emit({
+            participant: participant,
+            content: message.content,
+          });
         }
       }
     );
@@ -1616,11 +1672,41 @@ export class LiveKitService {
       .sendMessage(participantName, roomName, content)
       .subscribe(
         (response) => {
-          console.log('Message sent successfully:', response);
+          console.log(
+            'Message sent successfully:',
+            response,
+            participantName,
+            roomName,
+            content
+          );
         },
         (error) => {
           console.error('Error sending message:', error);
         }
       );
+  }
+  async broadcastMessageToRoom(roomId: string, message: string) {
+    const room = this.breakoutRoomsData.find((r) =>
+      r.participantIds.includes(roomId)
+    );
+
+    if (room && room.participantIds.length > 0) {
+      const messageData = {
+        type: 'broadcast',
+        roomName: room.roomName,
+        content: message,
+      };
+
+      // Serialize the message
+      const strData = JSON.stringify(messageData);
+      const data = new TextEncoder().encode(strData);
+
+      // Publish the message to the room using the DataChannel
+      await this.room!.localParticipant.publishData(data, { reliable: true });
+
+      this.openSnackBar(`Broadcasted message to ${room.roomName}: ${message}`);
+    } else {
+      console.error('Room not found or has no participants.');
+    }
   }
 }

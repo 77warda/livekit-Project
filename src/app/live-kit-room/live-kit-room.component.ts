@@ -70,7 +70,13 @@ export class LiveKitRoomComponent {
   audioStream!: MediaStream;
   messageContent: string = '';
   breakoutRoomsData: any[] = [];
-
+  selectedBreakoutRoom = '';
+  breakoutRooms: {
+    name: string;
+    participants: string[];
+    showParticipants: boolean;
+  }[] = [];
+  roomCounter: number = 1;
   // private subscriptions: Subscription[] = [];
   @ViewChild('messageContainer') messageContainer!: ElementRef | any;
   attachedTrack: HTMLElement | null = null;
@@ -105,13 +111,6 @@ export class LiveKitRoomComponent {
   ) {}
 
   ngOnInit() {
-    // this.livekitService.breakoutRoomsDataUpdated.subscribe((data: any[]) => {
-    //   this.breakoutRoomsData = data;
-    //   console.log(
-    //     'Received initial breakout room data:',
-    //     this.breakoutRoomsData
-    //   );
-    // });
     // this.livekitService.connectWebSocket();
     this.livekitService.audioVideoHandler();
     this.isMeetingStarted$ = this.store.pipe(select(selectIsMeetingStarted));
@@ -166,23 +165,81 @@ export class LiveKitRoomComponent {
         this.scrollToBottom();
       }
     });
+    // this.livekitService.msgDataReceived.subscribe((data) => {
+    //   console.log('Participant:', data.participant);
+    //   this.hostName = data.participant?.identity;
+
+    //   if (data.message.handRaised === true) {
+    //     // console.log(`${data.participant} raised its hand`);
+    //     if (data.participant) {
+    //       this.handRaiseStates[data.participant.identity] = true;
+    //       this.openSnackBar(`${data.participant.identity} raised its hand`);
+    //     }
+    //   }
+    //   if (data.message.type === 'breakoutRoom') {
+    //     console.log(
+    //       'Breakout room created for participant:',
+    //       data.participant?.identity
+    //     );
+
+    //     // Set the room name and host name in the modal
+    //     this.roomName = data.message.roomName;
+    //     this.hostName = data.participant?.identity;
+
+    //     this.showModal();
+    //   }
+    //   if (data.message.handRaised === true) {
+    //     // console.log(`${data.participant} raised its hand`);
+    //     if (data.participant) {
+    //       this.handRaiseStates[data.participant.identity] = true;
+    //       this.openSnackBar(`${data.participant.identity} raised its hand`);
+    //     }
+    //   }
+    //   if (data.message.handRaised === false) {
+    //     // console.log(`${data.participant} lowered its hand`);
+    //     if (data.participant) {
+    //       this.handRaiseStates[data.participant.identity] = false;
+    //       this.openSnackBar(`${data.participant.identity} lowered its hand`);
+    //     }
+    //   }
+    //   if (
+    //     data.message.type !== 'handRaise' &&
+    //     data.message.type !== 'breakoutRoom'
+    //   ) {
+    //     const receivedMsg = data?.message?.message;
+    //     const senderName = data?.participant?.identity;
+    //     const receivingTime = data?.message?.timestamp;
+    //     this.allMessages.push({
+    //       senderName,
+    //       receivedMsg,
+    //       receivingTime,
+    //       type: 'received',
+    //     });
+    //     this.chatSideWindowVisible$.subscribe((visible) => {
+    //       if (!visible) {
+    //         this.unreadMessagesCount++;
+    //         this.scrollToBottom();
+    //       }
+    //     });
+
+    //     this.scrollToBottom();
+    //     this.sortMessages();
+    //   }
+    // });
     this.livekitService.msgDataReceived.subscribe((data) => {
       console.log('Participant:', data.participant);
       this.hostName = data.participant?.identity;
 
       if (data.message.handRaised === true) {
-        // console.log(`${data.participant} raised its hand`);
+        // console.log(${data.participant} raised its hand);
         if (data.participant) {
           this.handRaiseStates[data.participant.identity] = true;
           this.openSnackBar(`${data.participant.identity} raised its hand`);
         }
       }
-      // if (data.message.type === 'breakoutRoom') {
-      //   console.log('Breakout room created');
-      //   this.roomName = data.message.roomName;
-      //   this.showModal();
-      // }
       if (data.message.type === 'breakoutRoom') {
+        console.log('data from br is', data);
+
         console.log(
           'Breakout room created for participant:',
           data.participant?.identity
@@ -194,15 +251,27 @@ export class LiveKitRoomComponent {
 
         this.showModal(); // Show the modal with the correct room information
       }
+      if (data.message.type === 'broadcast') {
+        console.log(
+          'Broadcast message received successfully from:',
+          data.participant?.identity
+        );
+
+        // Display a snackbar or show the message
+        this.openSnackBar(
+          `Message from ${data.participant?.identity}: ${data.message.content}`
+        );
+      }
+
       if (data.message.handRaised === true) {
-        // console.log(`${data.participant} raised its hand`);
+        // console.log(${data.participant} raised its hand);
         if (data.participant) {
           this.handRaiseStates[data.participant.identity] = true;
           this.openSnackBar(`${data.participant.identity} raised its hand`);
         }
       }
       if (data.message.handRaised === false) {
-        // console.log(`${data.participant} lowered its hand`);
+        // console.log(${data.participant} lowered its hand);
         if (data.participant) {
           this.handRaiseStates[data.participant.identity] = false;
           this.openSnackBar(`${data.participant.identity} lowered its hand`);
@@ -276,25 +345,25 @@ export class LiveKitRoomComponent {
     }
   }
 
-  onParticipantSelection(event: Event) {
-    const checkbox = event.target as HTMLInputElement;
-    const selectedParticipants = this.breakoutForm.get(
-      'selectedParticipants'
-    )?.value;
+  // onParticipantSelection(event: Event) {
+  //   const checkbox = event.target as HTMLInputElement;
+  //   const selectedParticipants = this.breakoutForm.get(
+  //     'selectedParticipants'
+  //   )?.value;
 
-    if (checkbox.checked) {
-      selectedParticipants.push(checkbox.value);
-    } else {
-      const index = selectedParticipants.indexOf(checkbox.value);
-      if (index > -1) {
-        selectedParticipants.splice(index, 1);
-      }
-    }
+  //   if (checkbox.checked) {
+  //     selectedParticipants.push(checkbox.value);
+  //   } else {
+  //     const index = selectedParticipants.indexOf(checkbox.value);
+  //     if (index > -1) {
+  //       selectedParticipants.splice(index, 1);
+  //     }
+  //   }
 
-    this.breakoutForm
-      .get('selectedParticipants')
-      ?.setValue(selectedParticipants);
-  }
+  //   this.breakoutForm
+  //     .get('selectedParticipants')
+  //     ?.setValue(selectedParticipants);
+  // }
 
   calculateDistribution() {
     const numberOfRooms = this.breakoutForm.get('numberOfRooms')?.value;
@@ -756,51 +825,121 @@ export class LiveKitRoomComponent {
   }
 
   // async submitBreakoutForm(): Promise<void> {
-  //   const participants = this.remoteParticipantNames.map(
-  //     (p: any) => p.identity
-  //   );
-  //   this.livekitService.breakoutRoomAlert(participants);
-  //   console.log(`${participants} room started`);
-  //   console.log(this.breakoutForm.value);
+  //   const roomType = this.breakoutForm.get('roomType')?.value;
+  //   const numberOfRooms = this.breakoutForm.get('numberOfRooms')?.value;
+
+  //   if (roomType === 'automatic' && numberOfRooms > 0) {
+  //     // Handle automatic room assignment (unchanged)
+  //     const participants = this.remoteParticipantNames.map(
+  //       (p: any) => p.identity
+  //     );
+  //     const rooms = this.splitParticipantsIntoRooms(
+  //       participants,
+  //       numberOfRooms
+  //     );
+
+  //     rooms.forEach((roomParticipants, index) => {
+  //       const roomName = `Breakout Room ${index + 1}`;
+  //       this.livekitService.breakoutRoomAlert(roomParticipants, roomName);
+  //     });
+
+  //     this.livekitService.breakoutRoomsDataUpdated.subscribe((data: any[]) => {
+  //       this.breakoutRoomsData = data;
+  //     });
+  //   } else if (roomType === 'manual') {
+  //     // Handle manual room assignment
+  //     if (this.breakoutRooms.length > 0) {
+  //       console.log('breakout rooms is', this.breakoutRooms);
+
+  //       this.breakoutRooms.forEach((room, index) => {
+  //         const roomParticipants = room.participants; // Get participants for this room
+  //         const roomName = `Breakout Room ${index + 1}`;
+  //         console.log('length is', roomParticipants.length);
+
+  //         if (roomParticipants.length > 0) {
+  //           // Send breakout room alert with the assigned participants for this room
+  //           this.livekitService.breakoutRoomAlert(roomParticipants, roomName);
+  //         }
+  //       });
+  //     }
+  //   }
+
+  //   console.log('Breakout room invitations sent');
   //   this.closeBreakoutModal();
   // }
   async submitBreakoutForm(): Promise<void> {
-    const participants = this.remoteParticipantNames.map(
-      (p: any) => p.identity
-    );
-
     const roomType = this.breakoutForm.get('roomType')?.value;
     const numberOfRooms = this.breakoutForm.get('numberOfRooms')?.value;
 
     if (roomType === 'automatic' && numberOfRooms > 0) {
-      // Split participants evenly between the rooms
+      // Handle automatic room assignment (unchanged)
+      const participants = this.remoteParticipantNames.map(
+        (p: any) => p.identity
+      );
       const rooms = this.splitParticipantsIntoRooms(
         participants,
         numberOfRooms
       );
-      console.log('Rooms distribution:', rooms);
 
-      // For each room, send a breakout room alert
       rooms.forEach((roomParticipants, index) => {
-        const roomNumber = index + 1;
-        this.livekitService.breakoutRoomAlert(roomParticipants, roomNumber);
+        const roomName = `Breakout Room ${index + 1}`;
+        this.livekitService.breakoutRoomAlert(roomParticipants, roomName);
       });
+
       this.livekitService.breakoutRoomsDataUpdated.subscribe((data: any[]) => {
         this.breakoutRoomsData = data;
-        console.log(
-          'Received breakout room data after form submission:',
-          this.breakoutRoomsData
-        );
       });
     } else if (roomType === 'manual') {
-      // Handle manual room creation logic here if required
+      if (this.breakoutRooms.length > 0) {
+        console.log('Breakout rooms is', this.breakoutRooms);
+
+        this.breakoutRoomsData = [];
+        this.breakoutRooms.forEach((room, index) => {
+          const roomParticipants = room.participants;
+          const roomName = `Breakout Room ${index + 1}`;
+          console.log('length is', roomParticipants.length);
+
+          if (roomParticipants.length > 0) {
+            this.livekitService.breakoutRoomAlert(roomParticipants, roomName);
+            this.breakoutRoomsData.push({
+              participantIds: roomParticipants,
+              roomName: roomName,
+              type: 'manual',
+            });
+          }
+        });
+
+        // Emit the updated breakout rooms data
+        this.livekitService.breakoutRoomsDataUpdated.emit(
+          this.breakoutRoomsData
+        );
+
+        // Ensure to update the sidebar with the newly assigned rooms
+        this.livekitService.breakoutRoomsDataUpdated.subscribe(
+          (data: any[]) => {
+            this.breakoutRoomsData = data;
+          }
+        );
+      }
     }
 
-    console.log(`${participants} room started`);
-    console.log(this.breakoutForm.value);
+    console.log('Breakout room invitations sent');
+    this.resetForm();
     this.closeBreakoutModal();
   }
 
+  resetForm(): void {
+    // Reset the form back to its initial state
+    this.breakoutForm.reset({
+      roomType: '', // Optionally, set default values here
+      numberOfRooms: null, // Reset the number of rooms field
+    });
+
+    // Clear breakoutRoomsData and other related states
+    this.breakoutRooms = [];
+    this.breakoutRoomsData = [];
+    this.distributionMessage = '';
+  }
   // Function to split participants into rooms
   splitParticipantsIntoRooms(participants: any[], numberOfRooms: number) {
     const rooms: any[][] = [];
@@ -818,15 +957,85 @@ export class LiveKitRoomComponent {
 
     return rooms;
   }
-  sendMessageToBreakoutRoom() {
-    const participantName = 'John Doe'; // Replace with actual participant name
-    const roomName = 'Breakout Room 1'; // Replace with actual room name
-    const content = this.messageContent; // Get content from input
 
-    this.livekitService.sendMessageToBreakoutRoom(
-      participantName,
-      roomName,
-      content
+  toggleParticipants(event: any, roomIndex: number) {
+    this.breakoutRooms[roomIndex].showParticipants =
+      !this.breakoutRooms[roomIndex].showParticipants;
+  }
+
+  // Add a participant to the room or remove them if unchecked
+  onParticipantSelection(event: any, roomIndex: number) {
+    const participantIdentity = event.target.value;
+    const isChecked = event.target.checked;
+    const room = this.breakoutRooms[roomIndex];
+
+    if (isChecked) {
+      // Add participant to the room
+      if (!room.participants.includes(participantIdentity)) {
+        room.participants.push(participantIdentity);
+      }
+      console.log(
+        `Added participant: ${participantIdentity} to room ${this.breakoutRooms[roomIndex].name}`
+      );
+      // Remove from available participants
+      this.remoteParticipantNames = this.remoteParticipantNames.filter(
+        (p: any) => p.identity !== participantIdentity
+      );
+    } else {
+      // Move the participant back to available list
+      this.remoteParticipantNames.push({ identity: participantIdentity });
+      // Remove from assigned participants
+      room.participants = room.participants.filter(
+        (p) => p !== participantIdentity
+      );
+      console.log(
+        `Removed participant: ${participantIdentity} from room ${this.breakoutRooms[roomIndex].name}`
+      );
+    }
+  }
+
+  // Unassign a participant from the room
+  onUnassignParticipant(event: any, roomIndex: number) {
+    const participantIdentity = event.target.value;
+    const isChecked = event.target.checked;
+    const room = this.breakoutRooms[roomIndex];
+
+    if (!isChecked) {
+      // Remove participant from the room
+      room.participants = room.participants.filter(
+        (p) => p !== participantIdentity
+      );
+      // Add back to available participants
+      this.remoteParticipantNames.push({ identity: participantIdentity });
+    }
+  }
+
+  createNewRoom(event: any) {
+    const newRoomName = `Room ${this.breakoutRooms.length + 1}`;
+    this.breakoutRooms.push({
+      name: newRoomName,
+      participants: [],
+      showParticipants: false,
+    });
+  }
+  sendMessageToBreakoutRoom() {
+    // const participantName = 'John Doe'; // Replace with actual participant name
+    // const roomName = 'Breakout Room 1'; // Replace with actual room name
+    // const content = this.messageContent; // Get content from input
+
+    // this.livekitService.sendMessageToBreakoutRoom(
+    //   participantName,
+    //   roomName,
+    //   content
+    // );
+    if (!this.selectedBreakoutRoom || !this.messageContent) {
+      alert('Please select a breakout room and enter a message.');
+      return;
+    }
+
+    this.livekitService.broadcastMessageToRoom(
+      this.selectedBreakoutRoom,
+      this.messageContent
     );
   }
 }

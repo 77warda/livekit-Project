@@ -23,4 +23,9 @@ export class MeetingService {
     const body = { participantName, roomName, content };
     return this.http.post<any>(this.apiUrl, body);
   }
+
+  broadcastMessage(roomName: string, content: string): Observable<any> {
+    const body = { roomName, content };
+    return this.http.post<any>(`${this.apiUrl}/broadcast`, body);
+  }
 }

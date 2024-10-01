@@ -1446,3 +1446,76 @@
         }
     }
 }
+
+// manual styling: 
+.breakout-participant {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.breakout-participant input {
+    margin-right: 10px;
+}
+
+
+.create-room-section {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    label {
+        margin-right: 10px;
+        font-weight: bold;
+    }
+
+    button {
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #45a049;
+    }
+}
+
+.created-rooms {
+    margin-top: 20px;
+
+    h2 {
+        font-size: 1rem;
+        margin-bottom: 5px;
+    }
+
+    ul {
+        list-style-type: none;
+        padding-left: 0;
+
+        li {
+            background-color: #f1f1f1;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .br-participant-li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+    }
+}
