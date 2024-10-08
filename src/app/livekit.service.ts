@@ -168,7 +168,7 @@ export class LiveKitService {
   }>();
   breakoutRoomsData: Array<any> = [];
   breakoutRoomsDataUpdated: EventEmitter<any[]> = new EventEmitter<any[]>();
-  public broadcastMessageReceived: EventEmitter<any> = new EventEmitter<any>();
+  // public broadcastMessageReceived: EventEmitter<any> = new EventEmitter<any>();
   /**
    * Event emitter for sending messages.
    * @type {EventEmitter<any>}
@@ -191,6 +191,10 @@ export class LiveKitService {
   ) {}
 
   private breakoutRoomCounter = 0;
+  public messageContentReceived: EventEmitter<string[]> = new EventEmitter<
+    string[]
+  >();
+  private messageArray: string[] = [];
   /**
    * Connects to a LiveKit room using the provided WebSocket URL and token.
    *
@@ -331,33 +335,6 @@ export class LiveKitService {
     const data = new TextEncoder().encode(strData);
     await this.room!.localParticipant.publishData(data, { reliable: true });
   }
-
-  // async breakoutRoomAlert(participants: any[], roomNumber: number) {
-  //   this.breakoutRoomCounter++;
-
-  //   const roomName = `Breakout Room ${roomNumber}`;
-  //   const message = {
-  //     type: 'breakoutRoom',
-  //     participantIds: participants,
-  //     roomName: roomName,
-  //   };
-
-  //   await this.publishBreakoutRoom(message);
-  //   this.breakoutRoomsData.push({
-  //     participantIds: message.participantIds,
-  //     roomName: message.roomName,
-  //     type: message.type,
-  //   });
-
-  //   // Emit the updated data
-  //   this.breakoutRoomsDataUpdated.emit(this.breakoutRoomsData);
-
-  //   console.log(
-  //     `Breakout room ${roomNumber} assigned to participants: ${participants.join(
-  //       ', '
-  //     )}`
-  //   );
-  // }
 
   async breakoutRoomAlert(participants: string[], roomName: string) {
     this.breakoutRoomCounter++;
@@ -537,24 +514,16 @@ export class LiveKitService {
             });
           }
         }
-        // Broadcast message functionality
-        if (message.type === 'broadcast') {
-          console.log(
-            `Broadcast message received: "${message.content}" from "${participant?.identity}"`
-          );
+        if (message.title === 'test-room') {
+          console.log(`Received message in breakout room: ${message}`);
 
-          // Display a notification (snackbar or similar UI feedback)
-          if (participant) {
-            this.openSnackBar(
-              `Broadcast from ${participant.identity}: ${message.content}`
-            );
-          }
+          // Add the new message content to the array
+          this.messageArray.push(message);
 
-          // Optionally, you can emit the broadcast message if needed
-          this.broadcastMessageReceived.emit({
-            participant: participant,
-            content: message.content,
-          });
+          // Emit the updated message array
+          this.messageContentReceived.emit(this.messageArray);
+        } else {
+          console.log(`Message not for this breakout room`);
         }
       }
     );
@@ -1513,8 +1482,25 @@ export class LiveKitService {
   //           margin-left: 8px;
   //           height: 10vh;
   //           width: 100%;
+  //           position: relative;
   //         `
   //       );
+  //       const dottedLine = document.createElement('div');
+  //       dottedLine.setAttribute(
+  //         'style',
+  //         `position: absolute;
+  //           top: 50%; /* Position it vertically centered */
+  //           left: 0;
+  //           width: 100%;
+  //           height: 7px;
+  //           background-image: radial-gradient(circle, #fff 3px, transparent 1px);
+  //           background-size: 10px 1px;
+  //           background-repeat: repeat-x;
+  // `
+  //       );
+
+  //       // Append the dotted line to micContainer
+  //       micContainer.appendChild(dottedLine);
 
   //       // Create canvas element inside mic-container
   //       const audioCanvas = document.createElement('canvas');
@@ -1663,50 +1649,24 @@ export class LiveKitService {
       duration: 3000,
     });
   }
-  sendMessageToBreakoutRoom(
-    participantName: string,
-    roomName: string,
-    content: string
-  ) {
-    this.meetingService
-      .sendMessage(participantName, roomName, content)
-      .subscribe(
-        (response) => {
-          console.log(
-            'Message sent successfully:',
-            response,
-            participantName,
-            roomName,
-            content
-          );
-        },
-        (error) => {
-          console.error('Error sending message:', error);
-        }
-      );
-  }
-  async broadcastMessageToRoom(roomId: string, message: string) {
-    const room = this.breakoutRoomsData.find((r) =>
-      r.participantIds.includes(roomId)
+
+  sendMessageToBreakoutRoom(roomId: string, content: string) {
+    const room = this.breakoutRoomsData.find((r) => r.roomName === roomId);
+
+    this.meetingService.sendBroadcastMessage(room.roomName, content).subscribe(
+      (response) => {
+        console.log(
+          'Message sent successfully:',
+          response,
+          room.roomName,
+          content
+        );
+      },
+
+      (error) => {
+        console.error('Error sending message:', error);
+        this.openSnackBar('Failed to send message to the breakout room.');
+      }
     );
-
-    if (room && room.participantIds.length > 0) {
-      const messageData = {
-        type: 'broadcast',
-        roomName: room.roomName,
-        content: message,
-      };
-
-      // Serialize the message
-      const strData = JSON.stringify(messageData);
-      const data = new TextEncoder().encode(strData);
-
-      // Publish the message to the room using the DataChannel
-      await this.room!.localParticipant.publishData(data, { reliable: true });
-
-      this.openSnackBar(`Broadcasted message to ${room.roomName}: ${message}`);
-    } else {
-      console.error('Room not found or has no participants.');
-    }
   }
 }

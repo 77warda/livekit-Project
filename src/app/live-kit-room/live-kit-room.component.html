@@ -29,11 +29,9 @@
     />
     <!-- Dropdown to select the breakout room -->
     <select [(ngModel)]="selectedBreakoutRoom">
-      <option
-        *ngFor="let room of breakoutRoomsData"
-        [value]="room.participantIds"
-      >
-        {{ room.roomName }}
+      <option value="" disabled [selected]>Select Breakout Room</option>
+      <option *ngFor="let room of breakoutRoomsData" [value]="room.roomName">
+        {{ room.roomName | json }}
       </option>
     </select>
 
@@ -387,11 +385,14 @@
           <div class="os-content-card-body">
             <div class="os-content-body" #messageContainer>
               <div *ngFor="let message of allMessages; let i = index">
-                <div class="main-receiver" *ngIf="message.type === 'received'">
+                <div
+                  class="main-receiver"
+                  *ngIf="message.type === 'received' && message.receivedMsg"
+                >
                   <div class="receive">
                     <div class="avatar">
                       <p *ngIf="shouldShowAvatar(i)">
-                        {{ message.senderName.charAt(0).toUpperCase() }}
+                        {{ message.senderName?.charAt(0)?.toUpperCase() }}
                       </p>
                     </div>
                     <div class="receive-msg">
@@ -411,6 +412,78 @@
                     </div>
                   </div>
                 </div>
+                <div class="main-sender" *ngIf="message.type === 'sent'">
+                  <div class="send">
+                    <div class="msg-tym">
+                      {{ message.sendingTime | date : "shortTime" }}
+                    </div>
+                    <div class="msg-detail">{{ message.sendMessage }}</div>
+                  </div>
+                </div>
+              </div>
+              <!-- First loop through allMessages -->
+              <!-- <div *ngFor="let message of allMessages; let i = index">
+                <div
+                  class="main-receiver"
+                  *ngIf="message.type === 'received' && message.receivedMsg"
+                >
+                  <div class="receive">
+                    <div class="avatar">
+                      <p *ngIf="shouldShowAvatar(i)">
+                        {{ message.senderName?.charAt(0)?.toUpperCase() }}
+                      </p>
+                    </div>
+                    <div class="receive-msg">
+                      <div class="head">
+                        <div class="receiver-name">
+                          <h2 *ngIf="shouldShowAvatar(i)">
+                            {{ message.senderName }}
+                          </h2>
+                        </div>
+                        <div class="msg-tym">
+                          {{ message.receivingTime | date : "shortTime" }}
+                        </div>
+                      </div>
+                      <div class="msg-detail">
+                        {{ message.receivedMsg }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div> -->
+
+              <!-- Second loop through breakoutMessageContent -->
+              <div
+                *ngFor="let message of breakoutMessageContent; let i = index"
+              >
+                <div
+                  class="main-receiver"
+                  *ngIf="message.title === 'test-room' && message.content"
+                >
+                  <div class="receive">
+                    <div class="avatar">
+                      <p *ngIf="shouldShowAvatar(i)">
+                        {{ message.title?.charAt(0)?.toUpperCase() }}
+                      </p>
+                    </div>
+                    <div class="receive-msg">
+                      <div class="head">
+                        <div class="receiver-name">
+                          <h2 *ngIf="shouldShowAvatar(i)">
+                            {{ message.title }}
+                          </h2>
+                        </div>
+                        <div class="msg-tym">
+                          {{ message.timestamp | date : "shortTime" }}
+                        </div>
+                      </div>
+                      <div class="msg-detail">
+                        {{ message.content }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- sent messages  -->
                 <div class="main-sender" *ngIf="message.type === 'sent'">
                   <div class="send">
                     <div class="msg-tym">
