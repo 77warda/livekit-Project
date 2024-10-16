@@ -5,14 +5,21 @@
 >
   <div class="form">
     <div class="startMeeting-container">
-      <button
-        (click)="startMeeting()"
-        data-cy="submit"
-        type="submit"
-        class="startBtn"
-      >
-        Start Meeting
-      </button>
+      <div>
+        <input
+          type="text"
+          [(ngModel)]="participantName"
+          placeholder="Enter your message"
+        />
+        <button
+          (click)="startMeeting()"
+          data-cy="submit"
+          type="submit"
+          class="startBtn"
+        >
+          Start Meeting
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -249,81 +256,102 @@
 
         <!-- new logic for manual   -->
         <div *ngIf="breakoutForm.get('roomType')?.value === 'manual'">
-          <h1>Select Participant</h1>
-
-          <!-- Create New Room Section -->
           <div class="create-room-section">
             <label>Create New Room</label>
-            <button type="button" (click)="createNewRoom($event)">
+            <button type="button" (click)="createNewRoomSidebar($event)">
               Create
             </button>
           </div>
 
-          <!-- List of Created Rooms -->
-          <div *ngIf="breakoutRooms.length > 0" class="created-rooms">
-            <h2>Breakout Rooms</h2>
-            <ul>
-              <li *ngFor="let room of breakoutRooms; let i = index">
-                <div class="br-participant-li">
-                  <span>{{ room.name }}</span>
-                  <button type="button" (click)="toggleParticipants($event, i)">
-                    Assign
+          <div class="breakout-container">
+            <!-- Iterate over breakoutRoomsData to display room names and participants -->
+            <div
+              class="breakout"
+              *ngFor="let room of breakoutRoomsData; let i = index"
+            >
+              <div class="room">
+                <!-- Display Room Name -->
+                <div class="room-header">
+                  <span class="room-name">{{ room.roomName }}</span>
+
+                  <!-- Button to toggle the available participants list -->
+                  <button
+                    class="allocated-btn"
+                    type="button"
+                    (click)="toggleParticipantsList($event, i)"
+                  >
+                    Add Participants
                   </button>
                 </div>
 
-                <!-- Show participants only when showParticipants is true for the room -->
-                <div *ngIf="room.showParticipants">
-                  <h3>Participants</h3>
-
-                  <!-- Show available participants that haven't been assigned to any room -->
-                  <div
-                    *ngIf="
-                      remoteParticipantNames.length > 0;
-                      else noParticipants
-                    "
-                  >
-                    <div
-                      *ngFor="let participant of remoteParticipantNames"
-                      class="breakout-participant"
-                    >
-                      <input
-                        type="checkbox"
-                        [checked]="
-                          room.participants.includes(participant.identity)
-                        "
-                        [value]="participant.identity"
-                        (change)="onParticipantSelection($event, i)"
-                      />
-                      <label>{{ participant.identity }}</label>
-                    </div>
-                  </div>
-
-                  <!-- Template for no participants -->
-                  <ng-template #noParticipants>
-                    <p>No participants in the meeting</p>
-                  </ng-template>
-                </div>
-
-                <!-- List of assigned participants in the current room (checkboxes for unassigning) -->
-                <div *ngIf="room.participants.length > 0">
-                  <h4>Assigned Participants</h4>
-                  <ul>
-                    <li
-                      class="breakout-participant"
-                      *ngFor="let participant of room.participants"
-                    >
-                      <input
-                        type="checkbox"
-                        [value]="participant"
-                        [checked]="true"
-                        (change)="onUnassignParticipant($event, i)"
-                      />
-                      <label>{{ participant }}</label>
+                <!-- List of participants in the room with checkboxes -->
+                <div
+                  *ngIf="room.participantIds.length > 0; else noParticipants"
+                >
+                  <h4 class="allocated-headings">Assigned Participants</h4>
+                  <ul class="participants-list">
+                    <li *ngFor="let participant of room.participantIds">
+                      <label>
+                        <input
+                          type="checkbox"
+                          (change)="
+                            onParticipantSelected(
+                              room,
+                              { identity: participant },
+                              $event
+                            )
+                          "
+                          [checked]="true"
+                        />
+                        {{ participant }}
+                      </label>
                     </li>
                   </ul>
                 </div>
-              </li>
-            </ul>
+
+                <!-- Template for no participants -->
+                <ng-template #noParticipants>
+                  <p>No participants assigned to this room</p>
+                </ng-template>
+
+                <!-- Available participants with checkboxes, disabling those already assigned -->
+                <div *ngIf="room.showAvailableParticipants">
+                  <h4 class="allocated-headings">Available Participants</h4>
+                  <div
+                    *ngIf="
+                      getAvailableParticipants(room).length > 0;
+                      else noMoreParticipants
+                    "
+                  >
+                    <ul class="available-participants-list">
+                      <li
+                        *ngFor="
+                          let participant of getAvailableParticipants(room)
+                        "
+                        class="available-participant"
+                      >
+                        <label>
+                          <input
+                            type="checkbox"
+                            (change)="
+                              onParticipantSelected(room, participant, $event)
+                            "
+                            [checked]="isParticipantAssigned(room, participant)"
+                            [disabled]="
+                              isParticipantAssigned(room, participant)
+                            "
+                          />
+                          {{ participant.identity }}
+                        </label>
+                      </li>
+                    </ul>
+                  </div>
+                  <ng-template #noMoreParticipants>
+                    <p>No more participants available for this room</p>
+                  </ng-template>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -533,10 +561,7 @@
       <div class="breakout-side-window" (click)="$event.stopPropagation()">
         <div>
           <h2>Breakout rooms</h2>
-          <button
-            (click)="submitUnallocatedParticipants()"
-            class="sidenav-invitation-btn"
-          >
+          <button (click)="submitBreakoutForm()" class="sidenav-invitation-btn">
             Send Invitation
           </button>
         </div>
@@ -561,18 +586,31 @@
                 <!-- Button to toggle the available participants list -->
                 <button
                   class="allocated-btn"
-                  (click)="toggleParticipantsList(i)"
+                  (click)="toggleParticipantsList($event, i)"
                 >
                   Add Participants
                 </button>
               </div>
 
-              <!-- List of participants in the room -->
+              <!-- List of participants in the room with checkboxes -->
               <div *ngIf="room.participantIds.length > 0; else noParticipants">
                 <h4 class="allocated-headings">Assigned Participants</h4>
                 <ul class="participants-list">
                   <li *ngFor="let participant of room.participantIds">
-                    {{ participant }}
+                    <label>
+                      <input
+                        type="checkbox"
+                        (change)="
+                          onParticipantSelected(
+                            room,
+                            { identity: participant },
+                            $event
+                          )
+                        "
+                        [checked]="true"
+                      />
+                      {{ participant }}
+                    </label>
                   </li>
                 </ul>
               </div>
@@ -582,7 +620,7 @@
                 <p>No participants assigned to this room</p>
               </ng-template>
 
-              <!-- Available participants not in this room, with checkboxes -->
+              <!-- Available participants with checkboxes, disabling those already assigned -->
               <div *ngIf="room.showAvailableParticipants">
                 <h4 class="allocated-headings">Available Participants</h4>
                 <div
@@ -602,6 +640,8 @@
                           (change)="
                             onParticipantSelected(room, participant, $event)
                           "
+                          [checked]="isParticipantAssigned(room, participant)"
+                          [disabled]="isParticipantAssigned(room, participant)"
                         />
                         {{ participant.identity }}
                       </label>

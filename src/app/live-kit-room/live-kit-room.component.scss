@@ -1358,6 +1358,72 @@
     }
 }
 
+.breakout-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    margin-top: 30px;
+    gap: 8px;
+
+    .allocated-headings {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .no-rooms-msg {
+        color: red;
+        font-size: 1.2em;
+        font-weight: 600;
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .breakout {
+        display: flex;
+        justify-content: space-between;
+        padding: 2rem 0.5rem;
+        align-items: center;
+        background-color: #eee;
+        border-radius: 10px;
+        margin: 0.5rem;
+
+        .room {
+            width: 100% !important;
+        }
+
+        .room-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            .room-name {
+                font-weight: 700;
+            }
+
+            .allocated-btn {
+                background-color: #4CAF50;
+                color: white;
+                padding: 5px 10px;
+                border: none;
+                outline: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+
+        }
+
+
+        .participants-list {
+            list-style-type: none;
+
+            li {
+                margin-bottom: 5px;
+                font-size: 0.9rem;
+            }
+        }
+    }
+}
+
 .breakout-side-window-container {
     position: fixed;
     right: 0;
@@ -1404,68 +1470,6 @@
             text-align: center;
             padding: 20px;
             border-bottom: 1px solid #9e9e9e;
-        }
-
-        .breakout-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            margin-top: 30px;
-            gap: 8px;
-
-            .allocated-headings {
-                font-weight: 600;
-                font-size: 1.2rem;
-            }
-
-            .no-rooms-msg {
-                color: red;
-                font-size: 1.2em;
-                font-weight: 600;
-                text-align: center;
-                margin-top: 20px;
-            }
-
-            .breakout {
-                display: flex;
-                justify-content: space-between;
-                padding: 2rem 0.5rem;
-                align-items: center;
-                background-color: #eee;
-                border-radius: 10px;
-                margin: 0.5rem;
-
-                .room-header {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-
-                    .room-name {
-                        font-weight: 700;
-                    }
-
-                    .allocated-btn {
-                        background-color: #4CAF50;
-                        color: white;
-                        padding: 5px 10px;
-                        border: none;
-                        outline: none;
-                        border-radius: 5px;
-                        cursor: pointer;
-                    }
-
-                }
-
-
-                .participants-list {
-                    list-style-type: none;
-
-                    li {
-                        margin-bottom: 5px;
-                        font-size: 0.9rem;
-                    }
-                }
-            }
         }
     }
 }

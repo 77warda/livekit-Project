@@ -358,6 +358,7 @@ export class LiveKitService {
       type: 'breakoutRoom',
       participantIds: participants, // The selected participants
       roomName: roomName,
+      helpType: 'help',
     };
     console.log(`Publishing breakout room alert:`, message);
     await this.publishBreakoutRoom(message, participants);
@@ -392,6 +393,7 @@ export class LiveKitService {
 
     // Emit the updated breakout rooms data
     this.breakoutRoomsDataUpdated.emit(this.breakoutRoomsData);
+    console.log('checking help message', this.breakoutRoomsData);
 
     console.log(
       `Breakout room '${roomName}' assigned to participants: ${participants.join(
@@ -561,17 +563,17 @@ export class LiveKitService {
         } else {
           console.log(`Message not for this breakout room`);
         }
-        // if (message.title.includes('Breakout_Room')) {
-        //   console.log(`Received message in main room: ${message}`);
+        if (message.title.includes('Breakout_Room')) {
+          console.log(`Received message in main room: ${message}`);
 
-        //   // Add the new message content to the array
-        //   this.messageArrayToMain.push(message);
+          // Add the new message content to the array
+          this.messageArrayToMain.push(message);
 
-        //   // Emit the updated message array
-        //   this.messageToMain.emit(this.messageArrayToMain);
-        // } else {
-        //   console.log(`Message not for this main room`);
-        // }
+          // Emit the updated message array
+          this.messageToMain.emit(this.messageArrayToMain);
+        } else {
+          console.log(`Message not for this main room`);
+        }
       }
     );
     /**
