@@ -15,7 +15,16 @@ import {
   VideoQuality,
 } from 'livekit-client';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { BehaviorSubject, Observable, RetryConfig, from, of } from 'rxjs';
+import {
+  BehaviorSubject,
+  Observable,
+  RetryConfig,
+  catchError,
+  from,
+  of,
+  tap,
+  throwError,
+} from 'rxjs';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { MeetingService } from './Meeting-Service/meeting.service';
 
@@ -207,8 +216,8 @@ export class LiveKitService {
     string[]
   >();
   public messageToMain: EventEmitter<string[]> = new EventEmitter<string[]>();
-  private messageArray: string[] = [];
-  private messageArrayToMain: string[] = [];
+  messageArray: string[] = [];
+  messageArrayToMain: string[] = [];
   /**
    * Connects to a LiveKit room using the provided WebSocket URL and token.
    *
@@ -358,7 +367,6 @@ export class LiveKitService {
       type: 'breakoutRoom',
       participantIds: participants, // The selected participants
       roomName: roomName,
-      helpType: 'help',
     };
     console.log(`Publishing breakout room alert:`, message);
     await this.publishBreakoutRoom(message, participants);
@@ -563,6 +571,7 @@ export class LiveKitService {
         } else {
           console.log(`Message not for this breakout room`);
         }
+        //======
         if (message.title.includes('Breakout_Room')) {
           console.log(`Received message in main room: ${message}`);
 
@@ -1567,7 +1576,7 @@ export class LiveKitService {
             display: flex;
             margin-left: 8px;
             height: 10vh;
-            width: 100%;
+            width: 60%;
             position: relative;
           `
         );
@@ -1852,39 +1861,44 @@ export class LiveKitService {
   sendMessageToBreakoutRoom(roomId: string, content: string) {
     const room = this.breakoutRoomsData.find((r) => r.roomName === roomId);
 
-    this.meetingService.sendBroadcastMessage(room.roomName, content).subscribe(
-      (response) => {
-        console.log(
-          'Message sent successfully:',
-          response,
-          room.roomName,
-          content
-        );
-      },
-
-      (error) => {
-        console.error('Error sending message:', error);
-        this.openSnackBar('Failed to send message to the breakout room.');
-      }
-    );
+    // Return the observable instead of subscribing directly
+    return this.meetingService
+      .sendBroadcastMessage(room.roomName, content)
+      .pipe(
+        tap((response) => {
+          console.log(
+            'Message sent successfully:',
+            response,
+            room.roomName,
+            content
+          );
+        }),
+        catchError((error) => {
+          console.error('Error sending message:', error);
+          this.openSnackBar('Failed to send message to the breakout room.');
+          return throwError(error);
+        })
+      );
   }
 
   sendMessageToMainRoom(breakoutRoomName: string, content: string) {
-    this.meetingService
+    return this.meetingService
       .sendMessageToMainRoom('test-room', breakoutRoomName, content)
-      .subscribe(
-        (response) => {
+      .pipe(
+        tap((response) => {
           console.log(
             'Message sent successfully:',
             response,
             breakoutRoomName,
             content
           );
-        },
-        (error) => {
+        }),
+
+        catchError((error) => {
           console.error('Error sending message:', error);
           this.openSnackBar('Failed to send message to the breakout room.');
-        }
+          return throwError(error);
+        })
       );
   }
 }

@@ -64,3 +64,52 @@ export const selectBreakoutSideWindowVisible = createSelector(
   selectLiveKitRoomState,
   (state: LiveKitRoomState) => state.breakoutSideWindowVisible
 );
+
+export const isBreakoutModalOpen = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => {
+    return state.isBreakoutModalOpen;
+  }
+);
+export const isInvitationModalOpen = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => {
+    return state.isInvitationModalOpen;
+  }
+);
+
+export const isHostMsgModalOpen = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => {
+    console.log('hello invitation', state.isHostMsgModalOpen);
+    return state.isHostMsgModalOpen;
+  }
+);
+export const selectDistributionMessage = createSelector(
+  selectLiveKitRoomState,
+  (state) => state.distributionMessage
+);
+// export const selectHandRaiseByParticipant = (participantId: string) =>
+//   createSelector(
+//     selectLiveKitRoomState,
+//     (state) => state.handRaiseStates[participantId] || false
+//   );
+
+// export const selectParticipantNames = createSelector(
+//   selectLiveKitRoomState,
+//   (state) => {
+//     console.log('remote par from selectors', state.participantNames);
+//     return state.participantNames;
+//   }
+// );
+export const selectBreakoutRoomsData = createSelector(
+  selectLiveKitRoomState,
+  (state) => {
+    console.log('br from selector', state.breakoutRoomsData);
+    return state.breakoutRoomsData;
+  }
+);
+export const selectNextRoomIndex = createSelector(
+  selectLiveKitRoomState,
+  (state) => state.nextRoomIndex
+);

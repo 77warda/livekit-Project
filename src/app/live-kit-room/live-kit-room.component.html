@@ -9,7 +9,7 @@
         <input
           type="text"
           [(ngModel)]="participantName"
-          placeholder="Enter your message"
+          placeholder="Enter your Name"
         />
         <button
           (click)="startMeeting()"
@@ -26,26 +26,45 @@
 <ng-container *ngIf="isMeetingStarted$ | async">
   <!-- container for audio  -->
   <div id="remoteAudioContainer"></div>
-  <!-- send message to breakout rooms from host  -->
-  <div>
-    <h2>Send Message to Breakout Room</h2>
+  <!-- send message to breakout rooms from host modal  -->
+  <div class="host-to-br-msg-modal" *ngIf="isHostMsgModal$ | async">
+    <div class="msg-modal-content">
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h2>Send Message to Breakout Room</h2>
+        <span class="close" (click)="closeHostToBrMsgModal()">&times;</span>
+      </div>
 
-    <!-- Input field to type the message -->
-    <input
-      type="text"
-      [(ngModel)]="messageContent"
-      placeholder="Enter your message"
-    />
-    <!-- Dropdown to select the breakout room -->
-    <select [(ngModel)]="selectedBreakoutRoom">
-      <option value="" disabled [selected]>Select Breakout Room</option>
-      <option *ngFor="let room of breakoutRoomsData" [value]="room.roomName">
-        {{ room.roomName | json }}
-      </option>
-    </select>
+      <!-- Modal Body -->
+      <div class="modal-body">
+        <!-- Input field to type the message -->
+        <input
+          type="text"
+          [(ngModel)]="messageContent"
+          placeholder="Enter your message"
+          class="message-input"
+        />
 
-    <!-- Button to send the message -->
-    <button (click)="sendMessageToBreakoutRoom()">Send Message</button>
+        <!-- Dropdown to select the breakout room -->
+        <select [(ngModel)]="selectedBreakoutRoom" class="breakout-select">
+          <option value="" disabled [selected]>Select Breakout Room</option>
+          <option
+            *ngFor="let room of breakoutRoomsData$ | async"
+            [value]="room.roomName"
+          >
+            {{ room.roomName }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <!-- Button to send the message -->
+        <button class="send-btn" (click)="sendMessageToBreakoutRoom()">
+          Send Message
+        </button>
+      </div>
+    </div>
   </div>
   <div class="os-main-content" data-test="meetingStarted">
     <!-- header showing when meeting get started  -->
@@ -53,10 +72,18 @@
       <div class="left-header" data-test="left-header">
         <button
           class="grid-view"
-          matTooltip="View"
+          matTooltip="Open breakout modal"
           (click)="openBreakoutModal()"
         >
           <i class="far fa-th-large"></i>
+        </button>
+        <button
+          class="grid-view disabled-msg-btn"
+          matTooltip="Send Message to Breakout room"
+          (click)="openHostToBrMsgModal()"
+          [disabled]="(breakoutRoomsData$ | async)?.length === 0"
+        >
+          <i class="far fa-comments"></i>
         </button>
         <button
           data-cy="raise-hand"
@@ -203,10 +230,10 @@
   <!-- breakout room modal which includes automatic and manual selection from host  -->
   <div
     class="modal-overlay"
-    *ngIf="isModalOpen"
+    *ngIf="isBreakoutModal$ | async"
     (click)="closeBreakoutModal()"
   ></div>
-  <div class="modal-content" *ngIf="isModalOpen">
+  <div class="modal-content" *ngIf="isBreakoutModal$ | async">
     <div class="modal-header">
       <h2>Breakout Rooms</h2>
       <button class="close-button" (click)="closeBreakoutModal()">
@@ -245,8 +272,8 @@
                 room
               </label>
             </div>
-            <div *ngIf="distributionMessage">
-              <p class="rooms-msg">{{ distributionMessage }}</p>
+            <div *ngIf="distributionMessage$ | async">
+              <p class="rooms-msg">{{ distributionMessage$ | async }}</p>
             </div>
           </div>
           <ng-template #noParticipants>
@@ -258,7 +285,7 @@
         <div *ngIf="breakoutForm.get('roomType')?.value === 'manual'">
           <div class="create-room-section">
             <label>Create New Room</label>
-            <button type="button" (click)="createNewRoomSidebar($event)">
+            <button type="button" (click)="createNewRoomSidebar()">
               Create
             </button>
           </div>
@@ -267,7 +294,7 @@
             <!-- Iterate over breakoutRoomsData to display room names and participants -->
             <div
               class="breakout"
-              *ngFor="let room of breakoutRoomsData; let i = index"
+              *ngFor="let room of breakoutRoomsData$ | async; let i = index"
             >
               <div class="room">
                 <!-- Display Room Name -->
@@ -278,9 +305,9 @@
                   <button
                     class="allocated-btn"
                     type="button"
-                    (click)="toggleParticipantsList($event, i)"
+                    (click)="toggleParticipantsList(i)"
                   >
-                    Add Participants
+                    Add participants <i class="fa fa-angle-down"></i>
                   </button>
                 </div>
 
@@ -567,32 +594,25 @@
         </div>
         <div class="create-room-section">
           <label>Create New Room</label>
-          <button type="button" (click)="createNewRoomSidebar($event)">
-            Create
-          </button>
+          <button type="button" (click)="createNewRoomSidebar()">Create</button>
         </div>
 
         <div class="breakout-container">
-          <!-- Iterate over breakoutRoomsData to display room names and participants -->
           <div
             class="breakout"
-            *ngFor="let room of breakoutRoomsData; let i = index"
+            *ngFor="let room of breakoutRoomsData$ | async; let i = index"
           >
             <div class="room">
-              <!-- Display Room Name -->
               <div class="room-header">
                 <span class="room-name">{{ room.roomName }}</span>
-
-                <!-- Button to toggle the available participants list -->
                 <button
                   class="allocated-btn"
-                  (click)="toggleParticipantsList($event, i)"
+                  (click)="toggleParticipantsList(i)"
                 >
-                  Add Participants
+                  Add Participants <i class="fa fa-angle-down"></i>
                 </button>
               </div>
 
-              <!-- List of participants in the room with checkboxes -->
               <div *ngIf="room.participantIds.length > 0; else noParticipants">
                 <h4 class="allocated-headings">Assigned Participants</h4>
                 <ul class="participants-list">
@@ -615,12 +635,10 @@
                 </ul>
               </div>
 
-              <!-- Template for no participants -->
               <ng-template #noParticipants>
                 <p>No participants assigned to this room</p>
               </ng-template>
 
-              <!-- Available participants with checkboxes, disabling those already assigned -->
               <div *ngIf="room.showAvailableParticipants">
                 <h4 class="allocated-headings">Available Participants</h4>
                 <div
@@ -661,13 +679,13 @@
 </ng-container>
 
 <!-- Breakout Room Modal which is sent to participants for invitation -->
-<div *ngIf="isModalVisible" class="br-modal">
+<div *ngIf="isInvitationModal$ | async" class="br-modal">
   <div class="br-modal-content">
-    <span class="close" (click)="closeModal()">&times;</span>
+    <span class="close" (click)="closeInvitationModal()">&times;</span>
     <h2>Breakout Room Created</h2>
     <p>{{ hostName }} is inviting you to join {{ roomName }}</p>
     <div class="br-modal-flex">
-      <button (click)="closeModal()">Close</button>
+      <button (click)="closeInvitationModal()">Close</button>
       <button class="join" (click)="joinNow()">Join Now</button>
     </div>
   </div>
@@ -680,7 +698,7 @@
 >
   <div class="modal-header">
     <h2>Messages in Main Room</h2>
-    <button class="close-btn" (click)="closeReceiveMsgModal()">X</button>
+    <button class="close-btn" (click)="closeReceiveMsgModal()">&times;</button>
   </div>
 
   <div class="modal-body">

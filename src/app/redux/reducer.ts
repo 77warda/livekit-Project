@@ -1,5 +1,12 @@
 import { createReducer, on } from '@ngrx/store';
 import * as LiveKitRoomActions from './actions';
+
+export interface Room {
+  roomName: string;
+  participantIds: string[];
+  showAvailableParticipants: boolean;
+}
+
 export interface LiveKitRoomState {
   isMeetingStarted: boolean;
   allMessages: any[];
@@ -13,6 +20,15 @@ export interface LiveKitRoomState {
   chatSideWindowVisible: boolean;
   error?: string;
   token: string | null;
+  isBreakoutModalOpen: boolean;
+  isInvitationModalOpen: boolean;
+  isHostMsgModalOpen: boolean;
+  roomType: string;
+  selectedParticipants: string[];
+  numberOfRooms: number | null;
+  distributionMessage: string;
+  breakoutRoomsData: Room[];
+  nextRoomIndex: number;
 }
 
 export const initialState: LiveKitRoomState = {
@@ -27,41 +43,62 @@ export const initialState: LiveKitRoomState = {
   breakoutSideWindowVisible: false,
   chatSideWindowVisible: false,
   token: null,
+  isBreakoutModalOpen: false,
+  isInvitationModalOpen: false,
+  isHostMsgModalOpen: false,
+  roomType: '',
+  selectedParticipants: [],
+  numberOfRooms: null,
+  distributionMessage: '',
+  breakoutRoomsData: [],
+  nextRoomIndex: 1,
 };
 
 export const liveKitRoomReducer = createReducer(
   initialState,
-  on(LiveKitRoomActions.createMeetingSuccess, (state, { token }) => ({
-    ...state,
-    token,
-  })),
-  on(LiveKitRoomActions.createMeetingFailure, (state, { error }) => ({
-    ...state,
-    token: null,
-    error,
-  })),
-  on(LiveKitRoomActions.startMeetingSuccess, (state) => ({
+  on(
+    LiveKitRoomActions.MeetingActions.createMeetingSuccess,
+    (state, { token }) => ({
+      ...state,
+      token,
+    })
+  ),
+  on(
+    LiveKitRoomActions.MeetingActions.createMeetingFailure,
+    (state, { error }) => ({
+      ...state,
+      token: null,
+      error,
+    })
+  ),
+  on(LiveKitRoomActions.LiveKitActions.startMeetingSuccess, (state) => ({
     ...state,
     isMeetingStarted: true,
     isVideoOn: false,
   })),
-  on(LiveKitRoomActions.startMeetingFailure, (state, { error }) => ({
-    ...state,
-    isMeetingStarted: false,
-    error,
-  })),
-  on(LiveKitRoomActions.enableCameraAndMicrophoneSuccess, (state) => ({
-    ...state,
-  })),
   on(
-    LiveKitRoomActions.enableCameraAndMicrophoneFailure,
+    LiveKitRoomActions.LiveKitActions.startMeetingFailure,
+    (state, { error }) => ({
+      ...state,
+      isMeetingStarted: false,
+      error,
+    })
+  ),
+  on(
+    LiveKitRoomActions.LiveKitActions.enableCameraAndMicrophoneSuccess,
+    (state) => ({
+      ...state,
+    })
+  ),
+  on(
+    LiveKitRoomActions.LiveKitActions.enableCameraAndMicrophoneFailure,
     (state, { error }) => ({
       ...state,
       error,
     })
   ),
   on(
-    LiveKitRoomActions.toggleScreenShareSuccess,
+    LiveKitRoomActions.LiveKitActions.toggleScreenShareSuccess,
     (state, { isScreenSharing }) => {
       console.log('Reducer: Screen Sharing Success', isScreenSharing);
       return {
@@ -71,50 +108,68 @@ export const liveKitRoomReducer = createReducer(
       };
     }
   ),
-  on(LiveKitRoomActions.toggleScreenShareFailure, (state, { error }) => ({
-    ...state,
-    error,
-  })),
-  on(LiveKitRoomActions.toggleVideoSuccess, (state, { isVideoOn }) => ({
-    ...state,
-
-    isVideoOn,
-  })),
-  on(LiveKitRoomActions.toggleVideoFailure, (state, { error }) => ({
-    ...state,
-    error,
-  })),
-  on(LiveKitRoomActions.toggleMicSuccess, (state, { isMicOn }) => {
-    console.log('Mic status in reducer (toggleMicSuccess):', isMicOn); // Debug
-    return {
+  on(
+    LiveKitRoomActions.LiveKitActions.toggleScreenShareFailure,
+    (state, { error }) => ({
       ...state,
-      isMicOn,
-    };
-  }),
-  on(LiveKitRoomActions.toggleMicFailure, (state, { error }) => ({
-    ...state,
-    error,
-  })),
+      error,
+    })
+  ),
+  on(
+    LiveKitRoomActions.LiveKitActions.toggleVideoSuccess,
+    (state, { isVideoOn }) => ({
+      ...state,
 
-  on(LiveKitRoomActions.closeChatSideWindow, (state) => ({
+      isVideoOn,
+    })
+  ),
+  on(
+    LiveKitRoomActions.LiveKitActions.toggleVideoFailure,
+    (state, { error }) => ({
+      ...state,
+      error,
+    })
+  ),
+  on(
+    LiveKitRoomActions.LiveKitActions.toggleMicSuccess,
+    (state, { isMicOn }) => {
+      console.log('Mic status in reducer (toggleMicSuccess):', isMicOn); // Debug
+      return {
+        ...state,
+        isMicOn,
+      };
+    }
+  ),
+  on(
+    LiveKitRoomActions.LiveKitActions.toggleMicFailure,
+    (state, { error }) => ({
+      ...state,
+      error,
+    })
+  ),
+
+  on(LiveKitRoomActions.LiveKitActions.closeChatSideWindow, (state) => ({
     ...state,
     chatSideWindowVisible: false,
   })),
-  on(LiveKitRoomActions.closeParticipantSideWindow, (state) => ({
+  on(LiveKitRoomActions.LiveKitActions.closeParticipantSideWindow, (state) => ({
     ...state,
     participantSideWindowVisible: false,
   })),
 
-  on(LiveKitRoomActions.toggleParticipantSideWindow, (state) => ({
-    ...state,
-    participantSideWindowVisible: !state.participantSideWindowVisible,
-    chatSideWindowVisible:
-      state.chatSideWindowVisible && !state.participantSideWindowVisible
-        ? false
-        : state.chatSideWindowVisible,
-  })),
+  on(
+    LiveKitRoomActions.LiveKitActions.toggleParticipantSideWindow,
+    (state) => ({
+      ...state,
+      participantSideWindowVisible: !state.participantSideWindowVisible,
+      chatSideWindowVisible:
+        state.chatSideWindowVisible && !state.participantSideWindowVisible
+          ? false
+          : state.chatSideWindowVisible,
+    })
+  ),
 
-  on(LiveKitRoomActions.toggleChatSideWindow, (state) => ({
+  on(LiveKitRoomActions.LiveKitActions.toggleChatSideWindow, (state) => ({
     ...state,
     chatSideWindowVisible: !state.chatSideWindowVisible,
     unreadMessagesCount: 0,
@@ -124,36 +179,45 @@ export const liveKitRoomReducer = createReducer(
         : state.participantSideWindowVisible,
   })),
 
-  on(LiveKitRoomActions.updateUnreadMessagesCount, (state, { count }) => ({
-    ...state,
-    unreadMessagesCount: count,
-  })),
-  on(LiveKitRoomActions.updateMessages, (state, { allMessages }) => ({
-    ...state,
-    allMessages,
-  })),
-  on(LiveKitRoomActions.receiveMessage, (state, { message, participant }) => {
-    const receivedMsg = message?.message;
-    const senderName = participant?.identity;
-    const receivingTime = message?.timestamp;
-    const newMessages = [
-      ...state.allMessages,
-      {
-        senderName,
-        receivedMsg,
-        receivingTime,
-        type: 'received',
-      },
-    ];
-    return {
+  on(
+    LiveKitRoomActions.LiveKitActions.updateUnreadMessagesCount,
+    (state, { count }) => ({
       ...state,
-      allMessages: newMessages,
-      unreadMessagesCount: state.chatSideWindowVisible
-        ? state.unreadMessagesCount
-        : state.unreadMessagesCount + 1,
-    };
-  }),
-  on(LiveKitRoomActions.sendMessage, (state, { message }) => {
+      unreadMessagesCount: count,
+    })
+  ),
+  on(
+    LiveKitRoomActions.LiveKitActions.updateMessages,
+    (state, { allMessages }) => ({
+      ...state,
+      allMessages,
+    })
+  ),
+  on(
+    LiveKitRoomActions.ChatActions.receiveMessage,
+    (state, { message, participant }) => {
+      const receivedMsg = message?.message;
+      const senderName = participant?.identity;
+      const receivingTime = message?.timestamp;
+      const newMessages = [
+        ...state.allMessages,
+        {
+          senderName,
+          receivedMsg,
+          receivingTime,
+          type: 'received',
+        },
+      ];
+      return {
+        ...state,
+        allMessages: newMessages,
+        unreadMessagesCount: state.chatSideWindowVisible
+          ? state.unreadMessagesCount
+          : state.unreadMessagesCount + 1,
+      };
+    }
+  ),
+  on(LiveKitRoomActions.ChatActions.sendMessage, (state, { message }) => {
     const sendMessage = message;
     const sendingTime = new Date();
     return {
@@ -164,15 +228,18 @@ export const liveKitRoomReducer = createReducer(
       ],
     };
   }),
-  on(LiveKitRoomActions.leaveMeetingSuccess, (state) => ({
+  on(LiveKitRoomActions.MeetingActions.leaveMeetingSuccess, (state) => ({
     ...state,
     isMeetingStarted: false,
   })),
-  on(LiveKitRoomActions.leaveMeetingFailure, (state, { error }) => ({
-    ...state,
-    error,
-  })),
-  on(LiveKitRoomActions.toggleBreakoutSideWindow, (state) => ({
+  on(
+    LiveKitRoomActions.MeetingActions.leaveMeetingFailure,
+    (state, { error }) => ({
+      ...state,
+      error,
+    })
+  ),
+  on(LiveKitRoomActions.BreakoutActions.toggleBreakoutSideWindow, (state) => ({
     ...state,
     breakoutSideWindowVisible: !state.breakoutSideWindowVisible,
     chatSideWindowVisible:
@@ -180,8 +247,182 @@ export const liveKitRoomReducer = createReducer(
         ? false
         : state.chatSideWindowVisible,
   })),
-  on(LiveKitRoomActions.closeBreakoutSideWindow, (state) => ({
+  on(LiveKitRoomActions.BreakoutActions.closeBreakoutSideWindow, (state) => ({
     ...state,
     breakoutSideWindowVisible: false,
-  }))
+  })),
+  on(LiveKitRoomActions.BreakoutActions.openBreakoutModal, (state) => ({
+    ...state,
+    isBreakoutModalOpen: true,
+  })),
+  on(LiveKitRoomActions.BreakoutActions.closeBreakoutModal, (state) => ({
+    ...state,
+    isBreakoutModalOpen: false,
+  })),
+  // invitation modal sent to participant to join breakout room
+  on(LiveKitRoomActions.BreakoutActions.openInvitationModal, (state) => ({
+    ...state,
+    isInvitationModalOpen: true,
+  })),
+  on(LiveKitRoomActions.BreakoutActions.closeInvitationModal, (state) => ({
+    ...state,
+    isInvitationModalOpen: false,
+  })),
+  // Message modal sent to breakout room from host
+  on(LiveKitRoomActions.BreakoutActions.openHostToBrMsgModal, (state) => ({
+    ...state,
+    isHostMsgModalOpen: true,
+  })),
+  on(LiveKitRoomActions.BreakoutActions.closeHostToBrMsgModal, (state) => ({
+    ...state,
+    isHostMsgModalOpen: false,
+  })),
+  // breakout modal distribution in automatic room selection
+  on(
+    LiveKitRoomActions.BreakoutActions.calculateDistribution,
+    (state, { numberOfRooms, totalParticipants }) => {
+      let message = '';
+
+      if (numberOfRooms > 0 && totalParticipants > 0) {
+        const participantsPerRoom = Math.floor(
+          totalParticipants / numberOfRooms
+        );
+        const remainder = totalParticipants % numberOfRooms;
+
+        if (remainder > 0) {
+          message = `${remainder} room(s) will have ${
+            participantsPerRoom + 1
+          } participants. `;
+          message += `${
+            numberOfRooms - remainder
+          } room(s) will have ${participantsPerRoom} participants.`;
+        } else {
+          message = `${numberOfRooms} room(s), each will have ${participantsPerRoom} participants.`;
+        }
+      } else {
+        message = 'Please enter valid number of rooms and participants.';
+      }
+
+      return { ...state, distributionMessage: message };
+    }
+  ),
+  on(
+    LiveKitRoomActions.BreakoutActions.calculateDistributionSuccess,
+    (state, { distributionMessage }) => ({
+      ...state,
+      distributionMessage,
+    })
+  ),
+  on(
+    LiveKitRoomActions.BreakoutActions.calculateDistributionFailure,
+    (state) => ({
+      ...state,
+      distributionMessage: 'Error calculating distribution.',
+    })
+  ),
+  //creating new rooms
+  on(
+    LiveKitRoomActions.BreakoutActions.createNewRoomSuccess,
+    (state, { roomName }) => ({
+      ...state,
+      breakoutRoomsData: [
+        ...state.breakoutRoomsData,
+        { roomName, participantIds: [], showAvailableParticipants: false },
+      ],
+      nextRoomIndex: state.nextRoomIndex + 1,
+    })
+  ),
+  on(
+    LiveKitRoomActions.BreakoutActions.toggleParticipantsList,
+    (state, { index }) => {
+      const rooms = state.breakoutRoomsData.map((room, idx) => {
+        if (idx === index) {
+          return {
+            ...room,
+            showAvailableParticipants: !room.showAvailableParticipants,
+          };
+        }
+        return room;
+      });
+      return { ...state, breakoutRoomsData: rooms };
+    }
+  ),
+  on(
+    LiveKitRoomActions.BreakoutActions.addParticipant,
+    (state, { roomName, participantId }) => {
+      const rooms = state.breakoutRoomsData.map((room) => {
+        if (room.roomName === roomName) {
+          return {
+            ...room,
+            participantIds: [...room.participantIds, participantId],
+          };
+        }
+        return room;
+      });
+      return { ...state, breakoutRoomsData: rooms };
+    }
+  ),
+  on(
+    LiveKitRoomActions.BreakoutActions.removeParticipant,
+    (state, { roomName, participantId }) => {
+      const rooms = state.breakoutRoomsData.map((room) => {
+        if (room.roomName === roomName) {
+          return {
+            ...room,
+            participantIds: room.participantIds.filter(
+              (id) => id !== participantId
+            ),
+          };
+        }
+        return room;
+      });
+      return { ...state, breakoutRoomsData: rooms };
+    }
+  )
+  // toggle raise hand
+  // on(
+  //   LiveKitRoomActions.HandRaiseActions.raiseHand,
+  //   (state, { participantId }) => ({
+  //     ...state,
+  //     handRaiseStates: {
+  //       ...state.handRaiseStates,
+  //       [participantId]: true,
+  //     },
+  //   })
+  // ),
+  // on(
+  //   LiveKitRoomActions.HandRaiseActions.lowerHand,
+  //   (state, { participantId }) => ({
+  //     ...state,
+  //     handRaiseStates: {
+  //       ...state.handRaiseStates,
+  //       [participantId]: false,
+  //     },
+  //   })
+  // ),
+  // on(
+  //   LiveKitRoomActions.HandRaiseActions.toggleHandRaise,
+  //   (state, { participantId, isHandRaised }) => ({
+  //     ...state,
+  //     handRaiseStates: {
+  //       ...state.handRaiseStates,
+  //       [participantId]: isHandRaised,
+  //     },
+  //   })
+  // )
+  // remote participant names
+  // on(
+  //   LiveKitRoomActions.LiveKitActions.loadParticipantsSuccess,
+  //   (state, { participantNames }) => ({
+  //     ...state,
+  //     participantNames,
+  //   })
+  // ),
+  // on(
+  //   LiveKitRoomActions.LiveKitActions.loadParticipantsFailure,
+  //   (state, { error }) => ({
+  //     ...state,
+  //     error,
+  //   })
+  // )
 );
