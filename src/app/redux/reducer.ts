@@ -29,6 +29,7 @@ export interface LiveKitRoomState {
   distributionMessage: string;
   breakoutRoomsData: Room[];
   nextRoomIndex: number;
+  handRaiseStates: { [participantIdentity: string]: boolean };
 }
 
 export const initialState: LiveKitRoomState = {
@@ -52,6 +53,7 @@ export const initialState: LiveKitRoomState = {
   distributionMessage: '',
   breakoutRoomsData: [],
   nextRoomIndex: 1,
+  handRaiseStates: {},
 };
 
 export const liveKitRoomReducer = createReducer(
@@ -313,13 +315,6 @@ export const liveKitRoomReducer = createReducer(
       distributionMessage,
     })
   ),
-  on(
-    LiveKitRoomActions.BreakoutActions.calculateDistributionFailure,
-    (state) => ({
-      ...state,
-      distributionMessage: 'Error calculating distribution.',
-    })
-  ),
   //creating new rooms
   on(
     LiveKitRoomActions.BreakoutActions.createNewRoomSuccess,
@@ -379,50 +374,4 @@ export const liveKitRoomReducer = createReducer(
       return { ...state, breakoutRoomsData: rooms };
     }
   )
-  // toggle raise hand
-  // on(
-  //   LiveKitRoomActions.HandRaiseActions.raiseHand,
-  //   (state, { participantId }) => ({
-  //     ...state,
-  //     handRaiseStates: {
-  //       ...state.handRaiseStates,
-  //       [participantId]: true,
-  //     },
-  //   })
-  // ),
-  // on(
-  //   LiveKitRoomActions.HandRaiseActions.lowerHand,
-  //   (state, { participantId }) => ({
-  //     ...state,
-  //     handRaiseStates: {
-  //       ...state.handRaiseStates,
-  //       [participantId]: false,
-  //     },
-  //   })
-  // ),
-  // on(
-  //   LiveKitRoomActions.HandRaiseActions.toggleHandRaise,
-  //   (state, { participantId, isHandRaised }) => ({
-  //     ...state,
-  //     handRaiseStates: {
-  //       ...state.handRaiseStates,
-  //       [participantId]: isHandRaised,
-  //     },
-  //   })
-  // )
-  // remote participant names
-  // on(
-  //   LiveKitRoomActions.LiveKitActions.loadParticipantsSuccess,
-  //   (state, { participantNames }) => ({
-  //     ...state,
-  //     participantNames,
-  //   })
-  // ),
-  // on(
-  //   LiveKitRoomActions.LiveKitActions.loadParticipantsFailure,
-  //   (state, { error }) => ({
-  //     ...state,
-  //     error,
-  //   })
-  // )
 );

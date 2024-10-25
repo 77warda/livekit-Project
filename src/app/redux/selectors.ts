@@ -113,3 +113,8 @@ export const selectNextRoomIndex = createSelector(
   selectLiveKitRoomState,
   (state) => state.nextRoomIndex
 );
+
+export const selectHandRaiseState = createSelector(
+  selectLiveKitRoomState,
+  (state) => state.handRaiseStates
+);

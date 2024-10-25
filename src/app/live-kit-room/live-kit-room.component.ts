@@ -67,6 +67,7 @@ export class LiveKitRoomComponent {
   isHostMsgModal$!: Observable<boolean>;
   breakoutRoomsData$!: Observable<any[]>;
   nextRoomIndex$!: Observable<number>;
+  remoteParticipantNames$!: Observable<{ [roomIndex: number]: string[] }>;
   // remoteParticipantNames$!: Observable<any[]>;
   // totalParticipants!: number;
   // isHandRaised$!: Observable<boolean>;
@@ -106,8 +107,6 @@ export class LiveKitRoomComponent {
     { value: 'automatic', viewValue: 'automatic' },
     { value: 'manual', viewValue: 'manual' },
   ];
-  previouslySubmittedRooms: string[] = [];
-
   constructor(
     private formBuilder: FormBuilder,
     public livekitService: LiveKitService,
@@ -116,10 +115,44 @@ export class LiveKitRoomComponent {
   ) {}
 
   ngOnInit() {
-    console.log('checking room name', this.roomName);
-    // this.store.dispatch(LiveKitRoomActions.LiveKitActions.loadParticipants());
+    // Initialize WebSocket and audio/video handler
+    this.initializeWebSocketAndAudioVideoHandler();
+
+    // Initialize state observables
+    this.initializeStateObservables();
+
+    // Initialize forms
+    this.initializeForms();
+
+    // Handle message subscriptions
+    this.setupMessageSubscriptions();
+
+    // Attach track to remote video container
+    this.attachRemoteVideoTrack();
+
+    // store remote participant names
+    this.storeRemoteParticipantNames();
+
+    // Store local participant data
+    this.storeLocalParticipantData();
+
+    // Expose livekitService for Cypress
+    this.exposeLivekitServiceForCypress();
+  }
+  private initializeWebSocketAndAudioVideoHandler() {
+    // Uncomment this if you want to connect the WebSocket
     // this.livekitService.connectWebSocket();
     this.livekitService.audioVideoHandler();
+
+    this.statusSubscription = this.livekitService.webSocketStatus$.subscribe(
+      (status) => {
+        this.webSocketStatus = status;
+        console.log('WebSocket status updated:', status);
+      }
+    );
+  }
+
+  private initializeStateObservables() {
     this.isMeetingStarted$ = this.store.pipe(select(selectIsMeetingStarted));
     this.isScreenSharing$ = this.store.pipe(select(selectIsScreenSharing));
 
@@ -149,33 +182,13 @@ export class LiveKitRoomComponent {
     this.store.select(selectBreakoutRoomsData).subscribe((rooms) => {
       this.breakoutRoomsData = rooms;
     });
-    // this.remoteParticipantNames$ = this.store.select(selectParticipantNames);
+  }
 
-    // // Update total participants
-    // this.remoteParticipantNames$.subscribe((names) => {
-    //   console.log('remote names from ts', names);
-    //   this.totalParticipants = names.length;
-    // });
-
-    // this.isHandRaised$ = this.store.select(
-    //   selectHandRaiseByParticipant(this.localParticipant.identity)
-    // );
-    this.breakoutRoomsData$.subscribe((brRoomData) => {
-      console.log('breakouttttt', brRoomData); // Debug
-    });
-
-    // web socket
-    this.statusSubscription = this.livekitService.webSocketStatus$.subscribe(
-      (status) => {
-        this.webSocketStatus = status;
-        console.log('WebSocket status updated:', status); // Log the current WebSocket status
-      }
-    );
-
-    // ==============================
+  private initializeForms() {
     this.startForm = this.formBuilder.group({
       token: [''],
     });
+
     this.chatForm = this.formBuilder.group({
       message: [''],
       participant: [''],
@@ -187,13 +200,16 @@ export class LiveKitRoomComponent {
       roomType: ['', Validators.required],
       selectedParticipants: [[]],
     });
+
     this.chatSideWindowVisible$.subscribe((visible) => {
       if (visible) {
         this.unreadMessagesCount = 0;
         this.scrollToBottom();
       }
     });
+  }
 
+  private setupMessageSubscriptions() {
     this.livekitService.messageToMain.subscribe((msgArrayTomainRoom: any[]) => {
       console.log('Received message in main room:', msgArrayTomainRoom);
       msgArrayTomainRoom.forEach((content) => {
@@ -212,126 +228,128 @@ export class LiveKitRoomComponent {
         }
       });
     });
+
     this.livekitService.messageContentReceived.subscribe(
       (contentArray: any[]) => {
-        // Update contentArray to be an array of objects
         console.log('Received message content array:', contentArray);
         contentArray.forEach((content) => {
           if (content.content && content.title === 'test-room') {
-            const newMessage = {
-              senderName: content.title,
-              receivedMsg: content.content,
-              receivingTime: new Date(content.timestamp),
-              type: 'received',
-            };
-
-            // Check for duplicates
-            const isDuplicate = this.allMessages.some((message) => {
-              const messageTime = new Date(message.receivingTime);
-              return (
-                message.receivedMsg === newMessage.receivedMsg &&
-                message.senderName === newMessage.senderName &&
-                messageTime.getTime() === newMessage.receivingTime.getTime()
-              );
-            });
-
-            // Push valid messages into allMessages if not a duplicate
-            if (!isDuplicate) {
-              this.allMessages.push(newMessage);
-              this.chatSideWindowVisible$.subscribe((visible) => {
-                if (!visible) {
-                  this.unreadMessagesCount++;
-                  this.scrollToBottom();
-                } else {
-                  this.unreadMessagesCount = 0;
-                }
-              });
-            }
-            console.log('Updated chat messages:', this.allMessages);
+            this.handleNewMessage(content);
           }
         });
       }
     );
+
     this.livekitService.msgDataReceived.subscribe((data) => {
-      console.log('Participant Data:', data);
-      this.hostName = data.participant?.identity;
-
-      if (data.message.handRaised === true) {
-        // console.log(${data.participant} raised its hand);
-        if (data.participant) {
-          this.handRaiseStates[data.participant.identity] = true;
-          this.openSnackBar(`${data.participant.identity} raised its hand`);
-        }
-      }
-      if (data.message.type === 'breakoutRoom') {
-        console.log('data from br is', data);
-
-        console.log(
-          'Breakout room created for participant:',
-          data.participant?.identity
-        );
-
-        // Set the room name and host name in the modal
-        this.roomName = data.message.roomName; // Room name received from the message
-        this.hostName = data.participant?.identity; // The participant who received the invite
-
-        this.showInvitationModal(); // Show the modal with the correct room information
-      }
-
-      if (data.message.handRaised === true) {
-        // console.log(${data.participant} raised its hand);
-        if (data.participant) {
-          this.handRaiseStates[data.participant.identity] = true;
-          this.openSnackBar(`${data.participant.identity} raised its hand`);
-        }
-      }
-      if (data.message.handRaised === false) {
-        // console.log(${data.participant} lowered its hand);
-        if (data.participant) {
-          this.handRaiseStates[data.participant.identity] = false;
-          this.openSnackBar(`${data.participant.identity} lowered its hand`);
-        }
-      }
-      if (
-        data.message.type !== 'handRaise' &&
-        data.message.type !== 'breakoutRoom' &&
-        data.message.title !== 'test-room' &&
-        // data.message.title !== this.roomName &&
-        data.message.content !== 'I need help'
-      ) {
-        const receivedMsg = data?.message?.message;
-        const senderName = data?.participant?.identity;
-        const receivingTime = data?.message?.timestamp;
-        this.allMessages.push({
-          senderName,
-          receivedMsg,
-          receivingTime,
-          type: 'received',
-        });
-        this.chatSideWindowVisible$.subscribe((visible) => {
-          if (!visible) {
-            this.unreadMessagesCount++;
-            this.scrollToBottom();
-          }
-        });
-
-        this.scrollToBottom();
-        this.sortMessages();
-      }
+      this.handleMsgDataReceived(data);
     });
+
     this.livekitService.messageEmitter.subscribe((data: any) => {
-      console.log('data', data);
-      const sendMessage = data?.message;
-      const sendingTime = data?.timestamp;
-      this.allMessages.push({ sendMessage, sendingTime, type: 'sent' });
-      this.sortMessages();
-      this.scrollToBottom();
+      this.handleMessageEmitter(data);
+    });
+  }
+
+  private handleNewMessage(content: any) {
+    const newMessage = {
+      senderName: content.title,
+      receivedMsg: content.content,
+      receivingTime: new Date(content.timestamp),
+      type: 'received',
+    };
+
+    const isDuplicate = this.allMessages.some((message) => {
+      const messageTime = new Date(message.receivingTime);
+      return (
+        message.receivedMsg === newMessage.receivedMsg &&
+        message.senderName === newMessage.senderName &&
+        messageTime.getTime() === newMessage.receivingTime.getTime()
+      );
     });
 
+    if (!isDuplicate) {
+      this.allMessages.push(newMessage);
+      this.chatSideWindowVisible$.subscribe((visible) => {
+        if (!visible) {
+          this.unreadMessagesCount++;
+          this.scrollToBottom();
+        } else {
+          this.unreadMessagesCount = 0;
+        }
+      });
+    }
+    console.log('Updated chat messages:', this.allMessages);
+  }
+
+  private handleMsgDataReceived(data: any) {
+    console.log('Participant Data:', data);
+    this.hostName = data.participant?.identity;
+
+    if (data.message.handRaised !== undefined) {
+      this.handRaiseStates[data.participant.identity] = data.message.handRaised;
+      const action = data.message.handRaised
+        ? 'raised its hand'
+        : 'lowered its hand';
+      this.openSnackBar(`${data.participant.identity} ${action}`);
+    }
+
+    if (data.message.type === 'breakoutRoom') {
+      console.log(
+        'Breakout room created for participant:',
+        data.participant?.identity
+      );
+      this.roomName = data.message.roomName;
+      this.hostName = data.participant?.identity;
+      this.showInvitationModal();
+    }
+
+    if (
+      data.message.type !== 'handRaise' &&
+      data.message.type !== 'breakoutRoom' &&
+      data.message.title !== 'test-room' &&
+      // data.message.title !== this.roomName &&
+      data.message.content !== 'I need help'
+    ) {
+      const receivedMsg = data?.message?.message;
+      const senderName = data?.participant?.identity;
+      const receivingTime = data?.message?.timestamp;
+      this.allMessages.push({
+        senderName,
+        receivedMsg,
+        receivingTime,
+        type: 'received',
+      });
+      this.updateUnreadMessageCount();
+      this.scrollToBottom();
+      this.sortMessages();
+    }
+  }
+
+  private handleMessageEmitter(data: any) {
+    console.log('data', data);
+    const sendMessage = data?.message;
+    const sendingTime = data?.timestamp;
+    this.allMessages.push({ sendMessage, sendingTime, type: 'sent' });
+    this.sortMessages();
+    this.scrollToBottom();
+  }
+
+  private updateUnreadMessageCount() {
+    this.chatSideWindowVisible$.subscribe((visible) => {
+      if (!visible) {
+        this.unreadMessagesCount++;
+        this.scrollToBottom();
+      }
+    });
+  }
+
+  private attachRemoteVideoTrack() {
     this.attachedTrack = this.livekitService.attachTrackToElement(
       Track,
       'remoteVideoContainer'
     );
+  }
+
+  private storeRemoteParticipantNames() {
     if (this.livekitService.participantNamesUpdated) {
       this.livekitService.participantNamesUpdated.subscribe((names: any) => {
         this.remoteParticipantNames = names;
@@ -340,280 +358,19 @@ export class LiveKitRoomComponent {
     } else {
       console.error('participantNamesUpdated is undefined');
     }
-
+  }
+  private storeLocalParticipantData() {
     this.livekitService.localParticipantData.subscribe((data: any) => {
       this.localParticipant = data;
-      // this.localParticipant = data.find((p: any) => p.isLocal);
       console.log('local Participant name updated:', this.localParticipant);
     });
+  }
+
+  private exposeLivekitServiceForCypress() {
     if ((window as any).Cypress) {
       (window as any).livekitService = this.livekitService;
     }
   }
-  // ngOnInit() {
-  //   console.log('checking room name', this.roomName);
-
-  //   // Initialize WebSocket and audio/video handler
-  //   this.initializeWebSocketAndAudioVideoHandler();
-
-  //   // Initialize state observables
-  //   this.initializeStateObservables();
-
-  //   // Update total participants
-  //   this.updateTotalParticipants();
-
-  //   // Initialize forms
-  //   this.initializeForms();
-
-  //   // Handle message subscriptions
-  //   this.setupMessageSubscriptions();
-
-  //   // Attach track to remote video container
-  //   this.attachRemoteVideoTrack();
-
-  //   // store remote participant names
-  //   this.storeRemoteParticipantNames();
-
-  //   // Store local participant data
-  //   this.storeLocalParticipantData();
-
-  //   // Expose livekitService for Cypress
-  //   this.exposeLivekitServiceForCypress();
-  // }
-
-  // private initializeWebSocketAndAudioVideoHandler() {
-  //   // Uncomment this if you want to connect the WebSocket
-  //   // this.livekitService.connectWebSocket();
-  //   this.livekitService.audioVideoHandler();
-
-  //   this.statusSubscription = this.livekitService.webSocketStatus$.subscribe(
-  //     (status) => {
-  //       this.webSocketStatus = status;
-  //       console.log('WebSocket status updated:', status);
-  //     }
-  //   );
-  // }
-
-  // private initializeStateObservables() {
-  //   this.isMeetingStarted$ = this.store.pipe(select(selectIsMeetingStarted));
-  //   this.isScreenSharing$ = this.store.pipe(select(selectIsScreenSharing));
-  //   this.iconColor$ = this.store.pipe(select(selectIconColor));
-  //   this.isVideoOn$ = this.store.pipe(select(selectIsVideoOn));
-  //   this.participantSideWindowVisible$ = this.store.pipe(
-  //     select(selectParticipantSideWindowVisible)
-  //   );
-  //   this.breakoutSideWindowVisible$ = this.store.pipe(
-  //     select(selectBreakoutSideWindowVisible)
-  //   );
-  //   this.chatSideWindowVisible$ = this.store.pipe(
-  //     select(selectChatSideWindowVisible)
-  //   );
-  //   this.allMessages$ = this.store.pipe(select(selectAllMessages));
-  //   this.unreadMessagesCount$ = this.store.pipe(
-  //     select(selectUnreadMessagesCount)
-  //   );
-  //   this.isMicOn$ = this.store.pipe(select(selectIsMicOn));
-  //   this.isBreakoutModal$ = this.store.select(isBreakoutModalOpen);
-  //   this.isInvitationModal$ = this.store.select(isInvitationModalOpen);
-  //   this.isHostMsgModal$ = this.store.select(isHostMsgModalOpen);
-  //   this.distributionMessage$ = this.store.select(selectDistributionMessage);
-  //   this.remoteParticipantNames$ = this.store.select(selectParticipantNames);
-  // }
-
-  // private updateTotalParticipants() {
-  //   this.remoteParticipantNames$.subscribe((names) => {
-  //     console.log('remote names from ts', names);
-  //     this.totalParticipants = names.length;
-  //   });
-  // }
-
-  // private initializeForms() {
-  //   this.startForm = this.formBuilder.group({
-  //     token: [''],
-  //   });
-
-  //   this.chatForm = this.formBuilder.group({
-  //     message: [''],
-  //     participant: [''],
-  //   });
-
-  //   this.breakoutForm = this.formBuilder.group({
-  //     numberOfRooms: ['', [Validators.required]],
-  //     roomName: ['', Validators.required],
-  //     roomType: ['', Validators.required],
-  //     selectedParticipants: [[]],
-  //   });
-
-  //   this.chatSideWindowVisible$.subscribe((visible) => {
-  //     if (visible) {
-  //       this.unreadMessagesCount = 0;
-  //       this.scrollToBottom();
-  //     }
-  //   });
-  // }
-
-  // private setupMessageSubscriptions() {
-  //   this.livekitService.messageToMain.subscribe((msgArrayTomainRoom: any[]) => {
-  //     console.log('Received message in main room:', msgArrayTomainRoom);
-  //     msgArrayTomainRoom.forEach((content) => {
-  //       if (content.content === 'I need help') {
-  //         const newMessage = {
-  //           senderName: content.title,
-  //           receivedMsg: content.content,
-  //           receivingTime: new Date(content.timestamp),
-  //           type: 'received',
-  //         };
-  //         this.roomName = content.title;
-  //         console.log('msg to main room', this.roomName);
-  //         this.allMessagesToMainRoom.push(newMessage);
-  //         this.isMsgModalOpen = true;
-  //         console.log('Updated chat messages:', this.allMessagesToMainRoom);
-  //       }
-  //     });
-  //   });
-
-  //   this.livekitService.messageContentReceived.subscribe(
-  //     (contentArray: any[]) => {
-  //       console.log('Received message content array:', contentArray);
-  //       contentArray.forEach((content) => {
-  //         if (content.content && content.title === 'test-room') {
-  //           this.handleNewMessage(content);
-  //         }
-  //       });
-  //     }
-  //   );
-
-  //   this.livekitService.msgDataReceived.subscribe((data) => {
-  //     this.handleMsgDataReceived(data);
-  //   });
-
-  //   this.livekitService.messageEmitter.subscribe((data: any) => {
-  //     this.handleMessageEmitter(data);
-  //   });
-  // }
-
-  // private handleNewMessage(content: any) {
-  //   const newMessage = {
-  //     senderName: content.title,
-  //     receivedMsg: content.content,
-  //     receivingTime: new Date(content.timestamp),
-  //     type: 'received',
-  //   };
-
-  //   const isDuplicate = this.allMessages.some((message) => {
-  //     const messageTime = new Date(message.receivingTime);
-  //     return (
-  //       message.receivedMsg === newMessage.receivedMsg &&
-  //       message.senderName === newMessage.senderName &&
-  //       messageTime.getTime() === newMessage.receivingTime.getTime()
-  //     );
-  //   });
-
-  //   if (!isDuplicate) {
-  //     this.allMessages.push(newMessage);
-  //     this.chatSideWindowVisible$.subscribe((visible) => {
-  //       if (!visible) {
-  //         this.unreadMessagesCount++;
-  //         this.scrollToBottom();
-  //       } else {
-  //         this.unreadMessagesCount = 0;
-  //       }
-  //     });
-  //   }
-  //   console.log('Updated chat messages:', this.allMessages);
-  // }
-
-  // private handleMsgDataReceived(data: any) {
-  //   console.log('Participant Data:', data);
-  //   this.hostName = data.participant?.identity;
-
-  //   if (data.message.handRaised !== undefined) {
-  //     this.handRaiseStates[data.participant.identity] = data.message.handRaised;
-  //     const action = data.message.handRaised
-  //       ? 'raised its hand'
-  //       : 'lowered its hand';
-  //     this.openSnackBar(`${data.participant.identity} ${action}`);
-  //   }
-
-  //   if (data.message.type === 'breakoutRoom') {
-  //     console.log(
-  //       'Breakout room created for participant:',
-  //       data.participant?.identity
-  //     );
-  //     this.roomName = data.message.roomName;
-  //     this.hostName = data.participant?.identity;
-  //     this.showInvitationModal();
-  //   }
-
-  //   if (
-  //     data.message.type !== 'handRaise' &&
-  //     data.message.type !== 'breakoutRoom' &&
-  //     data.message.title !== 'test-room' &&
-  //     data.message.title !== this.roomName &&
-  //     data.message.content !== 'I need help'
-  //   ) {
-  //     const receivedMsg = data?.message?.message;
-  //     const senderName = data?.participant?.identity;
-  //     const receivingTime = data?.message?.timestamp;
-  //     this.allMessages.push({
-  //       senderName,
-  //       receivedMsg,
-  //       receivingTime,
-  //       type: 'received',
-  //     });
-  //     this.updateUnreadMessageCount();
-  //     this.scrollToBottom();
-  //     this.sortMessages();
-  //   }
-  // }
-
-  // private handleMessageEmitter(data: any) {
-  //   console.log('data', data);
-  //   const sendMessage = data?.message;
-  //   const sendingTime = data?.timestamp;
-  //   this.allMessages.push({ sendMessage, sendingTime, type: 'sent' });
-  //   this.sortMessages();
-  //   this.scrollToBottom();
-  // }
-
-  // private updateUnreadMessageCount() {
-  //   this.chatSideWindowVisible$.subscribe((visible) => {
-  //     if (!visible) {
-  //       this.unreadMessagesCount++;
-  //       this.scrollToBottom();
-  //     }
-  //   });
-  // }
-
-  // private attachRemoteVideoTrack() {
-  //   this.attachedTrack = this.livekitService.attachTrackToElement(
-  //     Track,
-  //     'remoteVideoContainer'
-  //   );
-  // }
-
-  // private storeRemoteParticipantNames() {
-  //   if (this.livekitService.participantNamesUpdated) {
-  //     this.livekitService.participantNamesUpdated.subscribe((names: any) => {
-  //       this.remoteParticipantNames = names;
-  //       this.totalParticipants = this.remoteParticipantNames.length;
-  //     });
-  //   } else {
-  //     console.error('participantNamesUpdated is undefined');
-  //   }
-  // }
-  // private storeLocalParticipantData() {
-  //   this.livekitService.localParticipantData.subscribe((data: any) => {
-  //     this.localParticipant = data;
-  //     console.log('local Participant name updated:', this.localParticipant);
-  //   });
-  // }
-
-  // private exposeLivekitServiceForCypress() {
-  //   if ((window as any).Cypress) {
-  //     (window as any).livekitService = this.livekitService;
-  //   }
-  // }
 
   ngAfterViewInit(): void {
     if (this.livekitService.screenShareTrackSubscribed) {
@@ -761,10 +518,11 @@ export class LiveKitRoomComponent {
    * @returns {void}
    */
   sendMessage() {
-    console.log('sendMessage called');
     const msg = this.chatForm.value.message;
     const recipient = this.chatForm.value.participant;
-    this.livekitService.sendChatMessage({ msg, recipient });
+    this.store.dispatch(
+      LiveKitRoomActions.ChatActions.sendChatMessage({ msg, recipient })
+    );
 
     this.chatForm.reset();
   }
@@ -794,16 +552,6 @@ export class LiveKitRoomComponent {
       this.handRaiseStates[this.localParticipant.identity] = true;
     }
   }
-  // toggleRaiseHand() {
-  //   this.isHandRaised$.subscribe((isRaised) => {
-  //     this.store.dispatch(
-  //       LiveKitRoomActions.HandRaiseActions.toggleHandRaise({
-  //         participantId: this.localParticipant.identity,
-  //         isHandRaised: !isRaised,
-  //       })
-  //     );
-  //   });
-  // }
 
   /**
    * Dispatches an action to leave the meeting.
@@ -996,14 +744,12 @@ export class LiveKitRoomComponent {
   }
 
   showInvitationModal(): void {
-    // this.isModalVisible = true;
     this.store.dispatch(
       LiveKitRoomActions.BreakoutActions.openInvitationModal()
     );
   }
 
   closeInvitationModal(): void {
-    // this.isModalVisible = false;
     this.store.dispatch(
       LiveKitRoomActions.BreakoutActions.closeInvitationModal()
     );
@@ -1021,14 +767,11 @@ export class LiveKitRoomComponent {
         participants,
         numberOfRooms
       );
-
       rooms.forEach((roomParticipants, index) => {
         const roomName = `Breakout_Room_${index + 1}`;
-
         let existingRoom = this.breakoutRoomsData.find(
           (room) => room.roomName === roomName
         );
-
         if (existingRoom) {
           existingRoom.participantIds.push(
             ...roomParticipants.filter(
@@ -1042,11 +785,9 @@ export class LiveKitRoomComponent {
             type: 'automatic',
           });
         }
-
         // Send breakout room invitation
         this.livekitService.breakoutRoomAlert(roomParticipants, roomName);
       });
-
       // Emit the updated breakout rooms data
       this.livekitService.breakoutRoomsDataUpdated.emit(this.breakoutRoomsData);
     } else if (roomType === 'manual') {
@@ -1124,13 +865,8 @@ export class LiveKitRoomComponent {
 
   // send helping message to host and then host join meeting to help participants in the breakout room
   async hostJoinNow() {
-    console.log('Joining the existing breakout room...');
-
     // Step 1: Leave the current room (disconnect)
     await this.leaveBtn();
-    const participants = this.remoteParticipantNames;
-    console.log('Existing Participants:', participants);
-    // Step 2: Check if the room already exists in breakoutRoomsData
     const existingRoom = this.livekitService.breakoutRoomsData.find(
       (room: any) => room.roomName === this.roomName
     );

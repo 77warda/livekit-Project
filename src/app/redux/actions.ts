@@ -40,9 +40,6 @@ export const LiveKitActions = createActionGroup({
     updateUnreadMessagesCount: props<{ count: number }>(),
     updateMessages: props<{ allMessages: any[] }>(),
     scrollToBottom: emptyProps(),
-    // loadParticipants: emptyProps(),
-    // loadParticipantsSuccess: props<{ participantNames: string[] }>(),
-    // loadParticipantsFailure: props<{ error: any }>(),
   },
 });
 
@@ -52,6 +49,7 @@ export const ChatActions = createActionGroup({
   events: {
     receiveMessage: props<{ message: any; participant: any }>(),
     sendMessage: props<{ message: string; recipient: string }>(),
+    SendChatMessage: props<{ msg: string; recipient: string }>(),
     // send message to breakout room
     sendMessageToBreakoutRoom: props<{
       breakoutRoom: string;
@@ -80,7 +78,6 @@ export const BreakoutActions = createActionGroup({
       totalParticipants: number;
     }>(),
     calculateDistributionSuccess: props<{ distributionMessage: string }>(),
-    calculateDistributionFailure: props<{ error: string }>(),
     openInvitationModal: emptyProps(),
     closeInvitationModal: emptyProps(),
     openHostToBrMsgModal: emptyProps(),
@@ -97,6 +94,10 @@ export const BreakoutActions = createActionGroup({
     RemoveParticipant: props<{ roomName: string; participantId: string }>(),
     // manual and automatic rooms
     InitiateManualRoomSelection: props<{ roomType: string }>(),
+    InitiateAutomaticRoomCreation: props<{
+      roomType: string;
+      numberOfRooms: number;
+    }>(),
   },
 });
 export const HandRaiseActions = createActionGroup({

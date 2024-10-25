@@ -16,6 +16,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MeetingService } from '../Meeting-Service/meeting.service';
 import { selectBreakoutRoomsData, selectNextRoomIndex } from './selectors';
 import { Store } from '@ngrx/store';
+import { Room } from './reducer';
 
 @Injectable()
 export class LiveKitRoomEffects {
@@ -215,33 +216,19 @@ export class LiveKitRoomEffects {
   //     ),
   //   { dispatch: false }
   // );
-  //load remote participants
-  // loadParticipants$ = createEffect(() =>
-  //   this.actions$.pipe(
-  //     ofType(LiveKitRoomActions.LiveKitActions.loadParticipants),
-  //     concatMap(() =>
-  //       this.livekitService.participantNamesUpdated.pipe(
-  //         tap((participantNames) =>
-  //           console.log('from effects', participantNames)
-  //         ),
-  //         map((participantNames) => {
-  //           // Dispatch success action with participant names
-  //           return LiveKitRoomActions.LiveKitActions.loadParticipantsSuccess({
-  //             participantNames,
-  //           });
-  //         }),
-  //         catchError((error) => {
-  //           // Dispatch failure action if an error occurs
-  //           return of(
-  //             LiveKitRoomActions.LiveKitActions.loadParticipantsFailure({
-  //               error,
-  //             })
-  //           );
-  //         })
-  //       )
-  //     )
-  //   )
-  // );
+  // send chat message
+  sendChatMessage$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(LiveKitRoomActions.ChatActions.sendChatMessage),
+        switchMap(({ msg, recipient }) => {
+          // Call the LiveKit service to send the message
+          this.livekitService.sendChatMessage({ msg, recipient });
+          return []; // No further actions to dispatch
+        })
+      ),
+    { dispatch: false } // No action is dispatched after this effect
+  );
   //send message to breakout room
   sendMessageToBreakoutRoom$ = createEffect(() =>
     this.actions$.pipe(
@@ -347,4 +334,83 @@ export class LiveKitRoomEffects {
       ),
     { dispatch: false } // No action is dispatched after this effect
   );
+  // initiateAutomaticRoomCreation$ = createEffect(
+  //   () =>
+  //     this.actions$.pipe(
+  //       ofType(
+  //         LiveKitRoomActions.BreakoutActions.initiateAutomaticRoomCreation
+  //       ),
+  //       switchMap(({ roomType, numberOfRooms }) => {
+  //         if (roomType === 'automatic' && numberOfRooms > 0) {
+  //           return this.store.select(selectRemoteParticipantNames).pipe(
+  //             take(1),
+  //             map((remoteParticipantNames) => {
+  //               const participants = remoteParticipantNames.map(
+  //                 (p: any) => p.identity
+  //               );
+  //               const rooms = this.splitParticipantsIntoRooms(
+  //                 participants,
+  //                 numberOfRooms
+  //               );
+
+  //               // Select current breakout rooms data
+  //               this.store
+  //                 .select(selectBreakoutRoomsData)
+  //                 .pipe(take(1))
+  //                 .subscribe((breakoutRoomsData: Room[]) => {
+  //                   rooms.forEach((roomParticipants, index) => {
+  //                     const roomName = `Breakout_Room_${index + 1}`;
+
+  //                     let existingRoom = breakoutRoomsData.find(
+  //                       (room) => room.roomName === roomName
+  //                     );
+
+  //                     if (existingRoom) {
+  //                       // Safely check if existingRoom is defined before accessing its properties
+  //                       existingRoom.participantIds.push(
+  //                         ...roomParticipants.filter(
+  //                           (p) => !existingRoom!.participantIds.includes(p) // Use non-null assertion here
+  //                         )
+  //                       );
+  //                     } else {
+  //                       // Create a new room with the participant IDs
+  //                       breakoutRoomsData.push({
+  //                         roomName: roomName,
+  //                         participantIds: roomParticipants,
+  //                         showAvailableParticipants: true, // Default value; adjust as necessary
+  //                       } as Room);
+  //                     }
+
+  //                     // Send breakout room invitation
+  //                     this.livekitService.breakoutRoomAlert(
+  //                       roomParticipants,
+  //                       roomName
+  //                     );
+  //                   });
+
+  //                   // Emit the updated breakout rooms data (if needed)
+  //                   this.livekitService.breakoutRoomsDataUpdated.emit(
+  //                     breakoutRoomsData
+  //                   );
+  //                 });
+  //             })
+  //           );
+  //         }
+  //         return [];
+  //       })
+  //     ),
+  //   { dispatch: false } // No action is dispatched after this effect
+  // );
+
+  // Helper method to split participants into rooms
+  // private splitParticipantsIntoRooms(
+  //   participants: string[],
+  //   numberOfRooms: number
+  // ): string[][] {
+  //   const rooms: string[][] = Array.from({ length: numberOfRooms }, () => []);
+  //   participants.forEach((participant, index) => {
+  //     rooms[index % numberOfRooms].push(participant);
+  //   });
+  //   return rooms;
+  // }
 }

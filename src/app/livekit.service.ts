@@ -1862,43 +1862,45 @@ export class LiveKitService {
     const room = this.breakoutRoomsData.find((r) => r.roomName === roomId);
 
     // Return the observable instead of subscribing directly
-    return this.meetingService
-      .sendBroadcastMessage(room.roomName, content)
-      .pipe(
-        tap((response) => {
-          console.log(
-            'Message sent successfully:',
-            response,
-            room.roomName,
-            content
-          );
-        }),
-        catchError((error) => {
-          console.error('Error sending message:', error);
-          this.openSnackBar('Failed to send message to the breakout room.');
-          return throwError(error);
-        })
-      );
+    return this.meetingService.sendBroadcastMessage(room.roomName, content);
+    // .pipe(
+    //   tap((response) => {
+    //     console.log(
+    //       'Message sent successfully:',
+    //       response,
+    //       room.roomName,
+    //       content
+    //     );
+    //   }),
+    //   catchError((error) => {
+    //     console.error('Error sending message:', error);
+    //     this.openSnackBar('Failed to send message to the breakout room.');
+    //     return throwError(error);
+    //   })
+    // );
   }
 
   sendMessageToMainRoom(breakoutRoomName: string, content: string) {
-    return this.meetingService
-      .sendMessageToMainRoom('test-room', breakoutRoomName, content)
-      .pipe(
-        tap((response) => {
-          console.log(
-            'Message sent successfully:',
-            response,
-            breakoutRoomName,
-            content
-          );
-        }),
+    return this.meetingService.sendMessageToMainRoom(
+      'test-room',
+      breakoutRoomName,
+      content
+    );
+    // .pipe(
+    //   tap((response) => {
+    //     console.log(
+    //       'Message sent successfully:',
+    //       response,
+    //       breakoutRoomName,
+    //       content
+    //     );
+    //   }),
 
-        catchError((error) => {
-          console.error('Error sending message:', error);
-          this.openSnackBar('Failed to send message to the breakout room.');
-          return throwError(error);
-        })
-      );
+    //   catchError((error) => {
+    //     console.error('Error sending message:', error);
+    //     this.openSnackBar('Failed to send message to the breakout room.');
+    //     return throwError(error);
+    //   })
+    // );
   }
 }
