@@ -20,6 +20,7 @@ import {
   selectBreakoutSideWindowVisible,
   selectChatSideWindowVisible,
   selectDistributionMessage,
+  selectHelpMessageModal,
   selectIconColor,
   selectIsMeetingStarted,
   selectIsMicOn,
@@ -64,13 +65,11 @@ export class LiveKitRoomComponent {
   distributionMessage$!: Observable<any>;
   isBreakoutModal$!: Observable<boolean>;
   isInvitationModal$!: Observable<boolean>;
+  isHelpMsgModal$!: Observable<boolean>;
   isHostMsgModal$!: Observable<boolean>;
   breakoutRoomsData$!: Observable<any[]>;
   nextRoomIndex$!: Observable<number>;
   remoteParticipantNames$!: Observable<{ [roomIndex: number]: string[] }>;
-  // remoteParticipantNames$!: Observable<any[]>;
-  // totalParticipants!: number;
-  // isHandRaised$!: Observable<boolean>;
   // =========mic adjustment ======
   @ViewChild('audioCanvas', { static: true })
   audioCanvasRef!: ElementRef<HTMLCanvasElement>;
@@ -78,7 +77,7 @@ export class LiveKitRoomComponent {
   participantName: string = '';
   breakoutRoomsData: any[] = [];
   selectedBreakoutRoom = '';
-  // private messageContentSub: Subscription | undefined;
+
   public breakoutMessageContent: any[] = [];
   @ViewChild('messageContainer') messageContainer!: ElementRef | any;
   attachedTrack: HTMLElement | null = null;
@@ -93,13 +92,8 @@ export class LiveKitRoomComponent {
   allMessages: any[] = [];
   allMessagesToMainRoom: any[] = [];
   room!: Room;
-  // isModalOpen = false;
-  isMsgModalOpen = false;
-  // isModalVisible: boolean = false;
-  // isHostToBrMsgModalOpen: boolean = false;
   totalParticipants!: number;
   breakoutForm!: FormGroup;
-  distributionMessage: string = '';
   hostName!: string | undefined;
   roomName: any;
 
@@ -178,10 +172,11 @@ export class LiveKitRoomComponent {
     this.isHostMsgModal$ = this.store.select(isHostMsgModalOpen);
     this.distributionMessage$ = this.store.select(selectDistributionMessage);
     this.breakoutRoomsData$ = this.store.select(selectBreakoutRoomsData);
-    this.nextRoomIndex$ = this.store.select(selectNextRoomIndex); // Select next room index
+    this.nextRoomIndex$ = this.store.select(selectNextRoomIndex);
     this.store.select(selectBreakoutRoomsData).subscribe((rooms) => {
       this.breakoutRoomsData = rooms;
     });
+    this.isHelpMsgModal$ = this.store.select(selectHelpMessageModal);
   }
 
   private initializeForms() {
@@ -223,7 +218,7 @@ export class LiveKitRoomComponent {
           this.roomName = content.title;
           console.log('msg to main room', this.roomName);
           this.allMessagesToMainRoom.push(newMessage);
-          this.isMsgModalOpen = true;
+          this.openReceiveMsgModal();
           console.log('Updated chat messages:', this.allMessagesToMainRoom);
         }
       });
@@ -728,8 +723,16 @@ export class LiveKitRoomComponent {
     }
   }
 
+  openReceiveMsgModal() {
+    this.store.dispatch(
+      LiveKitRoomActions.BreakoutActions.openHelpMessageModal()
+    );
+  }
+
   closeReceiveMsgModal() {
-    this.isMsgModalOpen = false;
+    this.store.dispatch(
+      LiveKitRoomActions.BreakoutActions.closeHelpMessageModal()
+    );
     this.allMessagesToMainRoom = [];
   }
 
@@ -898,7 +901,7 @@ export class LiveKitRoomComponent {
     }
 
     // Step 5: Close the message modal
-    this.isMsgModalOpen = !this.isMsgModalOpen;
+    this.closeReceiveMsgModal();
   }
   sendHelpRequest() {
     this.store.dispatch(

@@ -82,6 +82,9 @@ export const BreakoutActions = createActionGroup({
     closeInvitationModal: emptyProps(),
     openHostToBrMsgModal: emptyProps(),
     closeHostToBrMsgModal: emptyProps(),
+
+    openHelpMessageModal: emptyProps(),
+    closeHelpMessageModal: emptyProps(),
     //creating new rooms
     initiateCreateNewRoom: emptyProps(),
     CreateNewRoom: emptyProps(),
@@ -98,13 +101,5 @@ export const BreakoutActions = createActionGroup({
       roomType: string;
       numberOfRooms: number;
     }>(),
-  },
-});
-export const HandRaiseActions = createActionGroup({
-  source: '[Hand Raise]',
-  events: {
-    raiseHand: props<{ participantId: string }>(),
-    lowerHand: props<{ participantId: string }>(),
-    toggleHandRaise: props<{ participantId: string; isHandRaised: boolean }>(),
   },
 });

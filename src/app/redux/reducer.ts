@@ -29,7 +29,7 @@ export interface LiveKitRoomState {
   distributionMessage: string;
   breakoutRoomsData: Room[];
   nextRoomIndex: number;
-  handRaiseStates: { [participantIdentity: string]: boolean };
+  helpMessageModal: boolean;
 }
 
 export const initialState: LiveKitRoomState = {
@@ -53,7 +53,7 @@ export const initialState: LiveKitRoomState = {
   distributionMessage: '',
   breakoutRoomsData: [],
   nextRoomIndex: 1,
-  handRaiseStates: {},
+  helpMessageModal: false,
 };
 
 export const liveKitRoomReducer = createReducer(
@@ -278,6 +278,14 @@ export const liveKitRoomReducer = createReducer(
   on(LiveKitRoomActions.BreakoutActions.closeHostToBrMsgModal, (state) => ({
     ...state,
     isHostMsgModalOpen: false,
+  })),
+  on(LiveKitRoomActions.BreakoutActions.openHelpMessageModal, (state) => ({
+    ...state,
+    helpMessageModal: true,
+  })),
+  on(LiveKitRoomActions.BreakoutActions.closeHelpMessageModal, (state) => ({
+    ...state,
+    helpMessageModal: false,
   })),
   // breakout modal distribution in automatic room selection
   on(

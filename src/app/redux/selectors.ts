@@ -89,19 +89,6 @@ export const selectDistributionMessage = createSelector(
   selectLiveKitRoomState,
   (state) => state.distributionMessage
 );
-// export const selectHandRaiseByParticipant = (participantId: string) =>
-//   createSelector(
-//     selectLiveKitRoomState,
-//     (state) => state.handRaiseStates[participantId] || false
-//   );
-
-// export const selectParticipantNames = createSelector(
-//   selectLiveKitRoomState,
-//   (state) => {
-//     console.log('remote par from selectors', state.participantNames);
-//     return state.participantNames;
-//   }
-// );
 export const selectBreakoutRoomsData = createSelector(
   selectLiveKitRoomState,
   (state) => {
@@ -114,7 +101,10 @@ export const selectNextRoomIndex = createSelector(
   (state) => state.nextRoomIndex
 );
 
-export const selectHandRaiseState = createSelector(
+export const selectHelpMessageModal = createSelector(
   selectLiveKitRoomState,
-  (state) => state.handRaiseStates
+  (state) => {
+    console.log('helpmessage ', state.helpMessageModal);
+    return state.helpMessageModal;
+  }
 );

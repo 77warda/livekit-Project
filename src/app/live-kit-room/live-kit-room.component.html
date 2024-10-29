@@ -694,7 +694,7 @@
 <!-- Modal for asking asking help to host from breakout rooms participants -->
 <div
   class="receive-msg-modal"
-  *ngIf="isMsgModalOpen && allMessagesToMainRoom.length > 0"
+  *ngIf="(isHelpMsgModal$ | async) && allMessagesToMainRoom.length > 0"
 >
   <div class="modal-header">
     <h2>Messages in Main Room</h2>
@@ -712,6 +712,6 @@
   </div>
 
   <div class="modal-footer">
-    <button (click)="hostJoinNow()">Join Now</button>
+    <button (click)="hostJoinNow()">Host Join Now</button>
   </div>
 </div>
