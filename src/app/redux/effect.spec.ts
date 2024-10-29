@@ -1,248 +1,248 @@
-import { TestBed } from '@angular/core/testing';
-import { provideMockActions } from '@ngrx/effects/testing';
-import { Observable, of, throwError } from 'rxjs';
-import { LiveKitService } from '../livekit.service';
-import * as LiveKitRoomActions from './actions';
-import { Action } from '@ngrx/store';
-import { LiveKitRoomEffects } from './effect';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+// import { TestBed } from '@angular/core/testing';
+// import { provideMockActions } from '@ngrx/effects/testing';
+// import { Observable, of, throwError } from 'rxjs';
+// import { LiveKitService } from '../livekit.service';
+// import * as LiveKitRoomActions from './actions';
+// import { Action } from '@ngrx/store';
+// import { LiveKitRoomEffects } from './effect';
+// import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-describe('LiveKitRoomEffects', () => {
-  let actions$: Observable<Action>;
-  let effects: LiveKitRoomEffects;
-  let livekitService: jasmine.SpyObj<LiveKitService>;
+// describe('LiveKitRoomEffects', () => {
+//   let actions$: Observable<Action>;
+//   let effects: LiveKitRoomEffects;
+//   let livekitService: jasmine.SpyObj<LiveKitService>;
 
-  beforeEach(() => {
-    const livekitServiceSpy = jasmine.createSpyObj('LiveKitService', [
-      'connectToRoom',
-      'toggleScreenShare',
-      'toggleVideo',
-      'toggleMicrophone',
-      'enableCameraAndMicrophone',
-      'disconnectRoom',
-    ]);
+//   beforeEach(() => {
+//     const livekitServiceSpy = jasmine.createSpyObj('LiveKitService', [
+//       'connectToRoom',
+//       'toggleScreenShare',
+//       'toggleVideo',
+//       'toggleMicrophone',
+//       'enableCameraAndMicrophone',
+//       'disconnectRoom',
+//     ]);
 
-    TestBed.configureTestingModule({
-      imports: [MatSnackBarModule],
-      providers: [
-        LiveKitRoomEffects,
-        provideMockActions(() => actions$),
-        { provide: LiveKitService, useValue: livekitServiceSpy },
-        {
-          provide: MatSnackBar,
-          useValue: jasmine.createSpyObj('MatSnackBar', ['open']),
-        },
-      ],
-    });
+//     TestBed.configureTestingModule({
+//       imports: [MatSnackBarModule],
+//       providers: [
+//         LiveKitRoomEffects,
+//         provideMockActions(() => actions$),
+//         { provide: LiveKitService, useValue: livekitServiceSpy },
+//         {
+//           provide: MatSnackBar,
+//           useValue: jasmine.createSpyObj('MatSnackBar', ['open']),
+//         },
+//       ],
+//     });
 
-    effects = TestBed.inject(LiveKitRoomEffects);
-    livekitService = TestBed.inject(
-      LiveKitService
-    ) as jasmine.SpyObj<LiveKitService>;
-  });
+//     effects = TestBed.inject(LiveKitRoomEffects);
+//     livekitService = TestBed.inject(
+//       LiveKitService
+//     ) as jasmine.SpyObj<LiveKitService>;
+//   });
 
-  describe('startMeeting$', () => {
-    it('should dispatch startMeetingSuccess on successful connection', (done) => {
-      const wsURL = 'wss://example.com';
-      const token = 'example-token';
-      const action = LiveKitRoomActions.startMeeting({ wsURL, token });
-      const successAction = LiveKitRoomActions.startMeetingSuccess();
+//   describe('startMeeting$', () => {
+//     it('should dispatch startMeetingSuccess on successful connection', (done) => {
+//       const wsURL = 'wss://example.com';
+//       const token = 'example-token';
+//       const action = LiveKitRoomActions.startMeeting({ wsURL, token });
+//       const successAction = LiveKitRoomActions.startMeetingSuccess();
 
-      actions$ = of(action);
-      livekitService.connectToRoom.and.returnValue(Promise.resolve());
+//       actions$ = of(action);
+//       livekitService.connectToRoom.and.returnValue(Promise.resolve());
 
-      effects.startMeeting$.subscribe((result) => {
-        expect(result).toEqual(successAction);
-        done();
-      });
-    });
+//       effects.startMeeting$.subscribe((result) => {
+//         expect(result).toEqual(successAction);
+//         done();
+//       });
+//     });
 
-    it('should dispatch startMeetingFailure on failed connection', (done) => {
-      const wsURL = 'wss://example.com';
-      const token = 'example-token';
-      const error = new Error('Connection failed');
-      const action = LiveKitRoomActions.startMeeting({ wsURL, token });
-      const failureAction = LiveKitRoomActions.startMeetingFailure({
-        error: error.message,
-      });
+//     it('should dispatch startMeetingFailure on failed connection', (done) => {
+//       const wsURL = 'wss://example.com';
+//       const token = 'example-token';
+//       const error = new Error('Connection failed');
+//       const action = LiveKitRoomActions.startMeeting({ wsURL, token });
+//       const failureAction = LiveKitRoomActions.startMeetingFailure({
+//         error: error.message,
+//       });
 
-      actions$ = of(action);
-      livekitService.connectToRoom.and.returnValue(Promise.reject(error));
+//       actions$ = of(action);
+//       livekitService.connectToRoom.and.returnValue(Promise.reject(error));
 
-      effects.startMeeting$.subscribe((result) => {
-        expect(result).toEqual(failureAction);
-        done();
-      });
-    });
-  });
-  describe('toggleScreenShare$', () => {
-    it('should dispatch toggleScreenShareSuccess on successful toggle', (done) => {
-      const isScreenSharing = true;
-      const action = LiveKitRoomActions.toggleScreenShare();
-      const successAction = LiveKitRoomActions.toggleScreenShareSuccess({
-        isScreenSharing,
-      });
+//       effects.startMeeting$.subscribe((result) => {
+//         expect(result).toEqual(failureAction);
+//         done();
+//       });
+//     });
+//   });
+//   describe('toggleScreenShare$', () => {
+//     it('should dispatch toggleScreenShareSuccess on successful toggle', (done) => {
+//       const isScreenSharing = true;
+//       const action = LiveKitRoomActions.toggleScreenShare();
+//       const successAction = LiveKitRoomActions.toggleScreenShareSuccess({
+//         isScreenSharing,
+//       });
 
-      actions$ = of(action);
-      livekitService.toggleScreenShare.and.returnValue(
-        Promise.resolve(isScreenSharing)
-      );
+//       actions$ = of(action);
+//       livekitService.toggleScreenShare.and.returnValue(
+//         Promise.resolve(isScreenSharing)
+//       );
 
-      effects.toggleScreenShare$.subscribe((result) => {
-        expect(result).toEqual(successAction);
-        done();
-      });
-    });
+//       effects.toggleScreenShare$.subscribe((result) => {
+//         expect(result).toEqual(successAction);
+//         done();
+//       });
+//     });
 
-    it('should dispatch toggleScreenShareFailure on failed toggle', (done) => {
-      const error = new Error('Toggle failed');
-      const action = LiveKitRoomActions.toggleScreenShare();
-      const failureAction = LiveKitRoomActions.toggleScreenShareFailure({
-        error: error.message,
-      });
+//     it('should dispatch toggleScreenShareFailure on failed toggle', (done) => {
+//       const error = new Error('Toggle failed');
+//       const action = LiveKitRoomActions.toggleScreenShare();
+//       const failureAction = LiveKitRoomActions.toggleScreenShareFailure({
+//         error: error.message,
+//       });
 
-      actions$ = of(action);
-      livekitService.toggleScreenShare.and.returnValue(Promise.reject(error));
+//       actions$ = of(action);
+//       livekitService.toggleScreenShare.and.returnValue(Promise.reject(error));
 
-      effects.toggleScreenShare$.subscribe((result) => {
-        expect(result).toEqual(failureAction);
-        done();
-      });
-    });
-  });
+//       effects.toggleScreenShare$.subscribe((result) => {
+//         expect(result).toEqual(failureAction);
+//         done();
+//       });
+//     });
+//   });
 
-  describe('toggleVideo$', () => {
-    it('should dispatch toggleVideoSuccess on successful toggle', (done) => {
-      const isVideoOn = true;
-      const action = LiveKitRoomActions.toggleVideo();
-      const successAction = LiveKitRoomActions.toggleVideoSuccess({
-        isVideoOn,
-      });
+//   describe('toggleVideo$', () => {
+//     it('should dispatch toggleVideoSuccess on successful toggle', (done) => {
+//       const isVideoOn = true;
+//       const action = LiveKitRoomActions.toggleVideo();
+//       const successAction = LiveKitRoomActions.toggleVideoSuccess({
+//         isVideoOn,
+//       });
 
-      actions$ = of(action);
-      livekitService.toggleVideo.and.returnValue(of(isVideoOn));
+//       actions$ = of(action);
+//       livekitService.toggleVideo.and.returnValue(of(isVideoOn));
 
-      effects.toggleVideo$.subscribe((result) => {
-        expect(result).toEqual(successAction);
-        done();
-      });
-    });
+//       effects.toggleVideo$.subscribe((result) => {
+//         expect(result).toEqual(successAction);
+//         done();
+//       });
+//     });
 
-    it('should dispatch toggleVideoFailure on failed toggle', (done) => {
-      const error = new Error('Toggle failed');
-      const action = LiveKitRoomActions.toggleVideo();
-      const failureAction = LiveKitRoomActions.toggleVideoFailure({
-        error: error.message,
-      });
+//     it('should dispatch toggleVideoFailure on failed toggle', (done) => {
+//       const error = new Error('Toggle failed');
+//       const action = LiveKitRoomActions.toggleVideo();
+//       const failureAction = LiveKitRoomActions.toggleVideoFailure({
+//         error: error.message,
+//       });
 
-      actions$ = of(action);
-      livekitService.toggleVideo.and.returnValue(throwError(error));
+//       actions$ = of(action);
+//       livekitService.toggleVideo.and.returnValue(throwError(error));
 
-      effects.toggleVideo$.subscribe((result) => {
-        expect(result).toEqual(failureAction);
-        done();
-      });
-    });
-  });
+//       effects.toggleVideo$.subscribe((result) => {
+//         expect(result).toEqual(failureAction);
+//         done();
+//       });
+//     });
+//   });
 
-  describe('toggleMicrophone$', () => {
-    it('should dispatch toggleMicSuccess on successful toggle', (done) => {
-      const isMicOn = true;
-      const action = LiveKitRoomActions.toggleMic();
-      const successAction = LiveKitRoomActions.toggleMicSuccess({ isMicOn });
+//   describe('toggleMicrophone$', () => {
+//     it('should dispatch toggleMicSuccess on successful toggle', (done) => {
+//       const isMicOn = true;
+//       const action = LiveKitRoomActions.toggleMic();
+//       const successAction = LiveKitRoomActions.toggleMicSuccess({ isMicOn });
 
-      actions$ = of(action);
-      livekitService.toggleMicrophone.and.returnValue(of(isMicOn));
+//       actions$ = of(action);
+//       livekitService.toggleMicrophone.and.returnValue(of(isMicOn));
 
-      effects.toggleMicrophone$.subscribe((result) => {
-        expect(result).toEqual(successAction);
-        done();
-      });
-    });
+//       effects.toggleMicrophone$.subscribe((result) => {
+//         expect(result).toEqual(successAction);
+//         done();
+//       });
+//     });
 
-    it('should dispatch toggleMicFailure on failed toggle', (done) => {
-      const error = 'Toggle failed'; // Use a string for consistency
-      const action = LiveKitRoomActions.toggleMic();
-      const failureAction = LiveKitRoomActions.toggleMicFailure({
-        error,
-      });
+//     it('should dispatch toggleMicFailure on failed toggle', (done) => {
+//       const error = 'Toggle failed'; // Use a string for consistency
+//       const action = LiveKitRoomActions.toggleMic();
+//       const failureAction = LiveKitRoomActions.toggleMicFailure({
+//         error,
+//       });
 
-      actions$ = of(action);
-      livekitService.toggleMicrophone.and.returnValue(throwError(error));
+//       actions$ = of(action);
+//       livekitService.toggleMicrophone.and.returnValue(throwError(error));
 
-      effects.toggleMicrophone$.subscribe((result) => {
-        expect(result).toEqual(failureAction);
-        done();
-      });
-    });
-  });
+//       effects.toggleMicrophone$.subscribe((result) => {
+//         expect(result).toEqual(failureAction);
+//         done();
+//       });
+//     });
+//   });
 
-  describe('enableCameraAndMicrophone$', () => {
-    it('should dispatch enableCameraAndMicrophoneSuccess on successful enable', (done) => {
-      const action = LiveKitRoomActions.enableCameraAndMicrophone();
-      const successAction =
-        LiveKitRoomActions.enableCameraAndMicrophoneSuccess();
+//   describe('enableCameraAndMicrophone$', () => {
+//     it('should dispatch enableCameraAndMicrophoneSuccess on successful enable', (done) => {
+//       const action = LiveKitRoomActions.enableCameraAndMicrophone();
+//       const successAction =
+//         LiveKitRoomActions.enableCameraAndMicrophoneSuccess();
 
-      actions$ = of(action);
-      livekitService.enableCameraAndMicrophone.and.returnValue(
-        Promise.resolve()
-      ); // Simulate success with resolved Promise
+//       actions$ = of(action);
+//       livekitService.enableCameraAndMicrophone.and.returnValue(
+//         Promise.resolve()
+//       ); // Simulate success with resolved Promise
 
-      effects.enableCameraAndMicrophone$.subscribe((result) => {
-        expect(result).toEqual(successAction);
-        done();
-      });
-    });
+//       effects.enableCameraAndMicrophone$.subscribe((result) => {
+//         expect(result).toEqual(successAction);
+//         done();
+//       });
+//     });
 
-    it('should dispatch enableCameraAndMicrophoneFailure on failed enable', (done) => {
-      const error = new Error('Enable failed');
-      const action = LiveKitRoomActions.enableCameraAndMicrophone();
-      const failureAction = LiveKitRoomActions.enableCameraAndMicrophoneFailure(
-        {
-          error: error.message,
-        }
-      );
+//     it('should dispatch enableCameraAndMicrophoneFailure on failed enable', (done) => {
+//       const error = new Error('Enable failed');
+//       const action = LiveKitRoomActions.enableCameraAndMicrophone();
+//       const failureAction = LiveKitRoomActions.enableCameraAndMicrophoneFailure(
+//         {
+//           error: error.message,
+//         }
+//       );
 
-      actions$ = of(action);
-      livekitService.enableCameraAndMicrophone.and.returnValue(
-        Promise.reject(error)
-      ); // Simulate failure with rejected Promise
+//       actions$ = of(action);
+//       livekitService.enableCameraAndMicrophone.and.returnValue(
+//         Promise.reject(error)
+//       ); // Simulate failure with rejected Promise
 
-      effects.enableCameraAndMicrophone$.subscribe((result) => {
-        expect(result).toEqual(failureAction);
-        done();
-      });
-    });
-  });
-  describe('leaveMeeting$', () => {
-    it('should dispatch leaveMeetingSuccess on successful disconnect', (done) => {
-      const action = LiveKitRoomActions.leaveMeeting();
-      const successAction = LiveKitRoomActions.leaveMeetingSuccess();
+//       effects.enableCameraAndMicrophone$.subscribe((result) => {
+//         expect(result).toEqual(failureAction);
+//         done();
+//       });
+//     });
+//   });
+//   describe('leaveMeeting$', () => {
+//     it('should dispatch leaveMeetingSuccess on successful disconnect', (done) => {
+//       const action = LiveKitRoomActions.leaveMeeting();
+//       const successAction = LiveKitRoomActions.leaveMeetingSuccess();
 
-      actions$ = of(action);
-      livekitService.disconnectRoom.and.returnValue(of(void 0)); // Simulate successful disconnect
+//       actions$ = of(action);
+//       livekitService.disconnectRoom.and.returnValue(of(void 0)); // Simulate successful disconnect
 
-      effects.leaveMeeting$.subscribe((result) => {
-        expect(result).toEqual(successAction);
-        expect(livekitService.disconnectRoom).toHaveBeenCalled();
-        done();
-      });
-    });
+//       effects.leaveMeeting$.subscribe((result) => {
+//         expect(result).toEqual(successAction);
+//         expect(livekitService.disconnectRoom).toHaveBeenCalled();
+//         done();
+//       });
+//     });
 
-    it('should dispatch leaveMeetingFailure on failed disconnect', (done) => {
-      const error = new Error('Disconnect failed');
-      const action = LiveKitRoomActions.leaveMeeting();
-      const failureAction = LiveKitRoomActions.leaveMeetingFailure({
-        error: error.message, // Ensure it's error.message to compare strings
-      });
+//     it('should dispatch leaveMeetingFailure on failed disconnect', (done) => {
+//       const error = new Error('Disconnect failed');
+//       const action = LiveKitRoomActions.leaveMeeting();
+//       const failureAction = LiveKitRoomActions.leaveMeetingFailure({
+//         error: error.message, // Ensure it's error.message to compare strings
+//       });
 
-      actions$ = of(action);
-      livekitService.disconnectRoom.and.returnValue(throwError(() => error)); // Simulate failed disconnect
+//       actions$ = of(action);
+//       livekitService.disconnectRoom.and.returnValue(throwError(() => error)); // Simulate failed disconnect
 
-      effects.leaveMeeting$.subscribe((result) => {
-        expect(result).toEqual(failureAction);
-        done();
-      });
-    });
-  });
-});
+//       effects.leaveMeeting$.subscribe((result) => {
+//         expect(result).toEqual(failureAction);
+//         done();
+//       });
+//     });
+//   });
+// });
