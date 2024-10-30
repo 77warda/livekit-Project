@@ -166,6 +166,9 @@ export class LiveKitRoomComponent {
     this.unreadMessagesCount$ = this.store.pipe(
       select(selectUnreadMessagesCount)
     );
+    this.unreadMessagesCount$.subscribe((unread) => {
+      console.log('unread messages', unread);
+    });
     this.isMicOn$ = this.store.pipe(select(selectIsMicOn));
     this.isBreakoutModal$ = this.store.select(isBreakoutModalOpen);
     this.isInvitationModal$ = this.store.select(isInvitationModalOpen);
@@ -275,7 +278,7 @@ export class LiveKitRoomComponent {
     console.log('Updated chat messages:', this.allMessages);
   }
 
-  private handleMsgDataReceived(data: any) {
+  handleMsgDataReceived(data: any) {
     console.log('Participant Data:', data);
     this.hostName = data.participant?.identity;
 
@@ -344,7 +347,7 @@ export class LiveKitRoomComponent {
     );
   }
 
-  private storeRemoteParticipantNames() {
+  storeRemoteParticipantNames() {
     if (this.livekitService.participantNamesUpdated) {
       this.livekitService.participantNamesUpdated.subscribe((names: any) => {
         this.remoteParticipantNames = names;
@@ -354,7 +357,7 @@ export class LiveKitRoomComponent {
       console.error('participantNamesUpdated is undefined');
     }
   }
-  private storeLocalParticipantData() {
+  storeLocalParticipantData() {
     this.livekitService.localParticipantData.subscribe((data: any) => {
       this.localParticipant = data;
       console.log('local Participant name updated:', this.localParticipant);
@@ -766,37 +769,18 @@ export class LiveKitRoomComponent {
       const participants = this.remoteParticipantNames.map(
         (p: any) => p.identity
       );
-      const rooms = this.splitParticipantsIntoRooms(
-        participants,
-        numberOfRooms
+
+      // Dispatch action to create automatic rooms
+      this.store.dispatch(
+        LiveKitRoomActions.BreakoutActions.initiateAutomaticRoomCreation({
+          participants,
+          numberOfRooms,
+        })
       );
-      rooms.forEach((roomParticipants, index) => {
-        const roomName = `Breakout_Room_${index + 1}`;
-        let existingRoom = this.breakoutRoomsData.find(
-          (room) => room.roomName === roomName
-        );
-        if (existingRoom) {
-          existingRoom.participantIds.push(
-            ...roomParticipants.filter(
-              (p) => !existingRoom.participantIds.includes(p)
-            )
-          );
-        } else {
-          this.breakoutRoomsData.push({
-            participantIds: roomParticipants,
-            roomName: roomName,
-            type: 'automatic',
-          });
-        }
-        // Send breakout room invitation
-        this.livekitService.breakoutRoomAlert(roomParticipants, roomName);
-      });
-      // Emit the updated breakout rooms data
-      this.livekitService.breakoutRoomsDataUpdated.emit(this.breakoutRoomsData);
     } else if (roomType === 'manual') {
       console.log('Manual room selection initiated');
 
-      //Manual start here  Check if there are any configured breakout rooms
+      // Dispatch action for manual room selection
       this.store.dispatch(
         LiveKitRoomActions.BreakoutActions.initiateManualRoomSelection({
           roomType: 'manual',
@@ -807,24 +791,6 @@ export class LiveKitRoomComponent {
     console.log('Breakout room invitations sent');
     this.closeBreakoutModal();
   }
-
-  splitParticipantsIntoRooms(participants: any[], numberOfRooms: number) {
-    const rooms: any[][] = [];
-
-    // Initialize empty arrays for each room
-    for (let i = 0; i < numberOfRooms; i++) {
-      rooms.push([]);
-    }
-
-    // Distribute participants across rooms
-    participants.forEach((participant, index) => {
-      const roomIndex = index % numberOfRooms;
-      rooms[roomIndex].push(participant);
-    });
-
-    return rooms;
-  }
-  // When host submit form, it sends invitation to other participants by this join now function
 
   joinNow() {
     // Step 1: Leave the current room
@@ -876,15 +842,13 @@ export class LiveKitRoomComponent {
     console.log('existtt', this.livekitService.breakoutRoomsData);
     if (existingRoom) {
       // Step 3: If the room exists, join it using the dispatch action
-      // console.log(`Room "${this.roomName}" exists, joining now...`);
-
       const participantNames = [this.localParticipant.identity];
 
       // Dispatch action to join the meeting (existing room)
       this.store.dispatch(
         LiveKitRoomActions.MeetingActions.createMeeting({
-          participantNames: participantNames, // Pass the list of participant names
-          roomName: this.roomName, // Name of the existing breakout room
+          participantNames: participantNames,
+          roomName: this.roomName,
         })
       );
 

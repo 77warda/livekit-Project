@@ -334,83 +334,52 @@ export class LiveKitRoomEffects {
       ),
     { dispatch: false } // No action is dispatched after this effect
   );
-  // initiateAutomaticRoomCreation$ = createEffect(
-  //   () =>
-  //     this.actions$.pipe(
-  //       ofType(
-  //         LiveKitRoomActions.BreakoutActions.initiateAutomaticRoomCreation
-  //       ),
-  //       switchMap(({ roomType, numberOfRooms }) => {
-  //         if (roomType === 'automatic' && numberOfRooms > 0) {
-  //           return this.store.select(selectRemoteParticipantNames).pipe(
-  //             take(1),
-  //             map((remoteParticipantNames) => {
-  //               const participants = remoteParticipantNames.map(
-  //                 (p: any) => p.identity
-  //               );
-  //               const rooms = this.splitParticipantsIntoRooms(
-  //                 participants,
-  //                 numberOfRooms
-  //               );
+  createAutomaticRooms$ = createEffect(
+    () =>
+      this.actions$.pipe(
+        ofType(
+          LiveKitRoomActions.BreakoutActions.initiateAutomaticRoomCreation
+        ),
+        switchMap(({ participants, numberOfRooms }) => {
+          const rooms = this.splitParticipantsIntoRooms(
+            participants,
+            numberOfRooms
+          );
 
-  //               // Select current breakout rooms data
-  //               this.store
-  //                 .select(selectBreakoutRoomsData)
-  //                 .pipe(take(1))
-  //                 .subscribe((breakoutRoomsData: Room[]) => {
-  //                   rooms.forEach((roomParticipants, index) => {
-  //                     const roomName = `Breakout_Room_${index + 1}`;
+          // Prepare breakout room data
+          const breakoutRoomsData = rooms.map((roomParticipants, index) => ({
+            participantIds: roomParticipants,
+            roomName: `Breakout_Room_${index + 1}`,
+            type: 'automatic',
+          }));
 
-  //                     let existingRoom = breakoutRoomsData.find(
-  //                       (room) => room.roomName === roomName
-  //                     );
+          // Send invitations and emit updates
+          breakoutRoomsData.forEach((room) => {
+            this.livekitService.breakoutRoomAlert(
+              room.participantIds,
+              room.roomName
+            );
+          });
 
-  //                     if (existingRoom) {
-  //                       // Safely check if existingRoom is defined before accessing its properties
-  //                       existingRoom.participantIds.push(
-  //                         ...roomParticipants.filter(
-  //                           (p) => !existingRoom!.participantIds.includes(p) // Use non-null assertion here
-  //                         )
-  //                       );
-  //                     } else {
-  //                       // Create a new room with the participant IDs
-  //                       breakoutRoomsData.push({
-  //                         roomName: roomName,
-  //                         participantIds: roomParticipants,
-  //                         showAvailableParticipants: true, // Default value; adjust as necessary
-  //                       } as Room);
-  //                     }
+          // Emit the updated breakout rooms data
+          this.livekitService.breakoutRoomsDataUpdated.emit(breakoutRoomsData);
 
-  //                     // Send breakout room invitation
-  //                     this.livekitService.breakoutRoomAlert(
-  //                       roomParticipants,
-  //                       roomName
-  //                     );
-  //                   });
+          return of(); // Return empty observable since we're not dispatching further actions
+        })
+      ),
+    { dispatch: false } // No action is dispatched after this effect
+  );
 
-  //                   // Emit the updated breakout rooms data (if needed)
-  //                   this.livekitService.breakoutRoomsDataUpdated.emit(
-  //                     breakoutRoomsData
-  //                   );
-  //                 });
-  //             })
-  //           );
-  //         }
-  //         return [];
-  //       })
-  //     ),
-  //   { dispatch: false } // No action is dispatched after this effect
-  // );
-
-  // Helper method to split participants into rooms
-  // private splitParticipantsIntoRooms(
-  //   participants: string[],
-  //   numberOfRooms: number
-  // ): string[][] {
-  //   const rooms: string[][] = Array.from({ length: numberOfRooms }, () => []);
-  //   participants.forEach((participant, index) => {
-  //     rooms[index % numberOfRooms].push(participant);
-  //   });
-  //   return rooms;
-  // }
+  // Utility function to split participants into rooms
+  private splitParticipantsIntoRooms(
+    participants: string[],
+    numberOfRooms: number
+  ) {
+    const rooms: string[][] = Array.from({ length: numberOfRooms }, () => []);
+    participants.forEach((participant, index) => {
+      const roomIndex = index % numberOfRooms;
+      rooms[roomIndex].push(participant);
+    });
+    return rooms;
+  }
 }

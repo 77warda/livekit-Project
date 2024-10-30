@@ -98,7 +98,7 @@ export const BreakoutActions = createActionGroup({
     // manual and automatic rooms
     InitiateManualRoomSelection: props<{ roomType: string }>(),
     InitiateAutomaticRoomCreation: props<{
-      roomType: string;
+      participants: string[];
       numberOfRooms: number;
     }>(),
   },

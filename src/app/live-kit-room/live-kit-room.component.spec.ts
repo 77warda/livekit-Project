@@ -17,7 +17,7 @@ import { ErrorDialogComponent } from '../error-dialog/error-dialog.component';
 import { Store, StoreModule } from '@ngrx/store';
 import * as LiveKitRoomActions from '../redux/actions';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { RemoteTrack } from 'livekit-client';
+import { LocalParticipant, RemoteTrack } from 'livekit-client';
 import { MeetingService } from '../Meeting-Service/meeting.service';
 
 class MockLiveKitService {
@@ -39,8 +39,6 @@ describe('LiveKitRoomComponent;', () => {
   let formBuilder: FormBuilder;
   let mockElementRef: ElementRef;
   let mockChatSideWindowVisible$: Subject<boolean>;
-  // let snackBarSpy: jasmine.Spy;
-  // let mockMeetingService: jasmine.SpyObj<MeetingService>;
 
   const GRIDCOLUMN: { [key: number]: string } = {
     1: '1fr',
@@ -51,12 +49,6 @@ describe('LiveKitRoomComponent;', () => {
     6: '1fr 1fr 1fr',
   };
   beforeEach(async () => {
-    // mockLivekitService = jasmine.createSpyObj('LiveKitService', [], {
-    //   messageEmitter: messageEmitter.asObservable(),
-    // });
-    // mockMeetingService = jasmine.createSpyObj('MeetingService', [
-    //   'sendBroadcastMessage',
-    // ]);
     mockChatSideWindowVisible$ = new Subject<boolean>();
     mockElementRef = {
       nativeElement: jasmine.createSpyObj('nativeElement', [
@@ -777,19 +769,19 @@ describe('LiveKitRoomComponent;', () => {
     ).toHaveBeenCalledWith(component.breakoutRoomsData);
   }));
 
-  it('should split participants correctly into rooms', () => {
-    const participants = ['p1', 'p2', 'p3', 'p4', 'p5'];
-    const numberOfRooms = 2;
+  // it('should split participants correctly into rooms', () => {
+  //   const participants = ['p1', 'p2', 'p3', 'p4', 'p5'];
+  //   const numberOfRooms = 2;
 
-    const rooms = component.splitParticipantsIntoRooms(
-      participants,
-      numberOfRooms
-    );
+  //   const rooms = component.splitParticipantsIntoRooms(
+  //     participants,
+  //     numberOfRooms
+  //   );
 
-    expect(rooms.length).toBe(2);
-    expect(rooms[0]).toEqual(['p1', 'p3', 'p5']);
-    expect(rooms[1]).toEqual(['p2', 'p4']);
-  });
+  //   expect(rooms.length).toBe(2);
+  //   expect(rooms[0]).toEqual(['p1', 'p3', 'p5']);
+  //   expect(rooms[1]).toEqual(['p2', 'p4']);
+  // });
 
   // describe('onRoomTypeChanged', () => {
   //   it('should reset selectedParticipants when roomType is automatic', () => {
@@ -1116,7 +1108,6 @@ describe('LiveKitRoomComponent;', () => {
       // Check if leaveBtn was called as expected
       expect(component.leaveBtn).toHaveBeenCalled();
     });
-
     it('should dispatch createMeeting action and log the join message when room exists', async () => {
       // Arrange: Mock necessary values
       const participantIdentity = 'HostUser';
@@ -1147,6 +1138,37 @@ describe('LiveKitRoomComponent;', () => {
         'TestRoom'
       );
     });
+    it('should successfully join an existing room', fakeAsync(() => {
+      // Arrange
+      component.roomName = 'Room 1'; // Set the room name to an existing room
+      component.localParticipant = {
+        identity: 'hostIdentity',
+        handRaised: false,
+      };
+
+      // Initialize breakoutRoomsData to contain a room with the expected name
+      component.livekitService.breakoutRoomsData = [
+        {
+          roomName: 'Room 1',
+          participantIds: ['participant1', 'participant2'],
+        },
+        { roomName: 'Room 2', participantIds: [] },
+      ];
+
+      // Act
+      component.hostJoinNow(); // Call the method to join the room
+
+      tick(); // Simulate the passage of time to let any async operations complete
+
+      // Assert
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          participantNames: ['hostIdentity'],
+          roomName: 'Room 1',
+          type: '[[Meeting]] createMeeting', // Make sure this matches the actual action type
+        })
+      );
+    }));
   });
   describe('grid columns for participants(get GalleryGridColumnStyle)', () => {
     it('should return correct grid column style for participants <= 6', () => {
@@ -1314,69 +1336,69 @@ describe('LiveKitRoomComponent;', () => {
   });
 
   // ===========
-  it('should split participants into breakout rooms and send invitations', async () => {
-    // Arrange
+  // it('should split participants into breakout rooms and send invitations', async () => {
+  //   // Arrange
 
-    // Set form values explicitly to match the conditions for calling splitParticipantsIntoRooms
-    component.breakoutForm.patchValue({
-      roomType: 'automatic',
-      numberOfRooms: 2,
-    });
+  //   // Set form values explicitly to match the conditions for calling splitParticipantsIntoRooms
+  //   component.breakoutForm.patchValue({
+  //     roomType: 'automatic',
+  //     numberOfRooms: 2,
+  //   });
 
-    const mockSplitRooms = [
-      ['participant_1', 'participant_2'],
-      ['participant_3', 'participant_4'],
-    ];
+  //   const mockSplitRooms = [
+  //     ['participant_1', 'participant_2'],
+  //     ['participant_3', 'participant_4'],
+  //   ];
 
-    // Spy on the splitParticipantsIntoRooms method
-    const splitParticipantsSpy = spyOn(
-      component,
-      'splitParticipantsIntoRooms'
-    ).and.returnValue(mockSplitRooms);
+  //   // Spy on the splitParticipantsIntoRooms method
+  //   const splitParticipantsSpy = spyOn(
+  //     component,
+  //     'splitParticipantsIntoRooms'
+  //   ).and.returnValue(mockSplitRooms);
 
-    // Spy on the LivekitService breakoutRoomAlert method
-    mockLivekitService.breakoutRoomAlert.and.stub(); // Mock breakoutRoomAlert to do nothing
+  //   // Spy on the LivekitService breakoutRoomAlert method
+  //   mockLivekitService.breakoutRoomAlert.and.stub(); // Mock breakoutRoomAlert to do nothing
 
-    // Spy on the LivekitService breakoutRoomsDataUpdated.emit method
-    mockLivekitService.breakoutRoomsDataUpdated = { emit: jasmine.createSpy() };
+  //   // Spy on the LivekitService breakoutRoomsDataUpdated.emit method
+  //   mockLivekitService.breakoutRoomsDataUpdated = { emit: jasmine.createSpy() };
 
-    // Make sure breakoutRoomsData starts empty for this test
-    component.breakoutRoomsData = [];
+  //   // Make sure breakoutRoomsData starts empty for this test
+  //   component.breakoutRoomsData = [];
 
-    // Act
-    await component.submitBreakoutForm();
+  //   // Act
+  //   await component.submitBreakoutForm();
 
-    // Assert
-    expect(splitParticipantsSpy).toHaveBeenCalledWith(
-      ['participant1', 'participant2', 'participant3', 'participant4'], // Expected participants
-      2 // Expected number of rooms
-    );
+  //   // Assert
+  //   expect(splitParticipantsSpy).toHaveBeenCalledWith(
+  //     ['participant1', 'participant2', 'participant3', 'participant4'], // Expected participants
+  //     2 // Expected number of rooms
+  //   );
 
-    expect(mockLivekitService.breakoutRoomAlert).toHaveBeenCalledWith(
-      ['participant_1', 'participant_2'],
-      'Breakout_Room_1'
-    );
+  //   expect(mockLivekitService.breakoutRoomAlert).toHaveBeenCalledWith(
+  //     ['participant_1', 'participant_2'],
+  //     'Breakout_Room_1'
+  //   );
 
-    expect(mockLivekitService.breakoutRoomAlert).toHaveBeenCalledWith(
-      ['participant_3', 'participant_4'],
-      'Breakout_Room_2'
-    );
+  //   expect(mockLivekitService.breakoutRoomAlert).toHaveBeenCalledWith(
+  //     ['participant_3', 'participant_4'],
+  //     'Breakout_Room_2'
+  //   );
 
-    expect(
-      mockLivekitService.breakoutRoomsDataUpdated.emit
-    ).toHaveBeenCalledWith([
-      {
-        participantIds: ['participant_1', 'participant_2'],
-        roomName: 'Breakout_Room_1',
-        type: 'automatic',
-      },
-      {
-        participantIds: ['participant_3', 'participant_4'],
-        roomName: 'Breakout_Room_2',
-        type: 'automatic',
-      },
-    ]);
-  });
+  //   expect(
+  //     mockLivekitService.breakoutRoomsDataUpdated.emit
+  //   ).toHaveBeenCalledWith([
+  //     {
+  //       participantIds: ['participant_1', 'participant_2'],
+  //       roomName: 'Breakout_Room_1',
+  //       type: 'automatic',
+  //     },
+  //     {
+  //       participantIds: ['participant_3', 'participant_4'],
+  //       roomName: 'Breakout_Room_2',
+  //       type: 'automatic',
+  //     },
+  //   ]);
+  // });
 
   it('should not create breakout rooms if roomType is not automatic', async () => {
     // Arrange
@@ -1395,32 +1417,29 @@ describe('LiveKitRoomComponent;', () => {
     ).not.toHaveBeenCalled(); // Assert breakout room data was not emitted
   });
 
-  it('should not create breakout rooms if numberOfRooms is 0 or less', async () => {
-    // Arrange
-    component.breakoutForm.patchValue({
-      roomType: 'automatic',
-      numberOfRooms: 0,
-    });
+  // it('should not create breakout rooms if numberOfRooms is 0 or less', async () => {
+  //   // Arrange
+  //   component.breakoutForm.patchValue({
+  //     roomType: 'automatic',
+  //     numberOfRooms: 0,
+  //   });
 
-    // Mock the breakoutRoomAlert and breakoutRoomsDataUpdated.emit as spies
-    const breakoutRoomAlertSpy = spyOn(mockLivekitService, 'breakoutRoomAlert');
-    const breakoutRoomsDataUpdatedSpy = spyOn(
-      mockLivekitService.breakoutRoomsDataUpdated,
-      'emit'
-    );
+  //   // Mock the breakoutRoomAlert and breakoutRoomsDataUpdated.emit as spies
+  //   const breakoutRoomAlertSpy = spyOn(mockLivekitService, 'breakoutRoomAlert');
+  //   const breakoutRoomsDataUpdatedSpy = spyOn(
+  //     mockLivekitService.breakoutRoomsDataUpdated,
+  //     'emit'
+  //   );
 
-    // Act
-    await component.submitBreakoutForm();
+  //   // Act
+  //   await component.submitBreakoutForm();
 
-    // Assert
-    expect(breakoutRoomAlertSpy).not.toHaveBeenCalled(); // Ensure no breakout room alert was sent
-    expect(breakoutRoomsDataUpdatedSpy).not.toHaveBeenCalled(); // Ensure breakout room data was not emitted
-  });
+  //   // Assert
+  //   expect(breakoutRoomAlertSpy).not.toHaveBeenCalled(); // Ensure no breakout room alert was sent
+  //   expect(breakoutRoomsDataUpdatedSpy).not.toHaveBeenCalled(); // Ensure breakout room data was not emitted
+  // });
   describe('openHostToBrMsgModal()', () => {
     it('should dispatch the openHostToBrMsgModal action', () => {
-      // Arrange: Create a spy on the store's dispatch method
-      const dispatchSpy = spyOn(store, 'dispatch');
-
       // Act: Call the method
       component.openHostToBrMsgModal();
 
@@ -1430,11 +1449,30 @@ describe('LiveKitRoomComponent;', () => {
       );
     });
   });
+  describe('showInvitationModal()', () => {
+    it('should dispatch the showInvitationModal action', () => {
+      // Act: Call the method
+      component.showInvitationModal();
+
+      // Assert: Check that dispatch was called with the correct action
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        LiveKitRoomActions.BreakoutActions.openInvitationModal()
+      );
+    });
+  });
+  describe('openReceiveMsgModal()', () => {
+    it('should dispatch the openReceiveMsgModal action', () => {
+      // Act: Call the method
+      component.openReceiveMsgModal();
+
+      // Assert: Check that dispatch was called with the correct action
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        LiveKitRoomActions.BreakoutActions.openHelpMessageModal()
+      );
+    });
+  });
   describe('toggleParticipantsList()', () => {
     it('should dispatch the toggleParticipantsList action with the correct index', () => {
-      // Arrange: Create a spy on the store's dispatch method
-      const dispatchSpy = spyOn(store, 'dispatch');
-
       // Define a test index
       const testIndex = 1;
 
@@ -1446,6 +1484,150 @@ describe('LiveKitRoomComponent;', () => {
         LiveKitRoomActions.BreakoutActions.toggleParticipantsList({
           index: testIndex,
         })
+      );
+    });
+  });
+  describe('calculateDistribution() message', () => {
+    it('should dispatch calculateDistribution action with correct parameters', () => {
+      // Arrange
+      const numberOfRooms = 3; // Example number of rooms
+      const totalParticipants = 12; // Example total participants
+      component.breakoutForm.get('numberOfRooms')?.setValue(numberOfRooms); // Set value in the form control
+      component.totalParticipants = totalParticipants; // Set the total participants in the component
+
+      // Act
+      component.calculateDistribution(); // Call the method
+
+      // Assert
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        LiveKitRoomActions.BreakoutActions.calculateDistribution({
+          numberOfRooms,
+          totalParticipants,
+        })
+      );
+    });
+  });
+  describe('Different Functions of ngoninit', () => {
+    describe('storeLocalParticipantData', () => {
+      it('should update localParticipant when new data is received', () => {
+        // Arrange
+        const testData = { name: 'Test Participant', id: 'participant1' };
+        const mockLocalParticipantData = new Subject<any>(); // Create a new Subject for each test
+
+        // Override the livekitService's localParticipantData observable
+        mockLivekitService.localParticipantData =
+          mockLocalParticipantData.asObservable();
+
+        // Call the method to set up the subscription
+        component.storeLocalParticipantData();
+
+        // Spy on console.log
+        spyOn(console, 'log'); // Ensure console.log is mocked
+
+        // Act
+        mockLocalParticipantData.next(testData); // Emit new data
+
+        // Assert
+        expect(component.localParticipant).toEqual(testData); // Check if localParticipant is updated
+        expect(console.log).toHaveBeenCalledWith(
+          'local Participant name updated:',
+          testData
+        );
+      });
+    });
+    describe('storeRemoteParticipantNames', () => {
+      let mockParticipantNamesUpdated: Subject<any>;
+
+      beforeEach(() => {
+        mockParticipantNamesUpdated = new Subject<any>();
+        mockLivekitService.participantNamesUpdated =
+          mockParticipantNamesUpdated.asObservable();
+      });
+
+      it('should update remoteParticipantNames and totalParticipants when new names are received', () => {
+        // Arrange
+        const testNames = ['Participant 1', 'Participant 2'];
+
+        // Act
+        component.storeRemoteParticipantNames();
+        mockParticipantNamesUpdated.next(testNames); // Emit new names
+
+        // Assert
+        expect(component.remoteParticipantNames).toEqual(testNames); // Check remoteParticipantNames update
+        expect(component.totalParticipants).toEqual(testNames.length); // Check totalParticipants update
+      });
+
+      it('should log an error if participantNamesUpdated is undefined', () => {
+        // Arrange
+        mockLivekitService.participantNamesUpdated = undefined;
+        spyOn(console, 'error'); // Spy on console.error
+
+        // Act
+        component.storeRemoteParticipantNames();
+
+        // Assert
+        expect(console.error).toHaveBeenCalledWith(
+          'participantNamesUpdated is undefined'
+        );
+      });
+    });
+  });
+  describe('openReceiveMsgModal()', () => {
+    it('should dispatch initiateAutomaticRoomCreation action with participants and numberOfRooms if roomType is automatic and numberOfRooms > 0', async () => {
+      // Arrange
+      component.breakoutForm.get('roomType')?.setValue('automatic');
+      component.breakoutForm.get('numberOfRooms')?.setValue(2);
+
+      component.remoteParticipantNames = [
+        { identity: 'participant1' },
+        { identity: 'participant2' },
+        { identity: 'participant3' },
+        { identity: 'participant4' },
+      ];
+
+      const expectedAction =
+        LiveKitRoomActions.BreakoutActions.initiateAutomaticRoomCreation({
+          participants: [
+            'participant1',
+            'participant2',
+            'participant3',
+            'participant4',
+          ],
+          numberOfRooms: 2,
+        });
+
+      // Act
+      await component.submitBreakoutForm();
+
+      // Assert
+      expect(store.dispatch).toHaveBeenCalledWith(expectedAction);
+    });
+
+    it('should not dispatch initiateAutomaticRoomCreation if roomType is not automatic', async () => {
+      // Arrange
+      component.breakoutForm.get('roomType')?.setValue('manual');
+      component.breakoutForm.get('numberOfRooms')?.setValue(2);
+
+      // Act
+      await component.submitBreakoutForm();
+
+      // Assert
+      expect(store.dispatch).not.toHaveBeenCalledWith(
+        jasmine.objectContaining({ type: 'initiateAutomaticRoomCreation' })
+      );
+    });
+
+    it('should not dispatch initiateAutomaticRoomCreation if numberOfRooms is 0 or less', async () => {
+      // Arrange
+      component.breakoutForm.get('roomType')?.setValue('automatic');
+      component.breakoutForm.get('numberOfRooms')?.setValue(0);
+
+      // Act
+      await component.submitBreakoutForm();
+
+      // Assert
+      expect(store.dispatch).not.toHaveBeenCalledWith(
+        jasmine.objectContaining({ type: 'initiateAutomaticRoomCreation' })
       );
     });
   });
