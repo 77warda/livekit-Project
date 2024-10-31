@@ -166,9 +166,6 @@ export class LiveKitRoomComponent {
     this.unreadMessagesCount$ = this.store.pipe(
       select(selectUnreadMessagesCount)
     );
-    this.unreadMessagesCount$.subscribe((unread) => {
-      console.log('unread messages', unread);
-    });
     this.isMicOn$ = this.store.pipe(select(selectIsMicOn));
     this.isBreakoutModal$ = this.store.select(isBreakoutModalOpen);
     this.isInvitationModal$ = this.store.select(isInvitationModalOpen);
@@ -247,7 +244,7 @@ export class LiveKitRoomComponent {
     });
   }
 
-  private handleNewMessage(content: any) {
+  handleNewMessage(content: any) {
     const newMessage = {
       senderName: content.title,
       receivedMsg: content.content,

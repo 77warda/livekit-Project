@@ -219,17 +219,19 @@ export const liveKitRoomReducer = createReducer(
       };
     }
   ),
-  on(LiveKitRoomActions.ChatActions.sendMessage, (state, { message }) => {
-    const sendMessage = message;
-    const sendingTime = new Date();
-    return {
-      ...state,
-      allMessages: [
-        ...state.allMessages,
-        { sendMessage, sendingTime, type: 'sent' },
-      ],
-    };
-  }),
+  on(
+    LiveKitRoomActions.ChatActions.sendMessage,
+    (state, { message, recipient }) => {
+      const sendingTime = new Date();
+      return {
+        ...state,
+        allMessages: [
+          ...state.allMessages,
+          { sendMessage: message, recipient, sendingTime, type: 'sent' },
+        ],
+      };
+    }
+  ),
   on(LiveKitRoomActions.MeetingActions.leaveMeetingSuccess, (state) => ({
     ...state,
     isMeetingStarted: false,

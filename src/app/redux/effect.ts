@@ -188,35 +188,6 @@ export class LiveKitRoomEffects {
       )
     )
   );
-  // toggle raise hand
-  // raiseHand$ = createEffect(
-  //   () =>
-  //     this.actions$.pipe(
-  //       ofType(LiveKitRoomActions.HandRaiseActions.raiseHand),
-  //       tap(({ participantId }) => {
-  //         this.livekitService.raiseHand(participantId);
-  //         this.snackBar.open(`${participantId} raised hand`, 'Close', {
-  //           duration: 2000,
-  //         });
-  //       })
-  //     ),
-  //   { dispatch: false }
-  // );
-
-  // lowerHand$ = createEffect(
-  //   () =>
-  //     this.actions$.pipe(
-  //       ofType(LiveKitRoomActions.HandRaiseActions.lowerHand),
-  //       tap(({ participantId }) => {
-  //         this.livekitService.lowerHand(participantId);
-  //         this.snackBar.open(`${participantId} lowered hand`, 'Close', {
-  //           duration: 2000,
-  //         });
-  //       })
-  //     ),
-  //   { dispatch: false }
-  // );
-  // send chat message
   sendChatMessage$ = createEffect(
     () =>
       this.actions$.pipe(
@@ -289,6 +260,51 @@ export class LiveKitRoomEffects {
     )
   );
   // manual
+  // initiateManualRoomSelection$ = createEffect(
+  //   () =>
+  //     this.actions$.pipe(
+  //       ofType(LiveKitRoomActions.BreakoutActions.initiateManualRoomSelection),
+  //       switchMap(({ roomType }) => {
+  //         if (roomType === 'manual') {
+  //           console.log('Manual room selection initiated');
+
+  //           return this.store.select(selectBreakoutRoomsData).pipe(
+  //             take(1),
+  //             map((breakoutRoomsData) => {
+  //               console.log('rooms data is', breakoutRoomsData);
+  //               if (breakoutRoomsData.length > 0) {
+  //                 breakoutRoomsData.forEach((room) => {
+  //                   const roomParticipants = room.participantIds;
+  //                   const roomName = room.roomName;
+
+  //                   if (roomParticipants && roomParticipants.length > 0) {
+  //                     console.log(`Sending invitations to room: ${roomName}`);
+  //                     this.livekitService.breakoutRoomAlert(
+  //                       roomParticipants,
+  //                       roomName
+  //                     );
+  //                   } else {
+  //                     console.log(
+  //                       `No participants selected for room: ${room.roomName}`
+  //                     );
+  //                   }
+  //                 });
+
+  //                 // Emit the updated breakout rooms data (if needed)
+  //                 this.livekitService.breakoutRoomsDataUpdated.emit(
+  //                   breakoutRoomsData
+  //                 );
+  //               } else {
+  //                 console.log('No breakout rooms configured.');
+  //               }
+  //             })
+  //           );
+  //         }
+  //         return [];
+  //       })
+  //     ),
+  //   { dispatch: false } // No action is dispatched after this effect
+  // );
   initiateManualRoomSelection$ = createEffect(
     () =>
       this.actions$.pipe(
@@ -301,6 +317,11 @@ export class LiveKitRoomEffects {
               take(1),
               map((breakoutRoomsData) => {
                 console.log('rooms data is', breakoutRoomsData);
+                // Emit updated breakout rooms data, even if it's empty
+                this.livekitService.breakoutRoomsDataUpdated.emit(
+                  breakoutRoomsData
+                );
+
                 if (breakoutRoomsData.length > 0) {
                   breakoutRoomsData.forEach((room) => {
                     const roomParticipants = room.participantIds;
@@ -318,11 +339,6 @@ export class LiveKitRoomEffects {
                       );
                     }
                   });
-
-                  // Emit the updated breakout rooms data (if needed)
-                  this.livekitService.breakoutRoomsDataUpdated.emit(
-                    breakoutRoomsData
-                  );
                 } else {
                   console.log('No breakout rooms configured.');
                 }

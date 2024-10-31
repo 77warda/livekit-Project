@@ -17,7 +17,13 @@ import { ErrorDialogComponent } from '../error-dialog/error-dialog.component';
 import { Store, StoreModule } from '@ngrx/store';
 import * as LiveKitRoomActions from '../redux/actions';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { LocalParticipant, RemoteTrack } from 'livekit-client';
+import {
+  LocalParticipant,
+  RemoteParticipant,
+  RemoteTrack,
+  RemoteTrackPublication,
+  Track,
+} from 'livekit-client';
 import { MeetingService } from '../Meeting-Service/meeting.service';
 
 class MockLiveKitService {
@@ -33,12 +39,14 @@ describe('LiveKitRoomComponent;', () => {
   let mockLivekitService: any;
   let msgDataReceived: Subject<any>;
   let messageEmitter: Subject<any>;
+  let screenShareTrackSubscribed: Subject<any>;
   let store: any;
   let dispatchSpy: jasmine.Spy;
   // let liveKitService: jasmine.SpyObj<LiveKitService>;
   let formBuilder: FormBuilder;
   let mockElementRef: ElementRef;
   let mockChatSideWindowVisible$: Subject<boolean>;
+  let webSocketStatusSubject: Subject<string>;
 
   const GRIDCOLUMN: { [key: number]: string } = {
     1: '1fr',
@@ -59,6 +67,8 @@ describe('LiveKitRoomComponent;', () => {
 
     msgDataReceived = new Subject<any>();
     messageEmitter = new Subject<any>();
+    screenShareTrackSubscribed = new Subject<any>();
+    webSocketStatusSubject = new Subject<string>();
     mockLivekitService = {
       breakoutRoomAlert: jasmine
         .createSpy('breakoutRoomAlert')
@@ -99,6 +109,8 @@ describe('LiveKitRoomComponent;', () => {
       remoteVideoTrackSubscribed: new EventEmitter<RemoteTrack>(),
       remoteAudioTrackSubscribed: new EventEmitter<void>(),
       breakoutRoomsDataUpdated: jasmine.createSpy('emit'),
+      screenShareTrackSubscribed: screenShareTrackSubscribed.asObservable(),
+      handleTrackSubscribed: jasmine.createSpy('handleTrackSubscribed'),
     };
     await TestBed.configureTestingModule({
       imports: [
@@ -134,7 +146,7 @@ describe('LiveKitRoomComponent;', () => {
     component = fixture.componentInstance;
     store = TestBed.inject(Store);
     dispatchSpy = spyOn(store, 'dispatch').and.callThrough();
-    component.chatSideWindowVisible$ = of(false);
+    // component.chatSideWindowVisible$ = of(false);
     component.participantName = 'Test Participant';
     (component as any).GRIDCOLUMN = GRIDCOLUMN;
     formBuilder = TestBed.inject(FormBuilder);
@@ -180,6 +192,7 @@ describe('LiveKitRoomComponent;', () => {
       { identity: 'participant3' },
       { identity: 'participant4' },
     ];
+    component.ngAfterViewInit();
     fixture.detectChanges();
   });
   it('should create the app component', () => {
@@ -1571,8 +1584,95 @@ describe('LiveKitRoomComponent;', () => {
         );
       });
     });
+    describe('handleMsgDataReceived', () => {
+      it('should subscribe to msgDataReceived and call handleMsgDataReceived', () => {
+        const mockData = {
+          participant: { identity: 'participant1' },
+          message: { message: 'Hello world' },
+        };
+
+        spyOn(component, 'handleMsgDataReceived'); // Spy on the method to check if it gets called
+
+        // Simulate message reception by emitting data
+        msgDataReceived.next(mockData);
+
+        expect(component.handleMsgDataReceived).toHaveBeenCalledWith(mockData);
+      });
+    });
+    describe('setupMessageSubscriptions, when subscribe messageToMain', () => {
+      it('should subscribe to messageToMain and process messages correctly', () => {
+        const mockMsgArray = [
+          { content: 'I need help', title: 'User1', timestamp: Date.now() },
+          {
+            content: 'Some other message',
+            title: 'User2',
+            timestamp: Date.now(),
+          },
+        ];
+
+        spyOn(component, 'openReceiveMsgModal'); // Spy on the method to check if it gets called
+
+        // Simulate message reception by emitting the message array
+        mockLivekitService.messageToMain.next(mockMsgArray);
+
+        expect(component.allMessagesToMainRoom.length).toBe(1); // Check if one message was added
+        expect(component.allMessagesToMainRoom[0]).toEqual(
+          jasmine.objectContaining({
+            senderName: 'User1',
+            receivedMsg: 'I need help',
+            receivingTime: jasmine.any(Date), // Check that it is a Date
+            type: 'received',
+          })
+        );
+
+        expect(component.roomName).toBe('User1'); // Check if roomName is set correctly
+        expect(component.openReceiveMsgModal).toHaveBeenCalled(); // Check if the modal was opened
+      });
+
+      it('should not process messages that do not match the content criteria', () => {
+        const mockMsgArray = [
+          { content: 'Not important', title: 'User3', timestamp: Date.now() },
+        ];
+
+        mockLivekitService.messageToMain.next(mockMsgArray); // Emit a message that should be ignored
+
+        expect(component.allMessagesToMainRoom.length).toBe(0); // Should not add any messages
+      });
+    });
+    describe('setupMessageSubscriptions, when subscribe messageContentReceived', () => {
+      it('should subscribe to messageContentReceived and call handleNewMessage for valid messages', () => {
+        const mockContentArray = [
+          { content: 'Hello world', title: 'test-room' },
+          { content: 'Ignored message', title: 'other-room' },
+          { content: null, title: 'test-room' }, // Should be ignored
+        ];
+
+        spyOn(component, 'handleNewMessage'); // Spy on the method to check if it gets called
+
+        // Simulate message content reception by emitting the content array
+        mockLivekitService.messageContentReceived.next(mockContentArray);
+
+        expect(component.handleNewMessage).toHaveBeenCalledWith(
+          mockContentArray[0]
+        ); // Check if handleNewMessage was called for valid message
+        expect(component.handleNewMessage).toHaveBeenCalledTimes(1); // Should only be called once
+      });
+      it('should not call handleNewMessage for messages that do not meet criteria', () => {
+        const mockContentArray = [
+          { content: 'Hello world', title: 'other-room' }, // Invalid title
+          { content: null, title: 'test-room' }, // Invalid content
+        ];
+
+        spyOn(component, 'handleNewMessage');
+
+        // Simulate message content reception
+        mockLivekitService.messageContentReceived.next(mockContentArray);
+
+        expect(component.handleNewMessage).not.toHaveBeenCalled(); // Should not be called for any invalid messages
+      });
+    });
   });
-  describe('openReceiveMsgModal()', () => {
+  describe('Create Automatic breakout room and form submit ()', () => {
     it('should dispatch initiateAutomaticRoomCreation action with participants and numberOfRooms if roomType is automatic and numberOfRooms > 0', async () => {
       // Arrange
       component.breakoutForm.get('roomType')?.setValue('automatic');
@@ -1630,5 +1730,70 @@ describe('LiveKitRoomComponent;', () => {
         jasmine.objectContaining({ type: 'initiateAutomaticRoomCreation' })
       );
     });
+  });
+  it('should set roomName and hostName and call showInvitationModal when message type is "breakoutRoom"', () => {
+    const mockData = {
+      participant: { identity: 'participant1' },
+      message: {
+        type: 'breakoutRoom',
+        roomName: 'NewRoom',
+      },
+    };
+
+    spyOn(component, 'showInvitationModal'); // Spy on the method to check if it gets called
+
+    component.handleMsgDataReceived(mockData);
+
+    expect(component.roomName).toBe('NewRoom');
+    expect(component.hostName).toBe('participant1');
+    expect(component.showInvitationModal).toHaveBeenCalled();
+  });
+  describe('ngAfterViewInit testing', () => {
+    it('should handle valid screen share track', () => {
+      const mockTrack: RemoteTrack = {
+        source: Track.Source.ScreenShare,
+        // Add other required properties and methods for the RemoteTrack mock
+      } as RemoteTrack;
+
+      // Emit a valid screen share track
+      screenShareTrackSubscribed.next(mockTrack);
+
+      expect(component.screenShareTrack).toBe(mockTrack); // Check if the track is set correctly
+    });
+
+    it('should reset screenShareTrack on invalid track', () => {
+      // Emit an undefined track
+      screenShareTrackSubscribed.next(undefined);
+
+      expect(component.screenShareTrack).toBeUndefined(); // Check if the track is reset
+    });
+
+    it('should log an error if screenShareTrackSubscribed is undefined', () => {
+      spyOn(console, 'error'); // Spy on console.error to track calls
+
+      // Set screenShareTrackSubscribed to undefined
+      mockLivekitService.screenShareTrackSubscribed = undefined;
+
+      // Call ngAfterViewInit to trigger the code
+      component.ngAfterViewInit();
+
+      // Verify the error was logged
+      expect(console.error).toHaveBeenCalledWith(
+        'screenShareTrackSubscribed is undefined'
+      );
+    });
+  });
+  it('should subscribe to webSocketStatus$ and update webSocketStatus accordingly', () => {
+    const statusMock = 'connected';
+
+    // Trigger the observable
+    webSocketStatusSubject.next(statusMock);
+
+    // Verify that the component's status property was updated
+    expect(component.webSocketStatus).toBe(statusMock);
+    expect(console.log).toHaveBeenCalledWith(
+      'WebSocket status updated:',
+      statusMock
+    );
   });
 });
