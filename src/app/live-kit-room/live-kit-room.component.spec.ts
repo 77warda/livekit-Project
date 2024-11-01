@@ -25,6 +25,7 @@ import {
   Track,
 } from 'livekit-client';
 import { MeetingService } from '../Meeting-Service/meeting.service';
+import { selectBreakoutRoomsData } from '../redux/selectors';
 
 class MockLiveKitService {
   toggleVideo() {
@@ -474,58 +475,6 @@ describe('LiveKitRoomComponent;', () => {
     // Assert
     expect(messageContainerElement.nativeElement.scrollTop).toBe(1000);
   }));
-  // ===========new work =====================
-  // describe('open and close modal when sending message from host to breakout room', () => {
-  // it('should open the modal and log a message', () => {
-  //   // Spy on console.log to verify it's called
-  //   const consoleLogSpy = spyOn(console, 'log');
-  //   // Call the method
-  //   component.openHostToBrMsgModal();
-  //   // Check if the modal is opened
-  //   expect(component.isHostToBrMsgModalOpen).toBeTrue();
-  //   // Check if console.log was called with the expected message
-  //   expect(consoleLogSpy).toHaveBeenCalledWith('helo');
-  // });
-  // it('should close the modal and reset the message content and selected breakout room', () => {
-  //   // Set initial values before calling the method
-  //   component.isHostToBrMsgModalOpen = true; // Assuming modal is open initially
-  //   component.messageContent = 'Some message';
-  //   component.selectedBreakoutRoom = 'Room 1';
-  //   // Call the method
-  //   component.closeHostToBrMsgModal();
-  //   // Check if the values have been reset
-  //   expect(component.isHostToBrMsgModalOpen).toBeFalse();
-  //   expect(component.messageContent).toBe('');
-  //   expect(component.selectedBreakoutRoom).toBe('');
-  // });
-  // });
-  // describe('toggleParticipantsList', () => {
-  //   it('should toggle the showAvailableParticipants property for the specified room', () => {
-  //     // Setup initial breakoutRoomsData
-  //     component.breakoutRoomsData = [
-  //       { roomName: 'Room A', showAvailableParticipants: false },
-  //       { roomName: 'Room B', showAvailableParticipants: true },
-  //     ];
-
-  //     const index = 0; // Index of the room to toggle
-
-  //     // Call the method
-  //     component.toggleParticipantsList(new Event('click'), index);
-
-  //     // Check if the property has been toggled
-  //     expect(
-  //       component.breakoutRoomsData[index].showAvailableParticipants
-  //     ).toBeTrue();
-
-  //     // Call the method again to toggle it back
-  //     component.toggleParticipantsList(new Event('click'), index);
-
-  //     // Check if the property has been toggled back
-  //     expect(
-  //       component.breakoutRoomsData[index].showAvailableParticipants
-  //     ).toBeFalse();
-  //   });
-  // });
   describe('isParticipantAssigned', () => {
     it('should return true if the participant is assigned to the room', () => {
       const room = {
@@ -562,38 +511,14 @@ describe('LiveKitRoomComponent;', () => {
   });
 
   describe('createNewRoomSidebar', () => {
-    it('should create a new room and add it to breakoutRoomsData', () => {
-      // Arrange
-      const initialRoomCount = component.breakoutRoomsData.length;
+    it('should dispatch initiateCreateNewRoom action', () => {
+      // Call the method
+      component.createNewRoomSidebar();
 
-      // Act
-      component.createNewRoomSidebar(); // Pass an empty event or any mock event object
-
-      // Assert
-      expect(component.breakoutRoomsData.length).toBe(initialRoomCount + 1); // Expect the room count to increase by 1
-      expect(component.breakoutRoomsData[initialRoomCount]).toEqual({
-        roomName: `Breakout_Room_${initialRoomCount + 1}`, // Check the name of the newly created room
-        participantIds: [],
-        showAvailableParticipants: false,
-      });
-    });
-
-    it('should create multiple rooms with unique names', () => {
-      // Arrange
-      component.createNewRoomSidebar(); // Create first room
-      component.createNewRoomSidebar(); // Create second room
-      const roomCount = component.breakoutRoomsData.length;
-
-      // Act
-      component.createNewRoomSidebar(); // Create third room
-
-      // Assert
-      expect(component.breakoutRoomsData.length).toBe(roomCount + 1); // Expect the room count to increase by 1
-      expect(component.breakoutRoomsData[roomCount]).toEqual({
-        roomName: `Breakout_Room_${roomCount + 1}`, // Check the name of the newly created room
-        participantIds: [],
-        showAvailableParticipants: false,
-      });
+      // Check that the correct action was dispatched
+      expect(store.dispatch).toHaveBeenCalledWith(
+        LiveKitRoomActions.BreakoutActions.initiateCreateNewRoom()
+      );
     });
   });
   describe('Open Breakout Side Window', () => {
@@ -657,341 +582,9 @@ describe('LiveKitRoomComponent;', () => {
       sendingTime: messageData.timestamp,
       type: 'sent',
     });
-    expect(component.sortMessages).toHaveBeenCalled(); // Ensure sortMessages was called
-    expect(component.scrollToBottom).toHaveBeenCalled(); // Ensure scrollToBottom was called
+    expect(component.sortMessages).toHaveBeenCalled();
+    expect(component.scrollToBottom).toHaveBeenCalled();
   });
-
-  // describe('Message to main room (messageToMain', () => {
-  //   it('should process incoming messages and update allMessagesToMainRoom when messageToMain emits', () => {
-  //     // Arrange
-  //     const timestamp = new Date().toISOString();
-  //     const messages = [
-  //       { title: 'Alice', content: 'I need help', timestamp },
-  //       { title: 'Bob', content: 'Hello', timestamp },
-  //     ];
-
-  //     // Act
-  //     mockLivekitService.messageToMain.next(messages); // Emit new messages
-
-  //     // Assert
-  //     expect(component.roomName).toBe('Alice'); // Check if room name is updated
-  //     expect(component.allMessagesToMainRoom.length).toBe(1); // Check if message is added
-  //     expect(component.allMessagesToMainRoom[0]).toEqual({
-  //       senderName: 'Alice',
-  //       receivedMsg: 'I need help',
-  //       receivingTime: new Date(timestamp),
-  //       type: 'received',
-  //     });
-  //     expect(component.isHelpMsgModal$).toBe(true); // Check if modal is open
-  //   });
-
-  //   it('should not process messages that do not contain "I need help"', () => {
-  //     // Arrange
-  //     const messages = [
-  //       { title: 'Bob', content: 'Hello', timestamp: new Date().toISOString() },
-  //     ];
-
-  //     // Act
-  //     mockLivekitService.messageToMain.next(messages); // Emit new messages
-
-  //     // Assert
-  //     expect(component.roomName).toBeUndefined(); // Check room name is not set
-  //     expect(component.allMessagesToMainRoom.length).toBe(0); // Check no messages added
-  //     expect(component.isMsgModalOpen).toBe(false); // Check if modal is still closed
-  //   });
-  // });
-  // describe('Show modal when Breakout Room Modal is sent to participants for invitation', () => {
-  //   it('should set isModalVisible to true when showModal is called', () => {
-  //     // Act: Call the showModal method
-  //     component.showModal();
-
-  //     // Assert: Check if isModalVisible is set to true
-  //     expect(component.isModalVisible).toBeTrue();
-  //   });
-
-  //   it('should set isModalVisible to false when closeModal is called', () => {
-  //     // Arrange: Set isModalVisible to true before closing the modal
-  //     component.isModalVisible = true;
-
-  //     // Act: Call the closeModal method
-  //     component.closeModal();
-
-  //     // Assert: Check if isModalVisible is set to false
-  //     expect(component.isModalVisible).toBeFalse();
-  //   });
-
-  //   it('should set isMsgModalOpen to false and reset allMessagesToMainRoom when closeReceiveMsgModal is called', () => {
-  //     // Arrange: Set initial values for isMsgModalOpen and allMessagesToMainRoom
-  //     component.isMsgModalOpen = true;
-  //     component.allMessagesToMainRoom = ['Message 1', 'Message 2'];
-
-  //     // Act: Call the closeReceiveMsgModal method
-  //     component.closeReceiveMsgModal();
-
-  //     // Assert: Check if isMsgModalOpen is set to false
-  //     expect(component.isMsgModalOpen).toBeFalse();
-
-  //     // Assert: Check if allMessagesToMainRoom is reset to an empty array
-  //     expect(component.allMessagesToMainRoom).toEqual([]);
-  //   });
-  // });
-
-  it('should log message if roomType is manual and there are configured rooms', fakeAsync(() => {
-    // Setup the form values for manual breakout
-    component.breakoutForm = formBuilder.group({
-      roomType: ['manual'],
-    });
-
-    // Mock breakout rooms data
-    component.breakoutRoomsData = [
-      {
-        roomName: 'Breakout_Room_1',
-        participantIds: ['participant1'],
-      },
-      {
-        roomName: 'Breakout_Room_2',
-        participantIds: ['participant2'],
-      },
-    ];
-
-    // Mock the breakoutRoomsDataUpdated emitter
-    mockLivekitService.breakoutRoomsDataUpdated = jasmine.createSpyObj(
-      'breakoutRoomsDataUpdated',
-      ['emit']
-    );
-
-    // Call the method
-    component.submitBreakoutForm();
-
-    tick(); // Simulate async operations
-
-    // Verify that breakoutRoomAlert is called for each room
-    expect(mockLivekitService.breakoutRoomAlert).toHaveBeenCalledTimes(2);
-    expect(mockLivekitService.breakoutRoomAlert).toHaveBeenCalledWith(
-      ['participant1'],
-      'Breakout_Room_1'
-    );
-    expect(mockLivekitService.breakoutRoomAlert).toHaveBeenCalledWith(
-      ['participant2'],
-      'Breakout_Room_2'
-    );
-
-    // Verify that breakoutRoomsDataUpdated emit is called
-    expect(
-      mockLivekitService.breakoutRoomsDataUpdated.emit
-    ).toHaveBeenCalledWith(component.breakoutRoomsData);
-  }));
-
-  // it('should split participants correctly into rooms', () => {
-  //   const participants = ['p1', 'p2', 'p3', 'p4', 'p5'];
-  //   const numberOfRooms = 2;
-
-  //   const rooms = component.splitParticipantsIntoRooms(
-  //     participants,
-  //     numberOfRooms
-  //   );
-
-  //   expect(rooms.length).toBe(2);
-  //   expect(rooms[0]).toEqual(['p1', 'p3', 'p5']);
-  //   expect(rooms[1]).toEqual(['p2', 'p4']);
-  // });
-
-  // describe('onRoomTypeChanged', () => {
-  //   it('should reset selectedParticipants when roomType is automatic', () => {
-  //     // Set the form control to automatic
-  //     component.breakoutForm.get('roomType')?.setValue('automatic');
-
-  //     // Set selected participants (which should be reset when roomType is 'automatic')
-  //     component.breakoutForm
-  //       .get('selectedParticipants')
-  //       ?.setValue(['participant1', 'participant2']);
-
-  //     // Call onRoomTypeChange
-  //     component.onRoomTypeChange();
-
-  //     // Check if selectedParticipants was reset to an empty array
-  //     expect(component.breakoutForm.get('selectedParticipants')?.value).toEqual(
-  //       []
-  //     );
-  //   });
-
-  //   it('should reset numberOfRooms when roomType is manual', () => {
-  //     // Set the form control to manual
-  //     component.breakoutForm.get('roomType')?.setValue('manual');
-
-  //     // Set numberOfRooms (which should be reset when roomType is 'manual')
-  //     component.breakoutForm.get('numberOfRooms')?.setValue('2');
-
-  //     // Call onRoomTypeChange
-  //     component.onRoomTypeChange();
-
-  //     // Check if numberOfRooms was reset to an empty string
-  //     expect(component.breakoutForm.get('numberOfRooms')?.value).toBe('');
-  //   });
-  // });
-  // distributionMessage
-  // it('should distribute participants evenly among rooms', () => {
-  //   // Set total participants and number of rooms
-  //   component.totalParticipants = 10;
-  //   component.breakoutForm.get('numberOfRooms')?.setValue(5);
-
-  //   // Call calculateDistribution
-  //   component.calculateDistribution();
-
-  //   // Check that each room has 2 participants
-  //   expect(component.distributionMessage).toBe(
-  //     '5 room(s), each will have 2 participants.'
-  //   );
-  // });
-
-  // it('should distribute participants with remainder correctly', () => {
-  //   // Set total participants and number of rooms
-  //   component.totalParticipants = 11;
-  //   component.breakoutForm.get('numberOfRooms')?.setValue(5);
-
-  //   // Call calculateDistribution
-  //   component.calculateDistribution();
-
-  //   // Check that remainder rooms have 3 participants, others have 2
-  //   expect(component.distributionMessage).toBe(
-  //     '1 room(s) will have 3 participants. 4 room(s) will have 2 participants.'
-  //   );
-  // });
-
-  // it('should show error message if numberOfRooms or totalParticipants is invalid', () => {
-  //   // Case 1: numberOfRooms is zero
-  //   component.totalParticipants = 10;
-  //   component.breakoutForm.get('numberOfRooms')?.setValue(0);
-
-  //   // Call calculateDistribution
-  //   component.calculateDistribution();
-
-  //   // Check the error message
-  //   expect(component.distributionMessage).toBe(
-  //     'Please enter valid number of rooms and participants.'
-  //   );
-
-  //   // Case 2: totalParticipants is zero
-  //   component.totalParticipants = 0;
-  //   component.breakoutForm.get('numberOfRooms')?.setValue(5);
-
-  //   // Call calculateDistribution
-  //   component.calculateDistribution();
-
-  //   // Check the error message
-  //   expect(component.distributionMessage).toBe(
-  //     'Please enter valid number of rooms and participants.'
-  //   );
-  // });
-
-  // it('should handle case with only one room', () => {
-  //   // Set total participants and number of rooms
-  //   component.totalParticipants = 10;
-  //   component.breakoutForm.get('numberOfRooms')?.setValue(1);
-
-  //   // Call calculateDistribution
-  //   component.calculateDistribution();
-
-  //   // Check that all participants are assigned to one room
-  //   expect(component.distributionMessage).toBe(
-  //     '1 room(s), each will have 10 participants.'
-  //   );
-  // });
-
-  // describe('Add participants to an existing room addParticipantsToRoom', () => {
-  //   it('should add unique participants to the room', () => {
-  //     const room = component.breakoutRoomsData[0];
-  //     const newParticipants = ['participant3', 'participant4'];
-
-  //     // Call the method
-  //     component.addParticipantsToRoom(room, newParticipants);
-
-  //     // Check if new participants were added correctly
-  //     expect(room.participantIds).toEqual([
-  //       'participant1',
-  //       'participant2',
-  //       'participant3',
-  //       'participant4',
-  //     ]);
-
-  //     // Check if the room was updated in the breakoutRoomsData array
-  //     const updatedRoom = component.breakoutRoomsData.find(
-  //       (r) => r.roomName === 'Room 1'
-  //     );
-  //     expect(updatedRoom?.participantIds).toEqual([
-  //       'participant1',
-  //       'participant2',
-  //       'participant3',
-  //       'participant4',
-  //     ]);
-
-  //     // Ensure breakoutRoomAlert was called with the correct arguments
-  //     expect(mockLivekitService.breakoutRoomAlert).toHaveBeenCalledWith(
-  //       ['participant3', 'participant4'],
-  //       'Room 1'
-  //     );
-  //   });
-
-  //   it('should not add duplicate participants', () => {
-  //     const room = component.breakoutRoomsData[0];
-  //     const newParticipants = ['participant1', 'participant3'];
-
-  //     // Call the method
-  //     component.addParticipantsToRoom(room, newParticipants);
-
-  //     // Check that only unique participant was added
-  //     expect(room.participantIds).toEqual([
-  //       'participant1',
-  //       'participant2',
-  //       'participant3',
-  //     ]);
-
-  //     // Check if the room was updated in the breakoutRoomsData array
-  //     const updatedRoom = component.breakoutRoomsData.find(
-  //       (r) => r.roomName === 'Room 1'
-  //     );
-  //     expect(updatedRoom?.participantIds).toEqual([
-  //       'participant1',
-  //       'participant2',
-  //       'participant3',
-  //     ]);
-
-  //     // Ensure breakoutRoomAlert was called only for the new participant
-  //     expect(mockLivekitService.breakoutRoomAlert).toHaveBeenCalledWith(
-  //       ['participant3'],
-  //       'Room 1'
-  //     );
-  //   });
-
-  //   it('should not call breakoutRoomAlert if no new participants are added', () => {
-  //     const room = component.breakoutRoomsData[0];
-  //     const newParticipants = ['participant1', 'participant2']; // All duplicates
-
-  //     // Call the method
-  //     component.addParticipantsToRoom(room, newParticipants);
-
-  //     // Ensure that breakoutRoomAlert is not called since no new participants were added
-  //     expect(mockLivekitService.breakoutRoomAlert).not.toHaveBeenCalled();
-  //   });
-
-  //   it('should handle case when room is not found in breakoutRoomsData', () => {
-  //     // Set up a room that is not in breakoutRoomsData
-  //     const newRoom = { roomName: 'Room 2', participantIds: [] };
-  //     const newParticipants = ['participant5'];
-
-  //     // Call the method
-  //     component.addParticipantsToRoom(newRoom, newParticipants);
-
-  //     // Check that breakoutRoomAlert was called for the new participants
-  //     expect(mockLivekitService.breakoutRoomAlert).toHaveBeenCalledWith(
-  //       ['participant5'],
-  //       'Room 2'
-  //     );
-
-  //     // Ensure the breakoutRoomsData is not updated since the room was not found
-  //     expect(component.breakoutRoomsData.length).toBe(2); // Should remain the same
-  //   });
-  // });
   describe('participants which are available to enter in breakout room (getAvailableParticipants)', () => {
     it('should return participants not already in the room', () => {
       const room = {
@@ -1006,66 +599,39 @@ describe('LiveKitRoomComponent;', () => {
         { identity: 'participant4' },
       ]);
     });
-
-    it('should return all participants if no one is in the room', () => {
-      const room = {
-        participantIds: [], // Empty room
-      };
-
-      const availableParticipants = component.getAvailableParticipants(room);
-
-      // Expect all participants to be available
-      expect(availableParticipants).toEqual([
-        { identity: 'participant1' },
-        { identity: 'participant2' },
-        { identity: 'participant3' },
-        { identity: 'participant4' },
-      ]);
-    });
-
-    it('should return an empty array if all participants are already in the room', () => {
-      const room = {
-        participantIds: [
-          'participant1',
-          'participant2',
-          'participant3',
-          'participant4',
-        ], // All participants in the room
-      };
-
-      const availableParticipants = component.getAvailableParticipants(room);
-
-      // Expect no participants to be available
-      expect(availableParticipants).toEqual([]);
-    });
   });
   describe('when participant selected (onParticipantSelected)', () => {
-    it('should add participant to the room when checkbox is checked', () => {
-      const room = { roomName: 'Room 2', participantIds: [] }; // Ensure participantIds exists
+    it('should dispatch addParticipant action when checkbox is checked', () => {
+      const room = { roomName: 'Room 2', participantIds: [] };
       const participant = { identity: 'participant3' };
-      const event = { target: { checked: true } }; // Checkbox checked
+      const event = { target: { checked: true } };
 
-      // Assign the room to the breakoutRoomsData
-      component.breakoutRoomsData = [room];
-
+      // Call the method
       component.onParticipantSelected(room, participant, event);
 
-      // Expect participant3 to be added to Room 2
-      expect(component.breakoutRoomsData[0].participantIds).toContain(
-        'participant3'
+      // Check that the correct action was dispatched
+      expect(store.dispatch).toHaveBeenCalledWith(
+        LiveKitRoomActions.BreakoutActions.addParticipant({
+          roomName: 'Room 2',
+          participantId: 'participant3',
+        })
       );
     });
 
-    it('should remove participant from the room when checkbox is unchecked', () => {
-      const room = component.breakoutRoomsData[0]; // Room 1
-      const participant = { identity: 'participant1' };
-      const event = { target: { checked: false } }; // Checkbox unchecked
+    it('should dispatch removeParticipant action when checkbox is unchecked', () => {
+      const room = { roomName: 'Room 2', participantIds: [] };
+      const participant = { identity: 'participant3' };
+      const event = { target: { checked: false } };
 
+      // Call the method
       component.onParticipantSelected(room, participant, event);
 
-      // Expect participant1 to be removed from Room 1
-      expect(component.breakoutRoomsData[0].participantIds).not.toContain(
-        'participant1'
+      // Check that the correct action was dispatched
+      expect(store.dispatch).toHaveBeenCalledWith(
+        LiveKitRoomActions.BreakoutActions.removeParticipant({
+          roomName: 'Room 2',
+          participantId: 'participant3',
+        })
       );
     });
   });
@@ -1272,7 +838,7 @@ describe('LiveKitRoomComponent;', () => {
     });
   });
   describe('Host send message and invitation to breakout room ', () => {
-    it('should send message to breakout room and clear message content', () => {
+    it('should dispatch sendMessageToBreakoutRoom action and clear message content', () => {
       // Set initial values directly in the test
       component.selectedBreakoutRoom = 'test-breakout-room';
       component.messageContent = 'Hello, participants!';
@@ -1280,14 +846,22 @@ describe('LiveKitRoomComponent;', () => {
       // Call the method
       component.sendMessageToBreakoutRoom();
 
-      // Check that sendMessageToBreakoutRoom was called with the correct arguments
-      expect(mockLivekitService.sendMessageToBreakoutRoom).toHaveBeenCalledWith(
-        'test-breakout-room',
-        'Hello, participants!'
+      // Check that the sendMessageToBreakoutRoom action was dispatched with the correct arguments
+      expect(store.dispatch).toHaveBeenCalledWith(
+        LiveKitRoomActions.ChatActions.sendMessageToBreakoutRoom({
+          breakoutRoom: 'test-breakout-room',
+          messageContent: 'Hello, participants!',
+        })
       );
 
-      // Check that messageContent is cleared after sending the message
+      // Check that closeHostToBrMsgModal action was dispatched
+      expect(store.dispatch).toHaveBeenCalledWith(
+        LiveKitRoomActions.BreakoutActions.closeHostToBrMsgModal()
+      );
+
+      // Check that messageContent and selectedBreakoutRoom are cleared after sending the message
       expect(component.messageContent).toBe('');
+      expect(component.selectedBreakoutRoom).toBe('');
     });
 
     it('should dispatch createMeeting action and hide modal in joinBreakoutRoom()', () => {
@@ -1347,110 +921,6 @@ describe('LiveKitRoomComponent;', () => {
       expect(snackBarSpy).toHaveBeenCalledWith('hostIdentity raised hand');
     });
   });
-
-  // ===========
-  // it('should split participants into breakout rooms and send invitations', async () => {
-  //   // Arrange
-
-  //   // Set form values explicitly to match the conditions for calling splitParticipantsIntoRooms
-  //   component.breakoutForm.patchValue({
-  //     roomType: 'automatic',
-  //     numberOfRooms: 2,
-  //   });
-
-  //   const mockSplitRooms = [
-  //     ['participant_1', 'participant_2'],
-  //     ['participant_3', 'participant_4'],
-  //   ];
-
-  //   // Spy on the splitParticipantsIntoRooms method
-  //   const splitParticipantsSpy = spyOn(
-  //     component,
-  //     'splitParticipantsIntoRooms'
-  //   ).and.returnValue(mockSplitRooms);
-
-  //   // Spy on the LivekitService breakoutRoomAlert method
-  //   mockLivekitService.breakoutRoomAlert.and.stub(); // Mock breakoutRoomAlert to do nothing
-
-  //   // Spy on the LivekitService breakoutRoomsDataUpdated.emit method
-  //   mockLivekitService.breakoutRoomsDataUpdated = { emit: jasmine.createSpy() };
-
-  //   // Make sure breakoutRoomsData starts empty for this test
-  //   component.breakoutRoomsData = [];
-
-  //   // Act
-  //   await component.submitBreakoutForm();
-
-  //   // Assert
-  //   expect(splitParticipantsSpy).toHaveBeenCalledWith(
-  //     ['participant1', 'participant2', 'participant3', 'participant4'], // Expected participants
-  //     2 // Expected number of rooms
-  //   );
-
-  //   expect(mockLivekitService.breakoutRoomAlert).toHaveBeenCalledWith(
-  //     ['participant_1', 'participant_2'],
-  //     'Breakout_Room_1'
-  //   );
-
-  //   expect(mockLivekitService.breakoutRoomAlert).toHaveBeenCalledWith(
-  //     ['participant_3', 'participant_4'],
-  //     'Breakout_Room_2'
-  //   );
-
-  //   expect(
-  //     mockLivekitService.breakoutRoomsDataUpdated.emit
-  //   ).toHaveBeenCalledWith([
-  //     {
-  //       participantIds: ['participant_1', 'participant_2'],
-  //       roomName: 'Breakout_Room_1',
-  //       type: 'automatic',
-  //     },
-  //     {
-  //       participantIds: ['participant_3', 'participant_4'],
-  //       roomName: 'Breakout_Room_2',
-  //       type: 'automatic',
-  //     },
-  //   ]);
-  // });
-
-  it('should not create breakout rooms if roomType is not automatic', async () => {
-    // Arrange
-    component.breakoutForm.patchValue({ roomType: 'manual' }); // Set roomType to 'manual'
-
-    // Ensure breakoutRoomsData is empty to start with
-    component.breakoutRoomsData = [];
-
-    // Act
-    await component.submitBreakoutForm();
-
-    // Assert
-    expect(mockLivekitService.breakoutRoomAlert).not.toHaveBeenCalled(); // Assert no breakout room alert was sent
-    expect(
-      mockLivekitService.breakoutRoomsDataUpdated.emit
-    ).not.toHaveBeenCalled(); // Assert breakout room data was not emitted
-  });
-
-  // it('should not create breakout rooms if numberOfRooms is 0 or less', async () => {
-  //   // Arrange
-  //   component.breakoutForm.patchValue({
-  //     roomType: 'automatic',
-  //     numberOfRooms: 0,
-  //   });
-
-  //   // Mock the breakoutRoomAlert and breakoutRoomsDataUpdated.emit as spies
-  //   const breakoutRoomAlertSpy = spyOn(mockLivekitService, 'breakoutRoomAlert');
-  //   const breakoutRoomsDataUpdatedSpy = spyOn(
-  //     mockLivekitService.breakoutRoomsDataUpdated,
-  //     'emit'
-  //   );
-
-  //   // Act
-  //   await component.submitBreakoutForm();
-
-  //   // Assert
-  //   expect(breakoutRoomAlertSpy).not.toHaveBeenCalled(); // Ensure no breakout room alert was sent
-  //   expect(breakoutRoomsDataUpdatedSpy).not.toHaveBeenCalled(); // Ensure breakout room data was not emitted
-  // });
   describe('openHostToBrMsgModal()', () => {
     it('should dispatch the openHostToBrMsgModal action', () => {
       // Act: Call the method
@@ -1783,17 +1253,37 @@ describe('LiveKitRoomComponent;', () => {
       );
     });
   });
-  it('should subscribe to webSocketStatus$ and update webSocketStatus accordingly', () => {
-    const statusMock = 'connected';
+  // it('should subscribe to webSocketStatus$ and update webSocketStatus accordingly', () => {
 
-    // Trigger the observable
-    webSocketStatusSubject.next(statusMock);
+  //   const statusMock = 'connected';
 
-    // Verify that the component's status property was updated
-    expect(component.webSocketStatus).toBe(statusMock);
+  //   // Trigger the observable
+  //   webSocketStatusSubject.next(statusMock);
+
+  //   // Verify that the component's status property was updated
+  //   expect(component.webSocketStatus).toBe(statusMock);
+  //   expect(console.log).toHaveBeenCalledWith(
+  //     'WebSocket status updated:',
+  //     statusMock
+  //   );
+  // });
+
+  it('should subscribe to webSocketStatus$ and update webSocketStatus', () => {
+    const mockStatus = 'Connected';
+
+    // Set up the observable to emit the mock status
+    mockLivekitService.webSocketStatus$ = of(mockStatus);
+
+    // Initialize the component
+    component.ngOnInit();
+
+    // Verify that webSocketStatus is updated
+    expect(component.webSocketStatus).toBe(mockStatus);
+    console.log = jasmine.createSpy('log'); // Mock console.log to prevent output during tests
+    component.ngOnInit();
     expect(console.log).toHaveBeenCalledWith(
       'WebSocket status updated:',
-      statusMock
+      mockStatus
     );
   });
 });

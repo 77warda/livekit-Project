@@ -38,6 +38,7 @@ export const LiveKitActions = createActionGroup({
     closeChatSideWindow: emptyProps(),
     closeParticipantSideWindow: emptyProps(),
     updateUnreadMessagesCount: props<{ count: number }>(),
+    resetUnreadMessagesCount: emptyProps(),
     updateMessages: props<{ allMessages: any[] }>(),
     scrollToBottom: emptyProps(),
   },

@@ -188,6 +188,10 @@ export const liveKitRoomReducer = createReducer(
       unreadMessagesCount: count,
     })
   ),
+  on(LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount, (state) => ({
+    ...state,
+    unreadMessagesCount: 0,
+  })),
   on(
     LiveKitRoomActions.LiveKitActions.updateMessages,
     (state, { allMessages }) => ({

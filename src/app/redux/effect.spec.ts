@@ -9,12 +9,13 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { HttpClientModule } from '@angular/common/http';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { selectBreakoutRoomsData, selectNextRoomIndex } from './selectors';
-import { Room } from './reducer';
+import { MeetingService } from '../Meeting-Service/meeting.service';
 
 describe('LiveKitRoomEffects', () => {
   let actions$: Observable<Action>;
   let effects: LiveKitRoomEffects;
   let livekitService: jasmine.SpyObj<LiveKitService>;
+  let meetingService: jasmine.SpyObj<MeetingService>;
   const initialState = { nextRoomIndex: 1 };
   let store: MockStore;
 
@@ -34,7 +35,7 @@ describe('LiveKitRoomEffects', () => {
     livekitServiceSpy.breakoutRoomsDataUpdated = {
       emit: jasmine.createSpy('emit'),
     };
-
+    meetingService = jasmine.createSpyObj('MeetingService', ['createMeeting']);
     TestBed.configureTestingModule({
       imports: [MatSnackBarModule, HttpClientModule, StoreModule.forRoot({})],
       providers: [
@@ -42,6 +43,7 @@ describe('LiveKitRoomEffects', () => {
         provideMockActions(() => actions$),
         provideMockStore({ initialState }),
         { provide: LiveKitService, useValue: livekitServiceSpy },
+        { provide: MeetingService, useValue: meetingService },
         {
           provide: MatSnackBar,
           useValue: jasmine.createSpyObj('MatSnackBar', ['open']),
@@ -54,6 +56,9 @@ describe('LiveKitRoomEffects', () => {
     livekitService = TestBed.inject(
       LiveKitService
     ) as jasmine.SpyObj<LiveKitService>;
+    meetingService = TestBed.inject(
+      MeetingService
+    ) as jasmine.SpyObj<MeetingService>;
   });
 
   describe('startMeeting$', () => {
@@ -421,159 +426,194 @@ describe('LiveKitRoomEffects', () => {
     });
   });
   describe('initiateManualRoomSelection$', () => {
-    it('should call breakoutRoomAlert if breakoutRoomsData has participants', (done) => {
+    it('should send invitations for manually selected rooms', () => {
+      const roomType = 'manual';
       const action =
         LiveKitRoomActions.BreakoutActions.initiateManualRoomSelection({
-          roomType: 'manual',
+          roomType,
         });
-      actions$ = of(action);
 
-      // Mock the selector to return an array of breakout rooms with participants
-      const breakoutRoomsData: Room[] = [
+      const mockBreakoutRoomsData = [
         {
-          roomName: 'Room 1',
           participantIds: ['user1', 'user2'],
+          roomName: 'Room_1',
           showAvailableParticipants: true,
         },
         {
-          roomName: 'Room 2',
           participantIds: [],
+          roomName: 'Room_2',
           showAvailableParticipants: false,
         },
+        {
+          participantIds: ['user3'],
+          roomName: 'Room_3',
+          showAvailableParticipants: true,
+        },
       ];
-      store.overrideSelector(selectBreakoutRoomsData, breakoutRoomsData);
+
+      // Set up the store to return the mock breakout rooms data
+      store.overrideSelector(selectBreakoutRoomsData, mockBreakoutRoomsData);
+      actions$ = of(action); // Simulate the action being dispatched
 
       effects.initiateManualRoomSelection$.subscribe(() => {
+        // Verify the service methods were called correctly
         expect(livekitService.breakoutRoomAlert).toHaveBeenCalledWith(
           ['user1', 'user2'],
-          'Room 1'
+          'Room_1'
+        );
+        expect(livekitService.breakoutRoomAlert).toHaveBeenCalledWith(
+          ['user3'],
+          'Room_3'
         );
         expect(livekitService.breakoutRoomAlert).not.toHaveBeenCalledWith(
           [],
-          'Room 2'
+          'Room_2'
         );
         expect(
           livekitService.breakoutRoomsDataUpdated.emit
-        ).toHaveBeenCalledWith(breakoutRoomsData);
-        done();
+        ).toHaveBeenCalledWith(mockBreakoutRoomsData);
       });
     });
 
-    it('should not call breakoutRoomAlert if no breakout rooms are configured', (done) => {
+    it('should log no breakout rooms configured if the data is empty', () => {
+      const roomType = 'manual';
       const action =
         LiveKitRoomActions.BreakoutActions.initiateManualRoomSelection({
-          roomType: 'manual',
+          roomType,
         });
-      actions$ = of(action);
 
-      // Mock the selector to return an empty array
+      // Set up the store to return an empty array
       store.overrideSelector(selectBreakoutRoomsData, []);
+      actions$ = of(action); // Simulate the action being dispatched
 
       effects.initiateManualRoomSelection$.subscribe(() => {
+        // Verify the service methods were not called
         expect(livekitService.breakoutRoomAlert).not.toHaveBeenCalled();
         expect(
           livekitService.breakoutRoomsDataUpdated.emit
-        ).toHaveBeenCalledWith([]); // If needed
-        done();
+        ).toHaveBeenCalledWith([]);
+      });
+    });
+    it('should not process any actions if roomType is not manual', () => {
+      const roomType = 'auto'; // or any other type that is not 'manual'
+      const action =
+        LiveKitRoomActions.BreakoutActions.initiateManualRoomSelection({
+          roomType,
+        });
+
+      actions$ = of(action); // Simulate the action being dispatched
+
+      effects.initiateManualRoomSelection$.subscribe(() => {
+        // Since dispatch is false, we don't expect any further emissions
+      });
+
+      // Verify that the LiveKitService methods were not called
+      expect(livekitService.breakoutRoomAlert).not.toHaveBeenCalled();
+      expect(
+        livekitService.breakoutRoomsDataUpdated.emit
+      ).not.toHaveBeenCalled();
+    });
+  });
+  describe('AutomaticRoomSelection$', () => {
+    it('should create automatic rooms and emit updates', () => {
+      const participants = ['user1', 'user2', 'user3', 'user4', 'user5'];
+      const numberOfRooms = 2;
+      const action =
+        LiveKitRoomActions.BreakoutActions.initiateAutomaticRoomCreation({
+          participants,
+          numberOfRooms,
+        });
+
+      actions$ = of(action); // Simulate the action being dispatched
+
+      const expectedRoomsData = [
+        {
+          participantIds: ['user1', 'user2'],
+          roomName: 'Breakout_Room_1',
+          type: 'automatic',
+        },
+        {
+          participantIds: ['user3', 'user4', 'user5'],
+          roomName: 'Breakout_Room_2',
+          type: 'automatic',
+        },
+      ];
+
+      effects.createAutomaticRooms$.subscribe(() => {
+        // Verify the service methods were called correctly
+        expect(livekitService.breakoutRoomAlert).toHaveBeenCalledWith(
+          ['user1', 'user2'],
+          'Breakout_Room_1'
+        );
+        expect(livekitService.breakoutRoomAlert).toHaveBeenCalledWith(
+          ['user3', 'user4', 'user5'],
+          'Breakout_Room_2'
+        );
+        expect(
+          livekitService.breakoutRoomsDataUpdated.emit
+        ).toHaveBeenCalledWith(expectedRoomsData);
       });
     });
   });
-  describe('Participant Room Splitter', () => {
-    let splitter: any; // Replace with the actual class type if needed
+  it('should dispatch startMeeting action with the token on successful meeting creation for multiple participants', (done) => {
+    // Arrange
+    const participantNames = ['Alice', 'Bob'];
+    const roomName = 'TestRoom';
+    const action = LiveKitRoomActions.MeetingActions.createMeeting({
+      participantNames,
+      roomName,
+    });
+    const mockTokens = ['tokenAlice', 'tokenBob'];
 
-    beforeEach(() => {
-      // Assuming the method is part of a class, instantiate the class here
-      splitter = {
-        splitParticipantsIntoRooms: (
-          participants: string[],
-          numberOfRooms: number
-        ) => {
-          const rooms: string[][] = Array.from(
-            { length: numberOfRooms },
-            () => []
-          );
-          participants.forEach((participant, index) => {
-            const roomIndex = index % numberOfRooms;
-            rooms[roomIndex].push(participant);
-          });
-          return rooms;
-        },
-      };
+    // Mock the service response for each participant
+    meetingService.createMeeting.and.callFake((name: string) => {
+      if (name === 'Alice') {
+        return of({ token: mockTokens[0] });
+      } else if (name === 'Bob') {
+        return of({ token: mockTokens[1] });
+      }
+      return throwError('Unexpected participant name');
     });
 
-    it('should split participants evenly into rooms', () => {
-      const participants = ['Alice', 'Bob', 'Charlie', 'David'];
-      const numberOfRooms = 2;
-      const expected = [
-        ['Alice', 'Charlie'],
-        ['Bob', 'David'],
-      ]; // Adjusted expected output
+    actions$ = of(action);
 
-      const result = splitter.splitParticipantsIntoRooms(
-        participants,
-        numberOfRooms
+    // Act
+    effects.createMeeting$.subscribe((resultAction) => {
+      // Assert
+      expect(resultAction).toEqual(
+        LiveKitRoomActions.LiveKitActions.startMeeting({
+          wsURL: 'wss://hassam-app-fu1y3ybu.livekit.cloud',
+          token: mockTokens[0], // Using the first token in the array
+        })
       );
-      expect(result).toEqual(expected);
+      done();
     });
+  });
 
-    it('should handle more participants than rooms', () => {
-      const participants = ['Alice', 'Bob', 'Charlie', 'David', 'Eve'];
-      const numberOfRooms = 3;
-      const expected = [['Alice', 'David'], ['Bob', 'Eve'], ['Charlie']];
-
-      const result = splitter.splitParticipantsIntoRooms(
-        participants,
-        numberOfRooms
-      );
-      expect(result).toEqual(expected);
+  it('should dispatch createMeetingFailure action on error', (done) => {
+    // Arrange
+    const participantNames = ['Alice'];
+    const roomName = 'TestRoom';
+    const action = LiveKitRoomActions.MeetingActions.createMeeting({
+      participantNames,
+      roomName,
     });
+    const errorResponse = new Error('Meeting creation failed');
 
-    it('should handle fewer participants than rooms', () => {
-      const participants = ['Alice'];
-      const numberOfRooms = 3;
-      const expected = [['Alice'], [], []];
+    // Mock the service to return an error for the participant
+    meetingService.createMeeting.and.returnValue(throwError(errorResponse));
 
-      const result = splitter.splitParticipantsIntoRooms(
-        participants,
-        numberOfRooms
+    actions$ = of(action);
+
+    // Act
+    effects.createMeeting$.subscribe((resultAction) => {
+      // Assert
+      expect(resultAction).toEqual(
+        LiveKitRoomActions.MeetingActions.createMeetingFailure({
+          error: errorResponse,
+        })
       );
-      expect(result).toEqual(expected);
-    });
-
-    it('should return empty rooms when there are no participants', () => {
-      const participants: string[] = [];
-      const numberOfRooms = 3;
-      const expected = [[], [], []];
-
-      const result = splitter.splitParticipantsIntoRooms(
-        participants,
-        numberOfRooms
-      );
-      expect(result).toEqual(expected);
-    });
-
-    it('should return empty rooms when number of rooms is zero', () => {
-      const participants = ['Alice', 'Bob'];
-      const numberOfRooms = 0;
-      const expected: string[][] = [];
-
-      const result = splitter.splitParticipantsIntoRooms(
-        participants,
-        numberOfRooms
-      );
-      expect(result).toEqual(expected);
-    });
-
-    it('should return empty rooms when number of rooms is negative', () => {
-      const participants = ['Alice', 'Bob'];
-      const numberOfRooms = -1;
-      const expected: string[][] = [];
-
-      const result = splitter.splitParticipantsIntoRooms(
-        participants,
-        numberOfRooms
-      );
-      expect(result).toEqual(expected);
+      done();
     });
   });
 });

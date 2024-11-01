@@ -166,6 +166,9 @@ export class LiveKitRoomComponent {
     this.unreadMessagesCount$ = this.store.pipe(
       select(selectUnreadMessagesCount)
     );
+    this.unreadMessagesCount$.subscribe((unread) => {
+      console.log('ts unread', unread);
+    });
     this.isMicOn$ = this.store.pipe(select(selectIsMicOn));
     this.isBreakoutModal$ = this.store.select(isBreakoutModalOpen);
     this.isInvitationModal$ = this.store.select(isInvitationModalOpen);
@@ -198,7 +201,9 @@ export class LiveKitRoomComponent {
 
     this.chatSideWindowVisible$.subscribe((visible) => {
       if (visible) {
-        this.unreadMessagesCount = 0;
+        this.store.dispatch(
+          LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
+        );
         this.scrollToBottom();
       }
     });
@@ -244,6 +249,41 @@ export class LiveKitRoomComponent {
     });
   }
 
+  // handleNewMessage(content: any) {
+  //   const newMessage = {
+  //     senderName: content.title,
+  //     receivedMsg: content.content,
+  //     receivingTime: new Date(content.timestamp),
+  //     type: 'received',
+  //   };
+
+  //   const isDuplicate = this.allMessages.some((message) => {
+  //     const messageTime = new Date(message.receivingTime);
+  //     return (
+  //       message.receivedMsg === newMessage.receivedMsg &&
+  //       message.senderName === newMessage.senderName &&
+  //       messageTime.getTime() === newMessage.receivingTime.getTime()
+  //     );
+  //   });
+
+  //   if (!isDuplicate) {
+  //     this.allMessages.push(newMessage);
+  //     this.chatSideWindowVisible$.subscribe((visible) => {
+  //       if (!visible) {
+  //         // this.unreadMessagesCount++;
+  //         this.store.dispatch(
+  //           LiveKitRoomActions.LiveKitActions.updateUnreadMessagesCount({
+  //             count: this.unreadMessagesCount + 1,
+  //           })
+  //         );
+  //         this.scrollToBottom();
+  //       } else {
+  //         this.unreadMessagesCount = 0;
+  //       }
+  //     });
+  //   }
+  //   console.log('Updated chat messages:', this.allMessages);
+  // }
   handleNewMessage(content: any) {
     const newMessage = {
       senderName: content.title,
@@ -265,10 +305,17 @@ export class LiveKitRoomComponent {
       this.allMessages.push(newMessage);
       this.chatSideWindowVisible$.subscribe((visible) => {
         if (!visible) {
-          this.unreadMessagesCount++;
+          this.store.dispatch(
+            LiveKitRoomActions.LiveKitActions.updateUnreadMessagesCount({
+              count: this.unreadMessagesCount + 1,
+            })
+          );
           this.scrollToBottom();
         } else {
-          this.unreadMessagesCount = 0;
+          // this.unreadMessagesCount = 0;
+          this.store.dispatch(
+            LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
+          );
         }
       });
     }
@@ -331,7 +378,12 @@ export class LiveKitRoomComponent {
   private updateUnreadMessageCount() {
     this.chatSideWindowVisible$.subscribe((visible) => {
       if (!visible) {
-        this.unreadMessagesCount++;
+        // this.unreadMessagesCount++;
+        this.store.dispatch(
+          LiveKitRoomActions.LiveKitActions.updateUnreadMessagesCount({
+            count: this.unreadMessagesCount + 1,
+          })
+        );
         this.scrollToBottom();
       }
     });
@@ -633,6 +685,13 @@ export class LiveKitRoomComponent {
     this.store.dispatch(
       LiveKitRoomActions.LiveKitActions.toggleChatSideWindow()
     );
+    this.chatSideWindowVisible$.subscribe((visible) => {
+      if (!visible) {
+        this.store.dispatch(
+          LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
+        );
+      }
+    });
   }
 
   /**
@@ -865,6 +924,11 @@ export class LiveKitRoomComponent {
     this.closeReceiveMsgModal();
   }
   sendHelpRequest() {
+    const helpMessageContent = 'I need help';
+    this.livekitService.sendMessageToMainRoom(
+      this.roomName,
+      helpMessageContent
+    );
     this.store.dispatch(
       LiveKitRoomActions.ChatActions.sendHelpRequest({
         roomName: this.roomName,

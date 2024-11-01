@@ -21,40 +21,67 @@ import {
 import { LiveKitRoomState } from './reducer';
 
 describe('LiveKit Room Selectors', () => {
-  const mockState: LiveKitRoomState = {
-    isMeetingStarted: true,
-    allMessages: ['Hello', 'World'],
-    unreadMessagesCount: 2,
-    isVideoOn: true,
-    isMicOn: false,
-    isScreenSharing: false,
-    iconColor: 'red',
-    participantSideWindowVisible: true,
-    breakoutSideWindowVisible: false,
-    chatSideWindowVisible: true,
-    token: null,
-    isBreakoutModalOpen: false,
-    isInvitationModalOpen: true,
-    isHostMsgModalOpen: false,
-    roomType: 'standard',
-    selectedParticipants: ['user1', 'user2'],
-    numberOfRooms: 3,
-    distributionMessage: 'Welcome to the meeting!',
-    breakoutRoomsData: [
-      {
-        roomName: 'Room A',
-        participantIds: ['user1'],
-        showAvailableParticipants: true,
-      },
-    ],
-    nextRoomIndex: 1,
-    helpMessageModal: false,
-  };
+  let mockState: LiveKitRoomState;
+
+  beforeEach(() => {
+    mockState = {
+      isMeetingStarted: true,
+      allMessages: ['Hello', 'World'],
+      unreadMessagesCount: 2,
+      isVideoOn: true,
+      isMicOn: false,
+      isScreenSharing: false,
+      iconColor: 'red',
+      participantSideWindowVisible: true,
+      breakoutSideWindowVisible: false,
+      chatSideWindowVisible: true,
+      error: undefined,
+      token: null,
+      isBreakoutModalOpen: false,
+      isInvitationModalOpen: true,
+      isHostMsgModalOpen: false,
+      roomType: 'standard',
+      selectedParticipants: [],
+      numberOfRooms: null,
+      distributionMessage: 'Welcome to the meeting!',
+      breakoutRoomsData: [
+        {
+          roomName: 'Room A',
+          participantIds: ['user1'],
+          showAvailableParticipants: true,
+        },
+      ],
+      nextRoomIndex: 1,
+      helpMessageModal: false,
+    };
+  });
 
   it('should select the liveKitRoom feature state', () => {
     const result = selectLiveKitRoomState.projector(mockState);
     expect(result).toEqual(mockState);
   });
+  //   describe('selectIsMeetingStarted', () => {
+  //     it('should return the value of isMeetingStarted from the state', () => {
+  //       // Mock LiveKitRoomState with isMeetingStarted set to true
+  //       const mockState: LiveKitRoomState = {
+  //         isMeetingStarted: true, // Test with true
+  //         // Add other properties as necessary
+  //       };
+
+  //       // Call the selector with the mock state
+  //       const result = selectIsMeetingStarted.projector(mockState);
+
+  //       // Assertion: Expect the selector to return true
+  //       expect(result).toBe(true);
+
+  //       // Now test with isMeetingStarted set to false
+  //       mockState.isMeetingStarted = false;
+  //       const resultFalse = selectIsMeetingStarted.projector(mockState);
+
+  //       // Assertion: Expect the selector to return false
+  //       expect(resultFalse).toBe(false);
+  //     });
+  //   });
 
   it('should select isMeetingStarted', () => {
     const result = selectIsMeetingStarted.projector(mockState);

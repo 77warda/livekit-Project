@@ -28,28 +28,56 @@ export class LiveKitRoomEffects {
     private store: Store
   ) {}
 
+  // createMeeting$ = createEffect(() =>
+  //   this.actions$.pipe(
+  //     ofType(LiveKitRoomActions.MeetingActions.createMeeting),
+  //     mergeMap((action) => {
+  //       // Map through all the participants and return an observable for each meeting creation
+  //       const participantObservables = action.participantNames.map(
+  //         (participantName) =>
+  //           this.meetingService
+  //             .createMeeting(participantName, action.roomName)
+  //             .pipe(
+  //               map((response) => response.token) // Extract the token from each response
+  //             )
+  //       );
+
+  //       // Combine all participant observables using forkJoin to wait until all have emitted their values
+  //       return from(participantObservables).pipe(
+  //         switchMap((observablesArray) => forkJoin(observablesArray)),
+  //         map((tokens) => {
+  //           // Once all tokens are available, we use the first token to start the meeting
+  //           return LiveKitRoomActions.LiveKitActions.startMeeting({
+  //             wsURL: 'wss://hassam-app-fu1y3ybu.livekit.cloud',
+  //             token: tokens[0], // Use one token (all participants are in the same room)
+  //           });
+  //         }),
+  //         catchError((error) =>
+  //           of(
+  //             LiveKitRoomActions.MeetingActions.createMeetingFailure({ error })
+  //           )
+  //         )
+  //       );
+  //     })
+  //   )
+  // );
   createMeeting$ = createEffect(() =>
     this.actions$.pipe(
       ofType(LiveKitRoomActions.MeetingActions.createMeeting),
       mergeMap((action) => {
-        // Map through all the participants and return an observable for each meeting creation
         const participantObservables = action.participantNames.map(
           (participantName) =>
             this.meetingService
               .createMeeting(participantName, action.roomName)
-              .pipe(
-                map((response) => response.token) // Extract the token from each response
-              )
+              .pipe(map((response) => response.token))
         );
 
-        // Combine all participant observables using forkJoin to wait until all have emitted their values
-        return from(participantObservables).pipe(
-          switchMap((observablesArray) => forkJoin(observablesArray)),
+        // Use forkJoin directly on participantObservables
+        return forkJoin(participantObservables).pipe(
           map((tokens) => {
-            // Once all tokens are available, we use the first token to start the meeting
             return LiveKitRoomActions.LiveKitActions.startMeeting({
               wsURL: 'wss://hassam-app-fu1y3ybu.livekit.cloud',
-              token: tokens[0], // Use one token (all participants are in the same room)
+              token: tokens[0], // Use the first token
             });
           }),
           catchError((error) =>
@@ -260,51 +288,6 @@ export class LiveKitRoomEffects {
     )
   );
   // manual
-  // initiateManualRoomSelection$ = createEffect(
-  //   () =>
-  //     this.actions$.pipe(
-  //       ofType(LiveKitRoomActions.BreakoutActions.initiateManualRoomSelection),
-  //       switchMap(({ roomType }) => {
-  //         if (roomType === 'manual') {
-  //           console.log('Manual room selection initiated');
-
-  //           return this.store.select(selectBreakoutRoomsData).pipe(
-  //             take(1),
-  //             map((breakoutRoomsData) => {
-  //               console.log('rooms data is', breakoutRoomsData);
-  //               if (breakoutRoomsData.length > 0) {
-  //                 breakoutRoomsData.forEach((room) => {
-  //                   const roomParticipants = room.participantIds;
-  //                   const roomName = room.roomName;
-
-  //                   if (roomParticipants && roomParticipants.length > 0) {
-  //                     console.log(`Sending invitations to room: ${roomName}`);
-  //                     this.livekitService.breakoutRoomAlert(
-  //                       roomParticipants,
-  //                       roomName
-  //                     );
-  //                   } else {
-  //                     console.log(
-  //                       `No participants selected for room: ${room.roomName}`
-  //                     );
-  //                   }
-  //                 });
-
-  //                 // Emit the updated breakout rooms data (if needed)
-  //                 this.livekitService.breakoutRoomsDataUpdated.emit(
-  //                   breakoutRoomsData
-  //                 );
-  //               } else {
-  //                 console.log('No breakout rooms configured.');
-  //               }
-  //             })
-  //           );
-  //         }
-  //         return [];
-  //       })
-  //     ),
-  //   { dispatch: false } // No action is dispatched after this effect
-  // );
   initiateManualRoomSelection$ = createEffect(
     () =>
       this.actions$.pipe(
@@ -387,10 +370,7 @@ export class LiveKitRoomEffects {
   );
 
   // Utility function to split participants into rooms
-  private splitParticipantsIntoRooms(
-    participants: string[],
-    numberOfRooms: number
-  ) {
+  splitParticipantsIntoRooms(participants: string[], numberOfRooms: number) {
     const rooms: string[][] = Array.from({ length: numberOfRooms }, () => []);
     participants.forEach((participant, index) => {
       const roomIndex = index % numberOfRooms;
