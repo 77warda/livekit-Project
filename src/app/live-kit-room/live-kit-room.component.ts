@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, Renderer2, ViewChild } from '@angular/core';
 import {
   RemoteParticipant,
   RemoteTrack,
@@ -77,6 +77,12 @@ export class LiveKitRoomComponent {
   participantName: string = '';
   breakoutRoomsData: any[] = [];
   selectedBreakoutRoom = '';
+  // pip
+  pipWindow: any = null;
+  @ViewChild('playerContainer') playerContainer!: ElementRef<HTMLDivElement>;
+  pipMode = false;
+  private originalParent: HTMLElement | null = null;
+  private originalNextSibling: Node | null = null;
 
   public breakoutMessageContent: any[] = [];
   @ViewChild('messageContainer') messageContainer!: ElementRef | any;
@@ -105,7 +111,8 @@ export class LiveKitRoomComponent {
     private formBuilder: FormBuilder,
     public livekitService: LiveKitService,
     private snackBar: MatSnackBar,
-    public store: Store
+    public store: Store,
+    private renderer: Renderer2
   ) {}
 
   ngOnInit() {
@@ -737,8 +744,17 @@ export class LiveKitRoomComponent {
    * @readonly
    * @type {string}
    */
+  // get GalleryGridColumnStyle() {
+  //   if (this.livekitService.room.numParticipants <= 6) {
+  //     return GRIDCOLUMN[this.livekitService.room.numParticipants];
+  //   } else {
+  //     return 'repeat(auto-fill, minmax(200px, 1fr))';
+  //   }
+  // }
   get GalleryGridColumnStyle() {
-    if (this.livekitService.room.numParticipants <= 6) {
+    if (this.pipMode) {
+      return '1fr';
+    } else if (this.livekitService.room.numParticipants <= 6) {
       return GRIDCOLUMN[this.livekitService.room.numParticipants];
     } else {
       return 'repeat(auto-fill, minmax(200px, 1fr))';
@@ -997,5 +1013,166 @@ export class LiveKitRoomComponent {
     );
     this.messageContent = '';
     this.selectedBreakoutRoom = '';
+  }
+  // pip window styling
+  // async enterPiP() {
+  //   const playerContainer = this.playerContainer.nativeElement;
+  //   this.pipMode = true;
+
+  //   // Store the original parent and next sibling of playerContainer
+  //   this.originalParent = playerContainer.parentElement;
+  //   this.originalNextSibling = playerContainer.nextSibling;
+
+  //   if ((window as any).documentPictureInPicture) {
+  //     const pipOptions = {
+  //       width: playerContainer.clientWidth,
+  //       height: playerContainer.clientHeight,
+  //     };
+
+  //     try {
+  //       this.pipWindow = await (
+  //         window as any
+  //       ).documentPictureInPicture.requestWindow(pipOptions);
+
+  //       // Copy styles to PiP
+  //       this.copyStylesToPiP();
+
+  //       // Move only the playerContainer to the PiP window
+  //       this.pipWindow.document.body.appendChild(playerContainer);
+
+  //       // Listen for PiP close event
+  //       this.pipWindow.addEventListener(
+  //         'pagehide',
+  //         this.onLeavePiP.bind(this),
+  //         {
+  //           once: true,
+  //         }
+  //       );
+  //     } catch (error) {
+  //       console.error('Error entering PiP mode:', error);
+  //     }
+  //   } else {
+  //     console.error(
+  //       'documentPictureInPicture API is not available in this browser.'
+  //     );
+  //   }
+  // }
+
+  // onLeavePiP() {
+  //   if (!this.pipWindow) return;
+
+  //   const playerContainer = this.playerContainer.nativeElement;
+
+  //   // Re-append playerContainer back to its original parent and position
+  //   if (this.originalParent) {
+  //     if (this.originalNextSibling) {
+  //       this.originalParent.insertBefore(
+  //         playerContainer,
+  //         this.originalNextSibling
+  //       );
+  //     } else {
+  //       this.originalParent.appendChild(playerContainer);
+  //     }
+  //   }
+
+  //   playerContainer.classList.remove('pip-mode');
+  //   this.pipMode = false;
+  //   this.pipWindow = null;
+  // }
+
+  copyStylesToPiP() {
+    if (!this.pipWindow) return;
+
+    Array.from(document.styleSheets).forEach((styleSheet) => {
+      try {
+        const cssRules = Array.from(styleSheet.cssRules)
+          .map((rule) => rule.cssText)
+          .join('');
+        const styleEl = this.renderer.createElement('style');
+        this.renderer.setProperty(styleEl, 'textContent', cssRules);
+
+        this.renderer.appendChild(this.pipWindow!.document.head, styleEl);
+      } catch (e) {
+        if (styleSheet.href) {
+          const linkEl = this.renderer.createElement('link');
+          this.renderer.setAttribute(linkEl, 'rel', 'stylesheet');
+          this.renderer.setAttribute(linkEl, 'href', styleSheet.href);
+          this.renderer.appendChild(this.pipWindow!.document.head, linkEl);
+        }
+      }
+    });
+  }
+  async enterPiP() {
+    const playerContainer = this.playerContainer.nativeElement;
+    this.pipMode = true;
+
+    //   // Store the original parent and next sibling of playerContainer
+    this.originalParent = playerContainer.parentElement;
+    this.originalNextSibling = playerContainer.nextSibling;
+
+    if ((window as any).documentPictureInPicture) {
+      const pipOptions = {
+        width: playerContainer.clientWidth,
+        height: playerContainer.clientHeight,
+      };
+
+      try {
+        this.pipWindow = await (
+          window as any
+        ).documentPictureInPicture.requestWindow(pipOptions);
+
+        // Copy over initial styles and elements to the PiP window
+        this.copyStylesToPiP();
+        this.updatePiPWindow();
+
+        // Listen for any changes in the main participant container
+        const observer = new MutationObserver(() => {
+          this.updatePiPWindow();
+        });
+        observer.observe(playerContainer, { childList: true, subtree: true });
+
+        // Clean up when PiP mode is exited
+        this.pipWindow.addEventListener(
+          'pagehide',
+          () => {
+            observer.disconnect();
+            this.onLeavePiP();
+          },
+          { once: true }
+        );
+      } catch (error) {
+        console.error('Error entering PiP mode:', error);
+      }
+    } else {
+      console.error(
+        'documentPictureInPicture API is not available in this browser.'
+      );
+    }
+  }
+  updatePiPWindow() {
+    if (!this.pipWindow) return;
+
+    const mainContainer = this.playerContainer.nativeElement;
+    const pipBody = this.pipWindow.document.body;
+
+    // Clear existing content in the PiP window
+    pipBody.innerHTML = '';
+
+    // Clone the current state of the main container into the PiP window
+    const clonedContainer = mainContainer.cloneNode(true) as HTMLElement;
+    pipBody.appendChild(clonedContainer);
+  }
+  onLeavePiP() {
+    if (!this.pipWindow) return;
+
+    const playerContainer = this.playerContainer.nativeElement;
+
+    // Restore playerContainer to its original location in the main document
+    document.body.appendChild(playerContainer);
+
+    // Clear the PiP window reference and reset mode
+    this.pipWindow = null;
+    this.pipMode = false;
+    this.pipWindow.close();
   }
 }

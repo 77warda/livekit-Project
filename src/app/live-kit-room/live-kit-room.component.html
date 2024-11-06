@@ -66,10 +66,18 @@
       </div>
     </div>
   </div>
-  <div class="os-main-content" data-test="meetingStarted">
+  <div #playerContainer class="os-main-content" data-test="meetingStarted">
     <!-- header showing when meeting get started  -->
     <header class="header">
       <div class="left-header" data-test="left-header">
+        <button
+          class="grid-view"
+          matTooltip="Open picture in picture"
+          (click)="enterPiP()"
+        >
+          <i class="far fa-images"></i>
+        </button>
+
         <button
           class="grid-view"
           matTooltip="Open breakout modal"
