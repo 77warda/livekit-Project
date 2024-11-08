@@ -66,7 +66,7 @@
       </div>
     </div>
   </div>
-  <div #playerContainer class="os-main-content" data-test="meetingStarted">
+  <div class="os-main-content" data-test="meetingStarted">
     <!-- header showing when meeting get started  -->
     <header class="header">
       <div class="left-header" data-test="left-header">
@@ -154,7 +154,12 @@
         </button>
         <div class="line"></div>
 
-        <button data-test="video-test" class="video" (click)="toggleVideo()">
+        <button
+          data-test="video-test"
+          matTooltip="Video"
+          class="video"
+          (click)="toggleVideo()"
+        >
           <i
             class="fas"
             [ngClass]="{
@@ -163,7 +168,7 @@
             }"
           ></i>
         </button>
-        <button class="mic" (click)="toggleMic()">
+        <button class="mic" matTooltip="Mic" (click)="toggleMic()">
           <i
             class="fas"
             [ngClass]="{
@@ -172,7 +177,11 @@
             }"
           ></i>
         </button>
-        <button class="share" (click)="toggleScreenShare()">
+        <button
+          class="share"
+          matTooltip="Share_Screen"
+          (click)="toggleScreenShare()"
+        >
           <span
             class="material-symbols-outlined"
             *ngIf="!livekitService.isScreenSharingEnabled"
@@ -187,7 +196,11 @@
             stop_screen_share
           </span>
         </button>
-        <button class="leave-btn" (click)="leaveBtn()">
+        <button
+          class="leave-btn"
+          matTooltip="Leave_Meeting"
+          (click)="leaveBtn()"
+        >
           <h2>Leave</h2>
           <div class="chevron-icon"><i class="fas fa-chevron-down"></i></div>
         </button>
@@ -219,6 +232,7 @@
     </ng-container>
     <!-- screen sahring for multiple screens  -->
     <div
+      #playerContainer
       class="lk-grid-layout-wrapper"
       [ngClass]="{
         'screen-share-layout-wrapper':
@@ -726,3 +740,49 @@
     <button (click)="hostJoinNow()">Host Join Now</button>
   </div>
 </div>
+
+<!-- Creating pip Header  -->
+<ng-container *ngIf="pipMode === true && (isMeetingStarted$ | async)">
+  <div id="pipHeader" class="pip-container" #pipContainer>
+    <button
+      data-test="video-test"
+      matTooltip="Video"
+      class="video"
+      (click)="toggleVideo()"
+    >
+      <i
+        class="fas"
+        [ngClass]="{
+          'fa-video': (isVideoOn$ | async),
+          'fa-video-slash': !(isVideoOn$ | async)
+        }"
+      ></i>
+    </button>
+    <button class="mic" matTooltip="Mic" (click)="toggleMic()">
+      <i
+        class="fas"
+        [ngClass]="{
+          'fa-microphone': (isMicOn$ | async),
+          'fa-microphone-slash': !(isMicOn$ | async)
+        }"
+      ></i>
+    </button>
+    <button
+      data-cy="raise-hand"
+      *ngIf="localParticipant?.isLocal"
+      (click)="toggleRaiseHand()"
+      matTooltip="Raise Hand"
+    >
+      <i
+        class="fas fa-hand-paper"
+        [ngClass]="{ 'hand-raised': localParticipant.handRaised }"
+      ></i>
+    </button>
+    <button class="more" matTooltip="More">
+      <i class="fas fa-ellipsis-h"></i>
+    </button>
+    <button class="leave-btn" matTooltip="Leave_Meeting" (click)="leaveBtn()">
+      <span class="material-symbols-outlined"> call_end </span>
+    </button>
+  </div>
+</ng-container>

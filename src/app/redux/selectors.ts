@@ -19,6 +19,14 @@ export const selectIsVideoOn = createSelector(
   (state: LiveKitRoomState) => state.isVideoOn
 );
 
+export const selectIsMicOn = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => {
+    console.log('selector mic', state.isMicOn);
+    return state.isMicOn;
+  }
+);
+
 export const selectParticipantSideWindowVisible = createSelector(
   selectLiveKitRoomState,
   (state: LiveKitRoomState) => state.participantSideWindowVisible
@@ -37,14 +45,6 @@ export const selectIsScreenSharing = createSelector(
 export const selectIconColor = createSelector(
   selectLiveKitRoomState,
   (state: LiveKitRoomState) => state.iconColor
-);
-
-export const selectIsMicOn = createSelector(
-  selectLiveKitRoomState,
-  (state: LiveKitRoomState) => {
-    console.log('selector mic', state.isMicOn);
-    return state.isMicOn;
-  }
 );
 
 export const selectAllMessages = createSelector(

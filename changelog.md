@@ -41,3 +41,72 @@ All notable changes to this project will be documented in this file.
   - Fixed issue with participants not being updated in the breakout room list.
   - Fixed issue with breakout room not being updated when a participant joins or leaves.
   - If it’s existing room, then participant will be added in that room otherwise will move to the new room.
+
+## [Changelog for this Week]
+
+[1.2.0] - 2024-11-04
+
+### Added
+
+- Conducted research on Picture-in-Picture functionality for use in the video conference project.
+- Started implementing the PiP window in the video conference project.
+
+### Changed
+
+- Began researching Picture-in-Picture features in the context of NgRx meetings.
+
+### Fixed
+
+- No significant fixes on this day.
+
+[1.2.1] - 2024-11-05
+
+### Added
+
+- Utilized the **document PictureInPicture API** to implement the LiveKit overlay functionality.
+- Implemented functionality for PiP to trigger automatically when the user switches tabs.
+
+### Changed
+
+- Studied the documentation and code samples to understand how the **document PictureInPicture API** works.
+
+### Fixed
+
+- Integrated the PiP API into LiveKit, allowing the entire video conference UI to be displayed in the PiP overlay.
+
+[1.2.2] - 2024-11-06
+
+### Added
+
+- Worked on the PiP window and resolved issues with dynamic HTML creation in the service.
+- Ensured participant data is reflected in the DOM correctly after participants join or leave the meeting.
+
+### Fixed
+
+- Fixed the header in the PiP window to make it work properly with dynamic content.
+- Updated participant tiles so they refresh correctly when participants join or leave the meeting.
+
+[1.2.3] - 2024-11-07
+
+### Added
+
+- Implemented functionality to trigger PiP mode automatically upon the `visibilitychange` event.
+
+### Changed
+
+- Focused on fixing the video conference header interactivity within the PiP overlay, which is now working correctly. Only icons need further adjustments.
+
+### Fixed
+
+- Fixed issues with the video conference header not being interactive in the PiP overlay.
+
+[1.2.4] - 2024-11-08
+
+### Added
+
+- Completed an Exercism exercise on If/Else-If logic and different array methods and classes in javascript.
+- Added documentation for the changes and updated the changelog file with this week's progress.
+
+### Fixed
+
+- Fixed the PiP overlay icons to correctly reflect the state of the microphone, raise hand, and other features in LiveKit.
