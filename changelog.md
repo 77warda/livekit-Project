@@ -110,3 +110,8 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Fixed the PiP overlay icons to correctly reflect the state of the microphone, raise hand, and other features in LiveKit.
+
+### [Changelog for November third week]
+
+[1.2.1] - 2024-11-11
+=> I’ve worked on the Livekit overlay styling of the participant tiles. In the overlay view, I’ve make some research on different video conference apps such as soho meeting, google meeting, zoom app, gotoMeeting and their displays. Then Implement in my livekit video conference.

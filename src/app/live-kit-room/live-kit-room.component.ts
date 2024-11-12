@@ -40,6 +40,29 @@ const GRIDCOLUMN: { [key: number]: string } = {
   5: '1fr 1fr 1fr',
   6: '1fr 1fr 1fr',
 };
+const PIPGRIDCOLUMN: { [key: number]: string } = {
+  1: '1fr',
+  2: '1fr',
+  3: '1fr',
+  4: '1fr 1fr',
+  5: '1fr 1fr',
+  6: '1fr 1fr',
+  7: '1fr 1fr',
+  8: '1fr 1fr',
+  9: '1fr 1fr 1fr',
+  10: '1fr 1fr 1fr',
+  11: '1fr 1fr 1fr',
+  12: '1fr 1fr 1fr',
+  13: '1fr 1fr 1fr',
+  14: '1fr 1fr 1fr',
+  15: '1fr 1fr 1fr',
+  16: '1fr 1fr 1fr 1fr',
+  17: '1fr 1fr 1fr 1fr',
+  18: '1fr 1fr 1fr 1fr',
+  19: '1fr 1fr 1fr 1fr',
+  20: '1fr 1fr 1fr 1fr',
+  21: '1fr 1fr 1fr 1fr',
+};
 @Component({
   selector: 'app-live-kit-room',
   templateUrl: './live-kit-room.component.html',
@@ -454,7 +477,7 @@ export class LiveKitRoomComponent {
         );
       }
     );
-    this.livekitService.initCanvas(this.audioCanvasRef.nativeElement);
+    // this.livekitService.initCanvas(this.audioCanvasRef.nativeElement);
   }
   /**
    * Initiates the start of a meeting by dispatching a `startMeeting` action
@@ -765,7 +788,7 @@ export class LiveKitRoomComponent {
    */
   get GalleryGridColumnStyle() {
     if (this.pipMode) {
-      return '1fr';
+      return PIPGRIDCOLUMN[this.livekitService.room.numParticipants];
     } else if (this.livekitService.room.numParticipants <= 6) {
       return GRIDCOLUMN[this.livekitService.room.numParticipants];
     } else {
