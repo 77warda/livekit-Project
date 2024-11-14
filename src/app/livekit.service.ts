@@ -32,7 +32,6 @@ import { MeetingService } from './Meeting-Service/meeting.service';
   providedIn: 'root',
 })
 export class LiveKitService {
-  private screenShareMap: Map<string, boolean> = new Map();
   // audio visualizer logic
 
   private micCanvas!: HTMLCanvasElement;
@@ -219,6 +218,9 @@ export class LiveKitService {
   public messageToMain: EventEmitter<string[]> = new EventEmitter<string[]>();
   messageArray: string[] = [];
   messageArrayToMain: string[] = [];
+
+  localScreenShareCount = 0;
+  remoteScreenShareCount = 0;
   /**
    * Connects to a LiveKit room using the provided WebSocket URL and token.
    *
@@ -662,8 +664,19 @@ export class LiveKitService {
       (publication: LocalTrackPublication, participant: LocalParticipant) => {
         if (publication.source === Track.Source.ScreenShare) {
           this.isScreenSharingEnabled = false;
-          this.remoteScreenShare = false;
-          this.screenShareCount--;
+          this.localScreenShareCount--;
+          console.error(
+            'Local Screen Share count Unpublished',
+            this.localScreenShareCount
+          );
+          const screenShareTile = document.getElementById(
+            `screenshare-${participant.sid}`
+          );
+          if (screenShareTile) {
+            screenShareTile.remove();
+          } else {
+            console.log('Local screen share container not found');
+          }
         }
       }
     );
@@ -676,14 +689,24 @@ export class LiveKitService {
      * @param {RemoteTrackPublication} publication - The track publication.
      * @param {RemoteParticipant} participant - The participant who unpublished the track.
      */
-
     this.room.on(
       RoomEvent.TrackUnpublished,
       (publication: RemoteTrackPublication, participant: RemoteParticipant) => {
         if (publication.source === Track.Source.ScreenShare) {
-          // this.isScreenSharingEnabled = false;
           this.remoteScreenShare = false;
-          this.screenShareCount--;
+          this.remoteScreenShareCount--;
+          console.error(
+            'Remote Screen Share count Unpublished',
+            this.remoteScreenShareCount
+          );
+          const screenShareTile = document.getElementById(
+            `screenshare-${participant.sid}`
+          );
+          if (screenShareTile) {
+            screenShareTile.remove();
+          } else {
+            console.log('Local screen share container not found');
+          }
         }
       }
     );
@@ -711,6 +734,7 @@ export class LiveKitService {
 
             // Attach the video track to the participant tile
             const element = publication.track.attach();
+            element.setAttribute('class', 'pip-video');
             participantTile.appendChild(element);
             element.setAttribute(
               'style',
@@ -783,11 +807,12 @@ export class LiveKitService {
 
         this.screenShareTrackSubscribed.emit(publication.track);
         if (publication.source === Track.Source.ScreenShare) {
-          this.remoteScreenShare = true;
-          this.screenShareCount++;
+          this.localScreenShareCount++;
+          console.error('Local Screen Share count', this.localScreenShareCount);
           setTimeout(() => {
             const el2 = document.createElement('div');
             el2.setAttribute('class', 'lk-participant-tile');
+            el2.setAttribute('id', `screenshare-${participant.sid}`);
             el2.setAttribute(
               'style',
               ` --lk-speaking-indicator-width: 2.5px;
@@ -800,6 +825,7 @@ export class LiveKitService {
             border-radius: 0.5rem;`
             );
             const screenShareTrack = publication.track?.attach();
+            screenShareTrack?.setAttribute('class', 'pip-screenShare');
             if (screenShareTrack) {
               const container = document.querySelector('.lk-focus-layout');
               console.log('screenshare container', container);
@@ -1033,6 +1059,7 @@ export class LiveKitService {
           existingElement.removeChild(avatarImg);
         }
         const element = track.attach();
+        element.setAttribute('class', 'pip-video');
         element.setAttribute(
           'style',
           'border-radius: 0.5rem; width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000;'
@@ -1105,6 +1132,7 @@ export class LiveKitService {
               retryElement.removeChild(avatarImg);
             }
             const element = track.attach();
+            element.setAttribute('class', 'pip-video');
             element.setAttribute(
               'style',
               'border-radius: 0.5rem; width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000;'
@@ -1128,31 +1156,28 @@ export class LiveKitService {
     this.screenShareTrackSubscribed.emit(track);
     if (track.source === Track.Source.ScreenShare && track.kind === 'video') {
       this.remoteScreenShare = true;
-      this.screenShareCount++;
+      this.remoteScreenShareCount++;
+      console.error('Remote Screen Share count', this.remoteScreenShareCount);
       setTimeout(() => {
         const el2 = document.createElement('div');
         el2.setAttribute('class', 'lk-participant-tile');
+        el2.setAttribute('id', `screenshare-${participant.sid}`);
         el2.setAttribute(
           'style',
           ` --lk-speaking-indicator-width: 2.5px;
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        height:100%;
-        gap: 0.375rem;
-        overflow: hidden;
-        border-radius: 0.5rem;`
+       position: relative;
+       display: flex;
+       flex-direction: column;
+       height:100%;
+       gap: 0.375rem;
+       overflow: hidden;
+       border-radius: 0.5rem;`
         );
         const screenShareTrack = publication.track?.attach();
+        screenShareTrack?.setAttribute('class', 'pip-screenShare');
         if (screenShareTrack) {
           const container = document.querySelector('.lk-focus-layout');
-          const lkFocusLayoutContainer =
-            document.querySelector('.lk-focus-layout');
-          const newScreenShareContainer = document.querySelector(
-            '#newScreenShareContainer'
-          );
-
-          // console.log('screenshare container', container);
+          console.log('screenshare container', container);
           // el2.appendChild(container);
 
           screenShareTrack.setAttribute(
@@ -1164,54 +1189,49 @@ export class LiveKitService {
           el3.setAttribute(
             'style',
             `position: absolute;
-          right: 0.25rem;
-          bottom: 0.25rem;
-          left: 0.25rem;
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          justify-content: space-between;
-          gap: 0.5rem;
-          line-height: 1;`
+         right: 0.25rem;
+         bottom: 0.25rem;
+         left: 0.25rem;
+         display: flex;
+         flex-direction: row;
+         align-items: center;
+         justify-content: space-between;
+         gap: 0.5rem;
+         line-height: 1;`
           );
           const el4 = document.createElement('div');
           el4.setAttribute('class', 'lk-participant-metadata-item');
           el4.setAttribute(
             'style',
             `display: flex;
-          align-items: center;
-          padding: 0.25rem;
-          background-color: rgba(0, 0, 0, 0.5);
-          border-radius: 0.25rem;`
+         align-items: center;
+         padding: 0.25rem;
+         background-color: rgba(0, 0, 0, 0.5);
+         border-radius: 0.25rem;`
           );
           const el5 = document.createElement('span');
           el5.setAttribute('class', 'lk-participant-name');
           el5.setAttribute(
             'style',
             ` font-size: 0.875rem;
-          color: white;
-          `
+         color: white;
+         `
           );
           el2.appendChild(screenShareTrack);
           el2.appendChild(el3);
           el3.appendChild(el4);
           el4.appendChild(el5);
           el5.innerText = participant.identity;
-          // container?.appendChild(el2);
-
           const button = document.createElement('button');
           button.setAttribute('class', 'lk-participant-button');
           button.innerHTML = `<i class="fas fa-expand-alt"></i>`;
           button.onclick = () => {
             this.toggleExpand(el2, participant.identity);
-            // el2.appendChild(button);
-
             console.log(`Button clicked for ${participant.identity}!`);
           };
 
           el3.appendChild(button);
-          lkFocusLayoutContainer?.appendChild(el2);
-          newScreenShareContainer?.appendChild(el2.cloneNode(true));
+          container?.appendChild(el2);
         } else {
           console.error('Remote screen share container not found');
         }
@@ -1329,21 +1349,49 @@ export class LiveKitService {
    * @throws {Error} Throws an error if there is an issue toggling the screen share.
    */
 
+  // async toggleScreenShare(): Promise<boolean> {
+  //   if (this.isScreenSharingEnabled) {
+  //     await this.room.localParticipant.setScreenShareEnabled(false);
+  //     this.isScreenSharingEnabled = false;
+  //     const container = document.querySelector('.lk-focus-layout');
+  //     if (container) {
+  //       container.remove();
+  //     } else {
+  //       console.error('Local screen share container not found');
+  //     }
+  //   } else {
+  //     await this.room.localParticipant.setScreenShareEnabled(true);
+  //     this.isScreenSharingEnabled = true;
+  //   }
+  //   return this.isScreenSharingEnabled; // Return the updated screen sharing status
+  // }
   async toggleScreenShare(): Promise<boolean> {
     if (this.isScreenSharingEnabled) {
-      await this.room.localParticipant.setScreenShareEnabled(false);
-      this.isScreenSharingEnabled = false;
-      const container = document.querySelector('.lk-focus-layout');
-      if (container) {
-        container.remove();
+      // document.querySelector(`.lk-participant-tile[data-participant-id="${this.room.localParticipant.sid}-screenshare"]`);
+      const screenShareTileWrapper = document.querySelector(
+        '.lk-focus-layout-wrapper'
+      );
+      if (
+        this.localScreenShareCount === 1 &&
+        this.remoteScreenShareCount === 0
+      ) {
+        screenShareTileWrapper?.remove();
+        this.remoteScreenShare = false;
       } else {
         console.error('Local screen share container not found');
       }
+      await this.room.localParticipant.setScreenShareEnabled(false);
+      this.isScreenSharingEnabled = false;
     } else {
       await this.room.localParticipant.setScreenShareEnabled(true);
       this.isScreenSharingEnabled = true;
     }
+    console.error('screenshare count', this.totalScreenShareCount);
     return this.isScreenSharingEnabled; // Return the updated screen sharing status
+  }
+  // Getter to calculate the total screen share count
+  get totalScreenShareCount(): number {
+    return this.localScreenShareCount + this.remoteScreenShareCount;
   }
   /**
    * Opens a snackbar with a given message.
@@ -1384,6 +1432,7 @@ export class LiveKitService {
        gap: 0.375rem;
        border-radius: 0.5rem;
        width: 100%;
+       min-height :25%;
        background-color: #000;
      `
     );
@@ -1476,7 +1525,7 @@ export class LiveKitService {
         overflow: hidden;
         border-radius: 0.5rem;`;
     const allElements = document.querySelectorAll('.lk-focus-layout');
-    const tileElements = document.querySelectorAll('.lk-participant-tile');
+    const tileElements = document.querySelectorAll('[id^="screenshare-"]');
 
     // Check if the element is currently expanded
     const isExpanded = element.getAttribute('data-expanded') === 'true';
@@ -1499,7 +1548,7 @@ export class LiveKitService {
         bottom: 0;
         left: 50%;
         transform: translateX(-50%);
-        width: 55vw;
+        width: 50vw;
         height: 90vh;
         z-index: 10;
       `
@@ -1561,6 +1610,7 @@ export class LiveKitService {
             width: 28%;
             overflow: auto;
             border-radius: 0.25rem;
+            background-color: #000;
           `
           );
           el.setAttribute('data-expanded', 'false');

@@ -115,3 +115,6 @@ All notable changes to this project will be documented in this file.
 
 [1.2.1] - 2024-11-11
 => I’ve worked on the Livekit overlay styling of the participant tiles. In the overlay view, I’ve make some research on different video conference apps such as soho meeting, google meeting, zoom app, gotoMeeting and their displays. Then Implement in my livekit video conference.
+
+[1.2.2] - 2024-11-12
+=> I’ve worked in main window and working on resolving regression issue while sharing screen from remote participants as well as localparticipants. Also trying to show screen share in pip window.
