@@ -118,3 +118,15 @@ All notable changes to this project will be documented in this file.
 
 [1.2.2] - 2024-11-12
 => I’ve worked in main window and working on resolving regression issue while sharing screen from remote participants as well as localparticipants. Also trying to show screen share in pip window.
+
+13-11-2024
+=> I’ve worked in main window and working on resolving regression issue while sharing screen from remote participants as well as localparticipants.
+
+=> I’ve also done camera streaming in pip window.
+
+14-11-2024
+=> I’ve worked in main window and resolve all issues of sharing screen from remote participants as well as localparticipants.
+
+=> Resolve camera in pip window and now it works fine for local as well as remote participants.
+
+=> Started working on Figma design in os-fe-dev for creating design of classrooms UI.

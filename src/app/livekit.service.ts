@@ -5,6 +5,7 @@ import {
   LocalParticipant,
   LocalTrackPublication,
   Participant,
+  ParticipantEvent,
   RemoteParticipant,
   RemoteTrack,
   RemoteTrackPublication,
@@ -32,6 +33,30 @@ import { MeetingService } from './Meeting-Service/meeting.service';
   providedIn: 'root',
 })
 export class LiveKitService {
+  // activeSpeakers: Participant[] = []; // Track current active speakers
+  // speakerDevices: MediaDeviceInfo[] = [];
+  // videoDevices: MediaDeviceInfo[] = [];
+  // currentSpeakerDeviceId: string = '';
+  activeSpeakers: Participant[] = []; // Track current active speakers
+  speakerDevices: {
+    kind: MediaDeviceKind;
+    deviceId: string;
+    label: string;
+  }[] = []; // Combined list of audio devices
+  currentSpeakerDeviceId: string = '';
+  selectedMicId: string = ''; // Selected microphone device ID
+  selectedVideoId: string = ''; // Selected video device ID
+  selectedSpeakerId: string = ''; // Selected video device ID
+  devicesFetched: boolean = false; // Flag to indicate if devices have been fetched
+  micDevices: {
+    kind: MediaDeviceKind;
+    deviceId: string;
+    label: string;
+  }[] = []; // Combined list of audio devices
+  videoDevices: { kind: MediaDeviceKind; deviceId: string; label: string }[] =
+    [];
+
+  // Video devices
   // audio visualizer logic
 
   private micCanvas!: HTMLCanvasElement;
@@ -207,9 +232,16 @@ export class LiveKitService {
    * @param {MatSnackBar} snackBar - The snack bar service for displaying notifications.
    */
   constructor(
-    private snackBar: MatSnackBar,
-    private meetingService: MeetingService
-  ) {}
+    public snackBar: MatSnackBar,
+    public meetingService: MeetingService
+  ) {
+    // Listen for device changes
+    navigator.mediaDevices.addEventListener('devicechange', () => {
+      console.log('Device change detected. Updating device lists...');
+      this.devicesFetched = false;
+      this.fetchDevices();
+    });
+  }
 
   private breakoutRoomCounter = 0;
   public messageContentReceived: EventEmitter<string[]> = new EventEmitter<
@@ -505,14 +537,98 @@ export class LiveKitService {
     });
   }
   /**
+   * Updates the borders of participant tiles to visually indicate active speakers.
+   * Applies a smooth transition effect when switching between active and inactive states.
+   *
+   * This function combines the local participant and all remote participants into one array,
+   * iterates over them, and applies a specific border color depending on whether the participant
+   * is an active speaker or not.
+   *
+   * @function updateActiveSpeakerBorders
+   * @memberof YourComponentOrClass
+   *
+   * @example
+   * // Call this method to update speaker borders dynamically
+   * this.updateActiveSpeakerBorders();
+   */
+  updateActiveSpeakerBorders() {
+    // Combine local participant and remote participants into one array
+    const participants = Array.from([
+      this.room.localParticipant,
+      ...this.room.remoteParticipants.values(),
+    ]);
+
+    participants.forEach((participant) => {
+      const participantTile = document.getElementById(`${participant.sid}`);
+      if (participantTile) {
+        const isActiveSpeaker = this.activeSpeakers.some(
+          (speaker) => speaker.sid === participant.sid
+        );
+
+        // Apply or remove the border with a smooth transition
+        participantTile.style.transition = 'border 0.3s ease-in-out';
+        if (isActiveSpeaker) {
+          participantTile.style.border = '5px solid red'; // Active speaker border
+        } else {
+          participantTile.style.border = '5px solid black'; // Default border
+        }
+      }
+    });
+  }
+  /**
    * Handles audio and video events in the LiveKit room.
    *
    * @returns {void}
    */
+
   audioVideoHandler() {
     this.room = new Room();
     this.participants = this.room.numParticipants;
     console.log('total participants', this.participants);
+
+    /**
+     * Listens for the `ActiveSpeakersChanged` event on the room.
+     * Updates the list of active speakers and applies visual updates to their respective participant tiles.
+     * Logs the active speakers and the first active speaker's details for debugging.
+     *
+     * @event RoomEvent.ActiveSpeakersChanged
+     * @param {Participant[]} speakers - An array of participants who are currently active speakers.
+     */
+
+    this.room.on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => {
+      console.log('Active speakers:', speakers);
+
+      // Update the list of active speakers
+      this.activeSpeakers = speakers;
+      this.updateActiveSpeakerBorders();
+
+      // Log the first active speaker for debugging
+      if (speakers.length > 0) {
+        const activeSpeaker = speakers[0];
+        console.log(
+          `${activeSpeaker.identity} is speaking with audio level ${activeSpeaker.audioLevel}`
+        );
+      }
+    });
+
+    /**
+     * Listens for the `IsSpeakingChanged` event on the local participant.
+     * Logs whether the local participant is speaking or not, along with their current audio level.
+     *
+     * @event ParticipantEvent.IsSpeakingChanged
+     * @param {boolean} speaking - Indicates whether the participant is currently speaking.
+     */
+    this.room.localParticipant.on(
+      ParticipantEvent.IsSpeakingChanged,
+      (speaking: boolean) => {
+        console.log(
+          `${this.room.localParticipant.identity} is ${
+            speaking ? 'now' : 'no longer'
+          } speaking. audio level: ${this.room.localParticipant.audioLevel}`
+        );
+      }
+    );
+
     /**
      * Event triggered when the room is connected.
      * Creates an avatar for the local participant.
@@ -902,14 +1018,6 @@ export class LiveKitService {
         }
       });
     });
-  }
-  /**
-   * Retrieves the local participant from the room.
-   *
-   * @returns {Participant|null} The local participant if available, otherwise null.
-   */
-  getLocalParticipant() {
-    return this.room?.localParticipant;
   }
 
   /**
@@ -1432,7 +1540,7 @@ export class LiveKitService {
        gap: 0.375rem;
        border-radius: 0.5rem;
        width: 100%;
-       min-height :25%;
+       min-height :60%;
        background-color: #000;
      `
     );
@@ -1887,5 +1995,307 @@ export class LiveKitService {
       breakoutRoomName,
       content
     );
+  }
+  async getAvailableSpeakers() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    this.speakerDevices = devices.filter(
+      (device) => device.kind === 'audiooutput'
+    );
+  }
+  // async switchSpeaker(deviceId: string) {
+  //   // Find the audio track publication
+  //   const audioPublication = Array.from(
+  //     this.room.localParticipant.trackPublications.values()
+  //   ).find((publication) => publication.kind === 'audio' && publication.track);
+
+  //   if (audioPublication && audioPublication.track) {
+  //     try {
+  //       // Create a new audio stream for the selected device
+  //       const newDeviceStream = await navigator.mediaDevices.getUserMedia({
+  //         audio: { deviceId: { exact: deviceId } },
+  //       });
+
+  //       // Extract the audio track from the stream
+  //       const newAudioTrack = newDeviceStream.getAudioTracks()[0];
+
+  //       // Replace the existing track with the new one
+  //       await audioPublication.track.replaceTrack(newAudioTrack);
+  //       console.log(`Speaker switched to device ID: ${deviceId}`);
+  //     } catch (error) {
+  //       console.error('Failed to switch speaker:', error);
+  //     }
+  //   } else {
+  //     console.warn('No audio track found to replace.');
+  //   }
+  // }
+
+  async getAvailableVideoDevices() {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    this.videoDevices = devices.filter(
+      (device) => device.kind === 'videoinput'
+    );
+  }
+  // ===============
+
+  /**
+   * Fetch available media devices (audio and video).
+   */
+  async fetchDevices() {
+    try {
+      // Fetch all available media devices
+      const devices = await navigator.mediaDevices.enumerateDevices();
+
+      // Update microphones list
+      this.micDevices = devices
+        .filter((device) => device.kind === 'audioinput')
+        .map((device) => ({
+          kind: device.kind as MediaDeviceKind, // Store the kind (audioinput or audiooutput)
+          deviceId: device.deviceId,
+          label: device.label || `Unnamed Mic`,
+        }));
+
+      // Update speakers list
+      this.speakerDevices = devices
+        .filter((device) => device.kind === 'audiooutput')
+        .map((device) => ({
+          kind: device.kind as MediaDeviceKind,
+          deviceId: device.deviceId,
+          label: device.label || `Unnamed Speaker`,
+        }));
+
+      // Update video devices list
+      this.videoDevices = devices
+        .filter((device) => device.kind === 'videoinput')
+        .map((device) => ({
+          kind: device.kind as MediaDeviceKind,
+          deviceId: device.deviceId,
+          label: device.label || 'Unnamed Camera',
+        }));
+
+      // Log the devices for debugging
+      console.log('Updated microphone devices:', this.micDevices);
+      console.log('Updated speaker devices:', this.speakerDevices);
+      console.log('Updated video devices:', this.videoDevices);
+
+      // Set the default microphone (if not already selected)
+      if (!this.selectedMicId && this.micDevices.length > 0) {
+        this.selectedMicId = this.micDevices[0].deviceId;
+        console.log(`Default microphone selected: ${this.micDevices[0].label}`);
+      }
+
+      // Set the default video device (if not already selected)
+      if (!this.selectedVideoId && this.videoDevices.length > 0) {
+        this.selectedVideoId = this.videoDevices[0].deviceId;
+        console.log(
+          `Default video device selected: ${this.videoDevices[0].label}`
+        );
+      }
+
+      // Set the default speaker (if not already selected)
+      if (!this.selectedSpeakerId && this.speakerDevices.length > 0) {
+        this.selectedSpeakerId = this.speakerDevices[0].deviceId;
+        console.log(
+          `Default speaker selected: ${this.speakerDevices[0].label}`
+        );
+      }
+
+      this.devicesFetched = true;
+    } catch (error) {
+      console.error('Error fetching devices', error);
+    }
+  }
+
+  /**
+   * Connect to the default microphone and video device without activating streams unnecessarily.
+   */
+  async connectDefaultDevices(): Promise<void> {
+    if (!this.devicesFetched) {
+      await this.fetchDevices();
+    }
+
+    try {
+      // Request permissions to access media only if devices haven't been connected yet
+      await this.requestMediaPermissions();
+
+      console.log('Connecting to default mic and video');
+      // Automatically connect to the default mic and video devices
+      if (this.selectedMicId) {
+        this.selectMic(this.selectedMicId, 'audioinput');
+      }
+      if (this.selectedSpeakerId) {
+        this.selectSpeaker(this.selectedSpeakerId, 'audiooutput');
+      }
+      if (this.selectedVideoId) {
+        this.selectVideo(this.selectedVideoId);
+      }
+    } catch (error) {
+      console.error('Error connecting to default devices:', error);
+    }
+  }
+  /**
+   * Request permissions to access media devices.
+   */
+  private async requestMediaPermissions() {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+    } catch (error) {
+      console.error('Error requesting media permissions', error);
+    }
+  }
+
+  /**
+   * Select a microphone or speaker by its device ID.
+   * @param deviceId - The ID of the selected device.
+   * @param kind - The kind of the device ('audioinput' or 'audiooutput').
+   */
+  selectMic(deviceId: string, kind: MediaDeviceKind) {
+    if (kind === 'audioinput') {
+      this.selectedMicId = deviceId;
+      console.log(
+        `Microphone connected: ${this.getDeviceLabel(
+          deviceId
+        )} (ID: ${deviceId})`
+      );
+    }
+    // else if (kind === 'audiooutput') {
+    //   this.currentSpeakerDeviceId = deviceId;
+    //   console.log(`Speaker connected: ${this.getDeviceLabel(deviceId)}`);
+    // }
+  }
+
+  selectSpeaker(deviceId: string, kind: MediaDeviceKind) {
+    if (kind === 'audiooutput') {
+      this.selectedSpeakerId = deviceId;
+      console.log(
+        `Microphone connected: ${this.getDeviceLabel(
+          deviceId
+        )} (ID: ${deviceId})`
+      );
+    }
+    // else if (kind === 'audiooutput') {
+    //   this.currentSpeakerDeviceId = deviceId;
+    //   console.log(`Speaker connected: ${this.getDeviceLabel(deviceId)}`);
+    // }
+  }
+  /**
+   * Select a video device by its device ID.
+   * @param deviceId - The ID of the selected video device.
+   */
+  selectVideo(deviceId: string) {
+    this.selectedVideoId = deviceId;
+    console.log(
+      `Video device connected to: ${this.getDeviceLabel(
+        deviceId
+      )} (ID: ${deviceId})`
+    );
+  }
+
+  /**
+   * Helper function to get the device label by device ID.
+   */
+  private getDeviceLabel(deviceId: string): string {
+    return (
+      this.micDevices.find((d) => d.deviceId === deviceId)?.label ||
+      this.videoDevices.find((d) => d.deviceId === deviceId)?.label ||
+      'Unknown Device'
+    );
+  }
+
+  async setSpeakerDevice(deviceId: string): Promise<void> {
+    try {
+      const audioElements = Array.from(
+        document.querySelectorAll<HTMLAudioElement>('audio') // Select all audio elements
+      );
+      for (const audio of audioElements) {
+        const audioWithSink = audio as HTMLAudioElement & {
+          setSinkId: (sinkId: string) => Promise<void>;
+        };
+
+        if ('setSinkId' in audioWithSink) {
+          try {
+            await audioWithSink.setSinkId(deviceId); // Set the audio output device
+            console.log(`Speaker set to: ${deviceId}`);
+          } catch (error) {
+            console.error(`Error setting sink ID: ${error}`);
+          }
+        } else {
+          console.warn('setSinkId is not supported in this browser');
+        }
+      }
+
+      // Update the selected speaker ID
+      this.selectedSpeakerId = deviceId;
+    } catch (error) {
+      console.error('Error setting speaker device:', error);
+    }
+  }
+  // ===========================
+  async getDevices(kind: MediaDeviceKind): Promise<MediaDeviceInfo[]> {
+    try {
+      // Call LiveKit's getLocalDevices method
+      const devices = await Room.getLocalDevices(kind, true); // Request permissions by default
+      console.log(`Available ${kind}s`, devices);
+      return devices;
+    } catch (error) {
+      console.error(`Failed to get ${kind}`, error);
+      return [];
+    }
+  }
+
+  async getAllDevices() {
+    try {
+      const cameras = await this.getDevices('videoinput');
+      const microphones = await this.getDevices('audioinput');
+      const speakers = await this.getDevices('audiooutput');
+
+      return {
+        cameras,
+        microphones,
+        speakers,
+      };
+    } catch (error) {
+      console.error('Error fetching devices:', error);
+      return {
+        cameras: [],
+        microphones: [],
+        speakers: [],
+      };
+    }
+  }
+
+  async updateDeviceLists() {
+    try {
+      this.videoDevices = await this.getDevices('videoinput');
+      this.micDevices = await this.getDevices('audioinput');
+      this.speakerDevices = await this.getDevices('audiooutput');
+      console.log('Device lists updated:', {
+        videoDevices: this.videoDevices,
+        micDevices: this.micDevices,
+        speakerDevices: this.speakerDevices,
+      });
+    } catch (error) {
+      console.error('Error updating device lists:', error);
+    }
+  }
+
+  listenForDeviceChanges() {
+    navigator.mediaDevices.addEventListener('devicechange', async () => {
+      console.log('Device change detected.');
+      await this.updateDeviceLists();
+    });
+  }
+
+  // Switch active device (camera, microphone, or speaker)
+  async switchDevice(kind: MediaDeviceKind, deviceId: string): Promise<void> {
+    try {
+      const success = await this.room.switchActiveDevice(kind, deviceId);
+      if (success) {
+        console.log(`Switched ${kind} to device: ${deviceId}`);
+      } else {
+        console.warn(`Failed to switch ${kind} to device: ${deviceId}`);
+      }
+    } catch (error) {
+      console.error(`Error switching ${kind} to device: ${deviceId}`, error);
+    }
   }
 }
