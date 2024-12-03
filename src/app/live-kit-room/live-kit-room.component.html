@@ -80,6 +80,14 @@
 
         <button
           class="grid-view"
+          matTooltip="toggle speaker view"
+          (click)="speakerMode()"
+        >
+          <i class="far fa-speaker"></i>
+        </button>
+
+        <button
+          class="grid-view"
           matTooltip="Open breakout modal"
           (click)="openBreakoutModal()"
         >
@@ -249,7 +257,10 @@
         </button>
       </div>
     </header>
-
+    <!-- for active speaker view  -->
+    <div class="lk-speaker-layout" *ngIf="isPersonSpeaking">
+      <!-- Add speaker-specific content or video here -->
+    </div>
     <!-- for screen sharing container  -->
     <ng-container
       *ngIf="
@@ -274,25 +285,38 @@
         ></div>
       </div>
     </ng-container>
-    <!-- screen sahring for multiple screens  -->
+    <!-- screen sahring and showing participants in right side  -->
+    <!-- Also show participants in right side for speaker view  -->
     <div
-      #playerContainer
       class="lk-grid-layout-wrapper"
       [ngClass]="{
+        'speaker-layout-wrapper': livekitService.speakerModeLayout,
         'screen-share-layout-wrapper':
-          livekitService.isScreenSharingEnabled === true ||
-          livekitService.remoteScreenShare === true
+          !livekitService.speakerModeLayout &&
+          (livekitService.isScreenSharingEnabled === true ||
+            livekitService.remoteScreenShare === true)
       }"
+      #playerContainer
     >
       <div
         class="lk-grid-layout"
         [ngClass]="{
+          'speaker-layout': livekitService.speakerModeLayout,
           'screen-share-layout':
-            livekitService.isScreenSharingEnabled === true ||
-            livekitService.remoteScreenShare === true
+            !livekitService.speakerModeLayout &&
+            (livekitService.isScreenSharingEnabled === true ||
+              livekitService.remoteScreenShare === true)
         }"
         [style.grid-template-columns]="GalleryGridColumnStyle"
       ></div>
+    </div>
+    <div
+      class="lk-speaker-layout-wrapper"
+      *ngIf="livekitService.speakerModeLayout"
+    >
+      <div class="lk-speaker-layout">
+        <!-- Active speaker tile will be moved here -->
+      </div>
     </div>
   </div>
 

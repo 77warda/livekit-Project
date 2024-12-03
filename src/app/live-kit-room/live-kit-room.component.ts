@@ -11,25 +11,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { map, Observable, Subscription, take } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Store, select } from '@ngrx/store';
-import {
-  isBreakoutModalOpen,
-  isHostMsgModalOpen,
-  isInvitationModalOpen,
-  selectAllMessages,
-  selectBreakoutRoomsData,
-  selectBreakoutSideWindowVisible,
-  selectChatSideWindowVisible,
-  selectDistributionMessage,
-  selectHelpMessageModal,
-  selectIconColor,
-  selectIsMeetingStarted,
-  selectIsMicOn,
-  selectIsScreenSharing,
-  selectIsVideoOn,
-  selectNextRoomIndex,
-  selectParticipantSideWindowVisible,
-  selectUnreadMessagesCount,
-} from '../redux/selectors';
+import { selectLiveKitRoomView } from '../redux/selectors';
 import * as LiveKitRoomActions from '../redux/actions';
 
 const GRIDCOLUMN: { [key: number]: string } = {
@@ -69,6 +51,10 @@ const PIPGRIDCOLUMN: { [key: number]: string } = {
   styleUrls: ['./live-kit-room.component.scss'],
 })
 export class LiveKitRoomComponent {
+  isPersonSpeaking = false;
+  speakerModeLayout = false;
+  defaultActiveSpeakerName: string | null = null;
+
   videoDevices: MediaDeviceInfo[] = [];
   micDevices: MediaDeviceInfo[] = [];
   speakerDevices: MediaDeviceInfo[] = [];
@@ -76,6 +62,12 @@ export class LiveKitRoomComponent {
   selectedVideoId: string | null = null;
   selectedMicId: string | null = null;
   selectedSpeakerId: string | null = null;
+
+  previousGridStyle: string | null = null; // Store the previous grid style
+
+  @ViewChild('gridLayoutWrapper', { static: true })
+  gridLayoutWrapper!: ElementRef;
+
   // ==========
   isMicDropdownOpen = false;
   isVideoDropdownOpen = false;
@@ -259,40 +251,81 @@ export class LiveKitRoomComponent {
     );
   }
 
+  // private initializeStateObservables() {
+  //   this.isMeetingStarted$ = this.store.pipe(select(selectIsMeetingStarted));
+  //   this.isScreenSharing$ = this.store.pipe(select(selectIsScreenSharing));
+
+  //   this.iconColor$ = this.store.pipe(select(selectIconColor));
+  //   this.isVideoOn$ = this.store.pipe(select(selectIsVideoOn));
+  //   this.participantSideWindowVisible$ = this.store.pipe(
+  //     select(selectParticipantSideWindowVisible)
+  //   );
+  //   this.breakoutSideWindowVisible$ = this.store.pipe(
+  //     select(selectBreakoutSideWindowVisible)
+  //   );
+  //   this.chatSideWindowVisible$ = this.store.pipe(
+  //     select(selectChatSideWindowVisible)
+  //   );
+
+  //   this.allMessages$ = this.store.pipe(select(selectAllMessages));
+  //   this.unreadMessagesCount$ = this.store.pipe(
+  //     select(selectUnreadMessagesCount)
+  //   );
+  //   this.unreadMessagesCount$.subscribe((unread) => {
+  //     console.log('ts unread', unread);
+  //   });
+  //   this.isMicOn$ = this.store.pipe(select(selectIsMicOn));
+  //   this.isBreakoutModal$ = this.store.select(isBreakoutModalOpen);
+  //   this.isInvitationModal$ = this.store.select(isInvitationModalOpen);
+  //   this.isHostMsgModal$ = this.store.select(isHostMsgModalOpen);
+  //   this.distributionMessage$ = this.store.select(selectDistributionMessage);
+  //   this.breakoutRoomsData$ = this.store.select(selectBreakoutRoomsData);
+  //   this.nextRoomIndex$ = this.store.select(selectNextRoomIndex);
+  //   this.store.select(selectBreakoutRoomsData).subscribe((rooms) => {
+  //     this.breakoutRoomsData = rooms;
+  //   });
+  //   this.isHelpMsgModal$ = this.store.select(selectHelpMessageModal);
+  // }
   private initializeStateObservables() {
-    this.isMeetingStarted$ = this.store.pipe(select(selectIsMeetingStarted));
-    this.isScreenSharing$ = this.store.pipe(select(selectIsScreenSharing));
+    const state$ = this.store.pipe(select(selectLiveKitRoomView));
 
-    this.iconColor$ = this.store.pipe(select(selectIconColor));
-    this.isVideoOn$ = this.store.pipe(select(selectIsVideoOn));
-    this.participantSideWindowVisible$ = this.store.pipe(
-      select(selectParticipantSideWindowVisible)
+    this.isMeetingStarted$ = state$.pipe(
+      map((state) => state.isMeetingStarted)
     );
-    this.breakoutSideWindowVisible$ = this.store.pipe(
-      select(selectBreakoutSideWindowVisible)
+    this.isVideoOn$ = state$.pipe(map((state) => state.isVideoOn));
+    this.isMicOn$ = state$.pipe(map((state) => state.isMicOn));
+    this.participantSideWindowVisible$ = state$.pipe(
+      map((state) => state.participantSideWindowVisible)
     );
-    this.chatSideWindowVisible$ = this.store.pipe(
-      select(selectChatSideWindowVisible)
+    this.chatSideWindowVisible$ = state$.pipe(
+      map((state) => state.chatSideWindowVisible)
     );
-
-    this.allMessages$ = this.store.pipe(select(selectAllMessages));
-    this.unreadMessagesCount$ = this.store.pipe(
-      select(selectUnreadMessagesCount)
+    this.isScreenSharing$ = state$.pipe(map((state) => state.isScreenSharing));
+    this.iconColor$ = state$.pipe(map((state) => state.iconColor));
+    this.allMessages$ = state$.pipe(map((state) => state.allMessages));
+    this.unreadMessagesCount$ = state$.pipe(
+      map((state) => state.unreadMessagesCount)
     );
-    this.unreadMessagesCount$.subscribe((unread) => {
-      console.log('ts unread', unread);
-    });
-    this.isMicOn$ = this.store.pipe(select(selectIsMicOn));
-    this.isBreakoutModal$ = this.store.select(isBreakoutModalOpen);
-    this.isInvitationModal$ = this.store.select(isInvitationModalOpen);
-    this.isHostMsgModal$ = this.store.select(isHostMsgModalOpen);
-    this.distributionMessage$ = this.store.select(selectDistributionMessage);
-    this.breakoutRoomsData$ = this.store.select(selectBreakoutRoomsData);
-    this.nextRoomIndex$ = this.store.select(selectNextRoomIndex);
-    this.store.select(selectBreakoutRoomsData).subscribe((rooms) => {
-      this.breakoutRoomsData = rooms;
-    });
-    this.isHelpMsgModal$ = this.store.select(selectHelpMessageModal);
+    this.breakoutSideWindowVisible$ = state$.pipe(
+      map((state) => state.breakoutSideWindowVisible)
+    );
+    this.isBreakoutModal$ = state$.pipe(
+      map((state) => state.isBreakoutModalOpen)
+    );
+    this.isInvitationModal$ = state$.pipe(
+      map((state) => state.isInvitationModalOpen)
+    );
+    this.isHostMsgModal$ = state$.pipe(
+      map((state) => state.isHostMsgModalOpen)
+    );
+    this.distributionMessage$ = state$.pipe(
+      map((state) => state.distributionMessage)
+    );
+    this.breakoutRoomsData$ = state$.pipe(
+      map((state) => state.breakoutRoomsData)
+    );
+    this.nextRoomIndex$ = state$.pipe(map((state) => state.nextRoomIndex));
+    this.isHelpMsgModal$ = state$.pipe(map((state) => state.helpMessageModal));
   }
 
   private initializeForms() {
@@ -312,14 +345,14 @@ export class LiveKitRoomComponent {
       selectedParticipants: [[]],
     });
 
-    this.chatSideWindowVisible$.subscribe((visible) => {
-      if (visible) {
-        this.store.dispatch(
-          LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
-        );
-        this.scrollToBottom();
-      }
-    });
+    // this.chatSideWindowVisible$.subscribe((visible) => {
+    //   if (visible) {
+    //     this.store.dispatch(
+    //       LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
+    //     );
+    //     this.scrollToBottom();
+    //   }
+    // });
   }
 
   private setupMessageSubscriptions() {
@@ -732,6 +765,7 @@ export class LiveKitRoomComponent {
    */
   async toggleScreenShare(): Promise<void> {
     this.store.dispatch(LiveKitRoomActions.LiveKitActions.toggleScreenShare());
+    this.livekitService.speakerModeLayout = false;
   }
 
   /**
@@ -797,13 +831,14 @@ export class LiveKitRoomComponent {
     this.store.dispatch(
       LiveKitRoomActions.LiveKitActions.toggleChatSideWindow()
     );
-    this.chatSideWindowVisible$.subscribe((visible) => {
-      if (!visible) {
-        this.store.dispatch(
-          LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
-        );
-      }
-    });
+    console.log('clicked');
+    // this.chatSideWindowVisible$.subscribe((visible) => {
+    //   if (!visible) {
+    //     this.store.dispatch(
+    //       LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
+    //     );
+    //   }
+    // });
   }
 
   /**
@@ -1681,7 +1716,7 @@ export class LiveKitRoomComponent {
     pipBody.innerHTML = '';
 
     // Clone the current state of the main container into the PiP window
-    const clonedContainer = mainContainer.cloneNode(true) as HTMLElement;
+    const clonedContainer = mainContainer?.cloneNode(true) as HTMLElement;
     // Clone the modal (if present) into the PiP window
     // const modalElement = document.querySelector('#pipModal') as HTMLElement; // Update with your modal's ID or class
     const modalElement = this.pipModal?.nativeElement;
@@ -1928,8 +1963,29 @@ export class LiveKitRoomComponent {
     console.log('Selected speaker device:', deviceId);
   }
   // =========
-  onDeviceSelected(deviceId: string, kind: MediaDeviceKind) {
-    console.log(`Selected ${kind}:`, deviceId);
-    // You can implement functionality to switch the device here
+  // speakerMode() {
+  //   this.isPersonSpeaking = !this.isPersonSpeaking;
+  //   console.log('speaker', this.isPersonSpeaking);
+  // }
+  speakerMode() {
+    const participantCount = this.livekitService.room.numParticipants;
+
+    if (participantCount <= 1) {
+      console.log(
+        'Speaker mode is disabled because there is only one participant.'
+      );
+      this.openSnackBar(
+        'Speaker mode is disabled because there is only one participant.'
+      );
+
+      return;
+    }
+
+    this.livekitService.speakerModeLayout =
+      !this.livekitService.speakerModeLayout;
+    console.log('Speaker mode toggled:', this.livekitService.speakerModeLayout);
+
+    // Update the active speaker borders when toggling modes
+    this.livekitService.updateActiveSpeakerBorders();
   }
 }

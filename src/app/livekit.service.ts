@@ -33,10 +33,9 @@ import { MeetingService } from './Meeting-Service/meeting.service';
   providedIn: 'root',
 })
 export class LiveKitService {
-  // activeSpeakers: Participant[] = []; // Track current active speakers
-  // speakerDevices: MediaDeviceInfo[] = [];
-  // videoDevices: MediaDeviceInfo[] = [];
-  // currentSpeakerDeviceId: string = '';
+  createdAvatars = new Set();
+  private currentActiveSpeakerId: string | null = null;
+  speakerModeLayout = false;
   activeSpeakers: Participant[] = []; // Track current active speakers
   speakerDevices: {
     kind: MediaDeviceKind;
@@ -267,6 +266,7 @@ export class LiveKitService {
     await this.room.connect(wsURL, token);
     console.log('Connected to room', this.room);
     // this.connectWebSocket();
+    this.showInitialSpeaker();
     this.updateParticipantNames();
     this.remoteParticipantAfterLocal();
   }
@@ -551,29 +551,73 @@ export class LiveKitService {
    * // Call this method to update speaker borders dynamically
    * this.updateActiveSpeakerBorders();
    */
+  // updateActiveSpeakerBorders() {
+  //   // Combine local participant and remote participants into one array
+  //   const participants = Array.from([
+  //     this.room.localParticipant,
+  //     ...this.room.remoteParticipants.values(),
+  //   ]);
+
+  //   participants.forEach((participant) => {
+  //     const participantTile = document.getElementById(`${participant.sid}`);
+  //     if (participantTile) {
+  //       const isActiveSpeaker = this.activeSpeakers.some(
+  //         (speaker) => speaker.sid === participant.sid
+  //       );
+
+  //       // Apply or remove the border with a smooth transition
+  //       participantTile.style.transition = 'border 0.3s ease-in-out';
+  //       if (isActiveSpeaker) {
+  //         participantTile.style.border = '5px solid red'; // Active speaker border
+  //       } else {
+  //         participantTile.style.border = '5px solid black'; // Default border
+  //       }
+  //     }
+  //   });
+  // }
+
   updateActiveSpeakerBorders() {
-    // Combine local participant and remote participants into one array
     const participants = Array.from([
       this.room.localParticipant,
       ...this.room.remoteParticipants.values(),
     ]);
 
     participants.forEach((participant) => {
+      // Find the participant's tile
       const participantTile = document.getElementById(`${participant.sid}`);
       if (participantTile) {
+        // Check if the participant is an active speaker
         const isActiveSpeaker = this.activeSpeakers.some(
           (speaker) => speaker.sid === participant.sid
         );
 
-        // Apply or remove the border with a smooth transition
-        participantTile.style.transition = 'border 0.3s ease-in-out';
-        if (isActiveSpeaker) {
-          participantTile.style.border = '5px solid red'; // Active speaker border
+        // Check the audio level of the active speaker
+        const audioLevel = participant.audioLevel;
+
+        // If the audio level is above 0, apply the active border with a smooth transition
+        if (isActiveSpeaker && audioLevel > 0) {
+          participantTile.style.transition = 'border 0.3s ease-in-out'; // Smooth transition
+          participantTile.style.border = '4px solid #28a745'; // Apply blue border
         } else {
-          participantTile.style.border = '5px solid black'; // Default border
+          // Remove the border when audio level is 0 or participant is not speaking
+          participantTile.style.transition = ''; // Reset transition
+          participantTile.style.border = ''; // Remove the border
         }
       }
+      this.createSpeakerAvatar(participant);
     });
+  }
+  showInitialSpeaker() {
+    const remoteParticipants = Array.from(
+      this.room.remoteParticipants.values()
+    );
+
+    if (remoteParticipants.length > 0) {
+      // Take the first remote participant as the default active speaker
+      const initialSpeaker = remoteParticipants[0];
+      console.log('speaking', initialSpeaker);
+      this.createSpeakerAvatar(initialSpeaker);
+    }
   }
   /**
    * Handles audio and video events in the LiveKit room.
@@ -603,12 +647,22 @@ export class LiveKitService {
       this.updateActiveSpeakerBorders();
 
       // Log the first active speaker for debugging
-      if (speakers.length > 0) {
-        const activeSpeaker = speakers[0];
+      // if (speakers.length > 0) {
+      //   const activeSpeaker = speakers[0];
+      //   this.createSpeakerAvatar(activeSpeaker);
+
+      //   console.log(
+      //     `${activeSpeaker.identity} is speaking with audio level ${activeSpeaker.audioLevel}`
+      //   );
+      // }
+
+      // Append avatars for active speakers
+      speakers.forEach((speaker) => {
+        // this.createSpeakerAvatar(speaker);
         console.log(
-          `${activeSpeaker.identity} is speaking with audio level ${activeSpeaker.audioLevel}`
+          `${speaker.identity} is speaking with audio level ${speaker.audioLevel}`
         );
-      }
+      });
     });
 
     /**
@@ -924,6 +978,7 @@ export class LiveKitService {
         this.screenShareTrackSubscribed.emit(publication.track);
         if (publication.source === Track.Source.ScreenShare) {
           this.localScreenShareCount++;
+          this.speakerModeLayout = false;
           console.error('Local Screen Share count', this.localScreenShareCount);
           setTimeout(() => {
             const el2 = document.createElement('div');
@@ -1265,6 +1320,7 @@ export class LiveKitService {
     if (track.source === Track.Source.ScreenShare && track.kind === 'video') {
       this.remoteScreenShare = true;
       this.remoteScreenShareCount++;
+      this.speakerModeLayout = false;
       console.error('Remote Screen Share count', this.remoteScreenShareCount);
       setTimeout(() => {
         const el2 = document.createElement('div');
@@ -1527,6 +1583,153 @@ export class LiveKitService {
    *
    * @returns {void}
    */
+
+  // createSpeakerAvatar(participant: Participant) {
+  //   // Select the containers
+  //   const speakerLayout = document?.querySelector('.lk-speaker-layout');
+  //   const gridLayout = document?.querySelector('.lk-grid-layout');
+
+  //   if (!speakerLayout || !gridLayout) {
+  //     console.error('Speaker or Grid layout not found.');
+  //     return;
+  //   }
+
+  //   // If the participant is already in the speaker layout and is still speaking, do nothing
+  //   if (this.currentActiveSpeakerId === participant.sid) {
+  //     console.log(`Participant ${participant.identity} is already speaking.`);
+  //     return;
+  //   }
+
+  //   // Move the current active speaker back to grid layout (if any)
+  //   if (this.currentActiveSpeakerId) {
+  //     const previousSpeaker = speakerLayout.querySelector(
+  //       `#${this.currentActiveSpeakerId}`
+  //     );
+  //     if (previousSpeaker) {
+  //       gridLayout.appendChild(previousSpeaker); // Move the previous speaker back to the grid layout
+  //     }
+  //   }
+
+  //   // Remove the participant from grid layout if present
+  //   const existingParticipantInGrid = gridLayout.querySelector(
+  //     `#${participant.sid}`
+  //   );
+  //   if (existingParticipantInGrid) {
+  //     gridLayout.removeChild(existingParticipantInGrid);
+  //   }
+
+  //   // Clear the speaker layout and set the new active speaker
+  //   speakerLayout.innerHTML = '';
+  //   this.currentActiveSpeakerId = participant.sid;
+
+  //   // Create the participant tile container
+  //   const participantTile = document.createElement('div');
+  //   participantTile.setAttribute('class', 'lk-participant-tile');
+  //   participantTile.setAttribute('id', `${participant.sid}`);
+  //   participantTile.setAttribute(
+  //     'style',
+  //     `
+  //       position: relative;
+  //       display: flex;
+  //       flex-direction: column;
+  //       align-items: center;
+  //       justify-content: center;
+  //       gap: 0.5rem;
+  //       border-radius: 0.5rem;
+  //       width: 100%;
+  //       min-height: 100%;
+  //       background-color: #000;
+  //       border: 5px solid transparent; /* Default border */
+  //       transition: border-color 0.3s ease; /* Smooth transition for border */
+  //     `
+  //   );
+
+  //   // Add a border to indicate the participant is speaking
+  //   participantTile.style.borderColor = 'red'; // Example border color for speaker
+
+  //   // Create avatar image
+  //   const avatar = document.createElement('img');
+  //   avatar.setAttribute('src', '../assets/avatar.png');
+  //   avatar.setAttribute(
+  //     'style',
+  //     `
+  //       width: 60px;
+  //       height: 60px;
+  //       border-radius: 50%;
+  //       object-fit: cover;
+  //       object-position: center;
+  //     `
+  //   );
+
+  //   // Create participant name element
+  //   const participantName = document.createElement('span');
+  //   participantName.setAttribute('class', 'lk-participant-name');
+  //   participantName.setAttribute(
+  //     'style',
+  //     `
+  //       font-size: 0.875rem;
+  //       color: white;
+  //     `
+  //   );
+  //   participantName.innerText = participant.identity;
+
+  //   // Append avatar and name to the participant tile
+  //   participantTile.appendChild(avatar);
+  //   participantTile.appendChild(participantName);
+
+  //   // Append the participant tile to the speaker layout
+  //   speakerLayout.appendChild(participantTile);
+  // }
+
+  createSpeakerAvatar(participant: Participant) {
+    const gridLayout = document.querySelector('.lk-grid-layout');
+    const speakerLayout = document.querySelector('.lk-speaker-layout');
+
+    if (!gridLayout || !speakerLayout) {
+      console.error('Grid or Speaker layout not found.');
+      return;
+    }
+
+    // Find the participant's tile
+    const participantTile = document.getElementById(`${participant.sid}`);
+    if (!participantTile) {
+      console.error(`Participant tile with SID ${participant.sid} not found.`);
+      return;
+    }
+
+    // Check if the participant is an active speaker
+    const isActiveSpeaker = this.activeSpeakers.some(
+      (speaker) => speaker.sid === participant.sid
+    );
+    // If the audio level is above 0, apply the active border with a smooth transition
+    if (isActiveSpeaker) {
+      // Move the participant tile to the speaker layout
+      if (!speakerLayout.contains(participantTile)) {
+        if (gridLayout.contains(participantTile)) {
+          gridLayout.removeChild(participantTile);
+        }
+        speakerLayout.appendChild(participantTile);
+        // Apply height styling when in speaker layout
+        participantTile.style.height = '100%';
+      }
+      participantTile.style.transition = 'border 0.3s ease-in-out'; // Smooth transition
+      participantTile.style.border = '4px solid #28a745'; // Apply blue border
+    } else {
+      // Move the participant tile back to the grid layout
+      if (!gridLayout.contains(participantTile)) {
+        if (speakerLayout.contains(participantTile)) {
+          speakerLayout.removeChild(participantTile);
+        }
+        gridLayout.appendChild(participantTile);
+        // Apply height styling when in speaker layout
+        participantTile.style.height = '';
+      }
+      // Remove the border when audio level is 0 or participant is not speaking
+      participantTile.style.transition = ''; // Reset transition
+      participantTile.style.border = ''; // Remove the border
+    }
+  }
+
   createAvatar(participant: Participant) {
     const el2 = document.createElement('div');
     el2.setAttribute('class', 'lk-participant-tile');

@@ -14,7 +14,7 @@ import {
 import { of, from, forkJoin, EMPTY } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MeetingService } from '../Meeting-Service/meeting.service';
-import { selectBreakoutRoomsData, selectNextRoomIndex } from './selectors';
+import { selectLiveKitRoomView } from './selectors';
 import { Store } from '@ngrx/store';
 import { Room } from './reducer';
 
@@ -272,9 +272,10 @@ export class LiveKitRoomEffects {
     this.actions$.pipe(
       ofType(LiveKitRoomActions.BreakoutActions.initiateCreateNewRoom),
       mergeMap(() =>
-        this.store.select(selectNextRoomIndex).pipe(
+        this.store.select(selectLiveKitRoomView).pipe(
           take(1), // Take the first emitted value
-          map((nextRoomIndex) => {
+          map((state) => {
+            const nextRoomIndex = state.nextRoomIndex;
             const newRoomName = `Breakout_Room_${nextRoomIndex}`;
             console.log(newRoomName, 'new room name is');
             return LiveKitRoomActions.BreakoutActions.createNewRoomSuccess({
@@ -296,9 +297,10 @@ export class LiveKitRoomEffects {
           if (roomType === 'manual') {
             console.log('Manual room selection initiated');
 
-            return this.store.select(selectBreakoutRoomsData).pipe(
+            return this.store.select(selectLiveKitRoomView).pipe(
               take(1),
-              map((breakoutRoomsData) => {
+              map((state) => {
+                const breakoutRoomsData = state.breakoutRoomsData;
                 console.log('rooms data is', breakoutRoomsData);
                 // Emit updated breakout rooms data, even if it's empty
                 this.livekitService.breakoutRoomsDataUpdated.emit(

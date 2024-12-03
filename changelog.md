@@ -113,20 +113,63 @@ All notable changes to this project will be documented in this file.
 
 ### [Changelog for November third week]
 
-[1.2.1] - 2024-11-11
-=> I’ve worked on the Livekit overlay styling of the participant tiles. In the overlay view, I’ve make some research on different video conference apps such as soho meeting, google meeting, zoom app, gotoMeeting and their displays. Then Implement in my livekit video conference.
+# Changelog
 
-[1.2.2] - 2024-11-12
-=> I’ve worked in main window and working on resolving regression issue while sharing screen from remote participants as well as localparticipants. Also trying to show screen share in pip window.
+## [1.2.1] - 2024-11-11
 
-13-11-2024
-=> I’ve worked in main window and working on resolving regression issue while sharing screen from remote participants as well as localparticipants.
+### Added
 
-=> I’ve also done camera streaming in pip window.
+- Conducted research on video conference apps such as Zoho Meeting, Google Meet, Zoom, and GoToMeeting to analyze their overlay view displays.
 
-14-11-2024
-=> I’ve worked in main window and resolve all issues of sharing screen from remote participants as well as localparticipants.
+### Changed
 
-=> Resolve camera in pip window and now it works fine for local as well as remote participants.
+- Updated LiveKit participant tile overlay styling based on research findings.
 
-=> Started working on Figma design in os-fe-dev for creating design of classrooms UI.
+---
+
+## [1.2.2] - 2024-11-12
+
+### Added
+
+- Worked on resolving regression issues related to screen sharing for both remote and local participants.
+- Attempted to display screen share in Picture-in-Picture (PiP) window.
+
+---
+
+## [1.2.3] - 2024-11-13
+
+### Added
+
+- Resolved regression issues with screen sharing for both remote and local participants in the main window.
+- Integrated camera streaming functionality into the PiP window.
+
+---
+
+## [1.2.4] - 2024-11-14
+
+### Added
+
+- Fully resolved issues with screen sharing from remote and local participants in the main window.
+- Fixed camera streaming in PiP window, ensuring proper functionality for both local and remote participants.
+- Started designing classroom UI based on Figma designs in `os-fe-dev`.
+
+## [1.2.5] - 2024-11-15
+
+### Added
+
+- Completed exercises in Exercism:
+  - Implemented solutions using `for` and `while` loops.
+  - Applied `if` statement logic for problem-solving.
+- Added functionality to input a name before joining a meeting, ensuring proper operation.
+- Enabled messaging from the host to breakout rooms, allowing participants to request help from the host.
+- Implemented a feature where the host can enter a breakout room by clicking a button to assist participants.
+- Developed functionality to assign unallocated participants (e.g., late joiners or those not assigned to a room) to an existing room or a new room:
+  - Unallocated participants are added to an existing room if available.
+  - If no suitable existing room is available, participants are moved to a newly created breakout room.
+- Enabled messaging between participants in breakout rooms.
+
+### Changed
+
+- Cleaned up the codebase by removing redundant code.
+
+### [Changelog for November 4th week]
