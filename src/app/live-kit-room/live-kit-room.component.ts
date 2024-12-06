@@ -8,7 +8,14 @@ import {
 } from 'livekit-client';
 import { LiveKitService } from '../livekit.service';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { map, Observable, Subscription, take } from 'rxjs';
+import {
+  distinctUntilChanged,
+  filter,
+  map,
+  Observable,
+  Subscription,
+  take,
+} from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Store, select } from '@ngrx/store';
 import { selectLiveKitRoomView } from '../redux/selectors';
@@ -140,6 +147,10 @@ export class LiveKitRoomComponent {
     { value: 'automatic', viewValue: 'automatic' },
     { value: 'manual', viewValue: 'manual' },
   ];
+  private subscription!: Subscription;
+  private remoteVideoSubscription!: Subscription;
+  private screenShareSubscription!: Subscription;
+
   constructor(
     private formBuilder: FormBuilder,
     public livekitService: LiveKitService,
@@ -228,16 +239,25 @@ export class LiveKitRoomComponent {
     //   }
     // });
   }
-  // ngOnDestroy() {
-  //   // Clean up the event listener when the component is destroyed
-  //   document.removeEventListener('visibilitychange', () => {
-  //     if (document.hidden) {
-  //       this.enterPiP();
-  //     } else {
-  //       this.onLeavePiP();
-  //     }
-  //   });
-  // }
+  ngOnDestroy() {
+    // //Clean up the event listener when the component is destroyed
+    // document.removeEventListener('visibilitychange', () => {
+    //   if (document.hidden) {
+    //     this.enterPiP();
+    //   } else {
+    //     this.onLeavePiP();
+    //   }
+    // });
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+    }
+    if (this.remoteVideoSubscription) {
+      this.remoteVideoSubscription.unsubscribe();
+    }
+    if (this.screenShareSubscription) {
+      this.screenShareSubscription.unsubscribe();
+    }
+  }
   private initializeWebSocketAndAudioVideoHandler() {
     // Uncomment this if you want to connect the WebSocket
     // this.livekitService.connectWebSocket();
@@ -388,6 +408,7 @@ export class LiveKitRoomComponent {
 
     this.livekitService.msgDataReceived.subscribe((data) => {
       this.handleMsgDataReceived(data);
+      console.log('sending');
     });
 
     this.livekitService.messageEmitter.subscribe((data: any) => {
@@ -471,6 +492,8 @@ export class LiveKitRoomComponent {
         receivingTime,
         type: 'received',
       });
+      console.log('sending 22');
+
       this.updateUnreadMessageCount();
       this.scrollToBottom();
       this.sortMessages();
@@ -487,17 +510,17 @@ export class LiveKitRoomComponent {
   }
 
   private updateUnreadMessageCount() {
-    this.chatSideWindowVisible$.subscribe((visible) => {
-      if (!visible) {
-        // this.unreadMessagesCount++;
-        this.store.dispatch(
-          LiveKitRoomActions.LiveKitActions.updateUnreadMessagesCount({
-            count: this.unreadMessagesCount + 1,
-          })
-        );
-        this.scrollToBottom();
-      }
-    });
+    // this.chatSideWindowVisible$.subscribe((visible) => {
+    //   if (!visible) {
+    //     // this.unreadMessagesCount++;
+    //     this.store.dispatch(
+    //       LiveKitRoomActions.LiveKitActions.updateUnreadMessagesCount({
+    //         count: this.unreadMessagesCount + 1,
+    //       })
+    //     );
+    //     this.scrollToBottom();
+    //   }
+    // });
   }
 
   private attachRemoteVideoTrack() {
@@ -533,8 +556,13 @@ export class LiveKitRoomComponent {
   ngAfterViewInit(): void {
     if (this.livekitService.screenShareTrackSubscribed) {
       // Subscribe to the EventEmitter
-      this.livekitService.screenShareTrackSubscribed.subscribe(
-        (track: RemoteTrack | undefined) => {
+      this.livekitService.screenShareTrackSubscribed
+        .pipe(
+          filter(
+            (track) => !!track && track.source === Track.Source.ScreenShare
+          )
+        )
+        .subscribe((track: RemoteTrack | undefined) => {
           if (track && track.source === Track.Source.ScreenShare) {
             this.screenShareTrack = track;
             console.log('ss track', track);
@@ -542,37 +570,31 @@ export class LiveKitRoomComponent {
             this.screenShareTrack = undefined; // Reset if no screen share track
             console.log('else ss track', this.screenShareTrack);
           }
-        }
-      );
+        });
     } else {
       console.error('screenShareTrackSubscribed is undefined');
     }
-    this.livekitService.remoteVideoTrackSubscribed.subscribe(
-      (
-        track: RemoteTrack,
-        publication: RemoteTrackPublication,
-        participant: RemoteParticipant
-      ) => {
+    this.remoteVideoSubscription =
+      this.livekitService.remoteVideoTrackSubscribed
+        .pipe(distinctUntilChanged())
+        .subscribe({
+          next: ({ track, publication, participant }) => {
+            this.livekitService.handleTrackSubscribed(
+              track,
+              publication,
+              participant
+            );
+          },
+        });
+    this.subscription = this.livekitService.remoteAudioTrackSubscribed
+      .pipe(distinctUntilChanged())
+      .subscribe(({ track, publication, participant }) => {
         this.livekitService.handleTrackSubscribed(
           track,
           publication,
           participant
         );
-      }
-    );
-    this.livekitService.remoteAudioTrackSubscribed.subscribe(
-      (
-        track: RemoteTrack,
-        publication: RemoteTrackPublication,
-        participant: RemoteParticipant
-      ) => {
-        this.livekitService.handleTrackSubscribed(
-          track,
-          publication,
-          participant
-        );
-      }
-    );
+      });
     // this.livekitService.initCanvas(this.audioCanvasRef.nativeElement);
   }
   /**
@@ -1962,30 +1984,18 @@ export class LiveKitRoomComponent {
     await this.livekitService.switchDevice('audiooutput', deviceId);
     console.log('Selected speaker device:', deviceId);
   }
-  // =========
-  // speakerMode() {
-  //   this.isPersonSpeaking = !this.isPersonSpeaking;
-  //   console.log('speaker', this.isPersonSpeaking);
-  // }
+
   speakerMode() {
-    const participantCount = this.livekitService.room.numParticipants;
-
-    if (participantCount <= 1) {
-      console.log(
-        'Speaker mode is disabled because there is only one participant.'
-      );
-      this.openSnackBar(
-        'Speaker mode is disabled because there is only one participant.'
-      );
-
-      return;
-    }
-
-    this.livekitService.speakerModeLayout =
-      !this.livekitService.speakerModeLayout;
+    this.livekitService.speakerLayoutChange();
     console.log('Speaker mode toggled:', this.livekitService.speakerModeLayout);
 
     // Update the active speaker borders when toggling modes
-    this.livekitService.updateActiveSpeakerBorders();
+    // this.livekitService.updateActiveSpeakerBorders();
+    if (this.livekitService.speakerModeLayout) {
+      // Show the initial speaker in speaker layout
+      this.livekitService.showInitialSpeaker();
+    } else {
+      this.livekitService.rearrangeGalleryView();
+    }
   }
 }

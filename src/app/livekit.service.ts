@@ -1,4 +1,4 @@
-import { EventEmitter, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import {
   DataPacket_Kind,
@@ -20,6 +20,7 @@ import {
   BehaviorSubject,
   Observable,
   RetryConfig,
+  Subject,
   catchError,
   from,
   of,
@@ -90,10 +91,13 @@ export class LiveKitService {
 
   /**
    * Event emitter for when a remote video track is subscribed.
-   * @type {EventEmitter<RemoteTrack>}
+   * @type {subject<RemoteTrack>}
    */
-  remoteVideoTrackSubscribed = new EventEmitter<RemoteTrack>();
-
+  remoteVideoTrackSubscribed = new Subject<{
+    track: RemoteTrack;
+    publication: RemoteTrackPublication;
+    participant: RemoteParticipant;
+  }>();
   /**
    * The name of the remote participant.
    * @type {string}
@@ -102,9 +106,13 @@ export class LiveKitService {
 
   /**
    * Event emitter for when a remote audio track is subscribed.
-   * @type {EventEmitter<void>}
+   * @type {subject<void>}
    */
-  remoteAudioTrackSubscribed = new EventEmitter<void>();
+  remoteAudioTrackSubscribed = new Subject<{
+    track: RemoteTrack;
+    publication: RemoteTrackPublication;
+    participant: RemoteParticipant;
+  }>();
 
   /**
    * Indicates whether screen sharing is enabled.
@@ -114,10 +122,9 @@ export class LiveKitService {
 
   /**
    * Event emitter for when the video status changes.
-   * @type {EventEmitter<boolean>}
+   * @type {BehaviorSubject<boolean>}
    */
-  videoStatusChanged = new EventEmitter<boolean>();
-
+  videoStatusChanged = new BehaviorSubject<boolean>(false);
   /**
    * Indicates whether the remote participant is sharing their screen.
    * @type {boolean}
@@ -132,10 +139,9 @@ export class LiveKitService {
 
   /**
    * Event emitter for when a screen share track is subscribed.
-   * @type {EventEmitter<any>}
+   * @type {subject<any>}
    */
-  screenShareTrackSubscribed = new EventEmitter<any>();
-
+  screenShareTrackSubscribed = new Subject<any>();
   /**
    * Indicates whether remote screen sharing is active.
    * @type {boolean}
@@ -157,15 +163,15 @@ export class LiveKitService {
 
   /**
    * Event emitter for when participant names are updated.
-   * @type {EventEmitter<string[]>}
+   * @type {Subject<string[]>}
    */
-  participantNamesUpdated = new EventEmitter<string[]>();
+  participantNamesUpdated = new Subject<string[]>();
 
   /**
    * Event emitter for local participant data.
-   * @type {EventEmitter<any>}
+   * @type {Subject<any>}
    */
-  localParticipantData = new EventEmitter<any>();
+  localParticipantData = new Subject<any>();
 
   /**
    * Holds participant names, used internally.
@@ -183,42 +189,41 @@ export class LiveKitService {
 
   /**
    * Event emitter for when the microphone status changes.
-   * @type {EventEmitter<boolean>}
+   * @type {Subject<boolean>}
    */
-  microphoneStatusChanged = new EventEmitter<boolean>();
+  microphoneStatusChanged = new Subject<boolean>();
   screenShareCount = 0;
   isExpanded: boolean = false;
 
   /**
    * Event emitter for when a message is received.
-   * @type {EventEmitter<{ message: any; participant: RemoteParticipant | undefined }>}
+   * @type {subject<{ message: any; participant: RemoteParticipant | undefined }>}
    */
-  msgDataReceived = new EventEmitter<{
+  msgDataReceived = new Subject<{
     message: any;
     participant: RemoteParticipant | undefined;
   }>();
 
   /**
    * Event emitter for when a participant raises or lowers their hand.
-   * @type {EventEmitter<{ participant: RemoteParticipant | undefined; handRaised: boolean }>}
+   * @type {subject<{ participant: RemoteParticipant | undefined; handRaised: boolean }>}
    */
-  public handRaised = new EventEmitter<{
+  public handRaised = new Subject<{
     participant: RemoteParticipant | undefined;
     handRaised: boolean;
   }>();
 
-  public breakoutRoom = new EventEmitter<{
+  public breakoutRoom = new Subject<{
     participant: any;
     roomName: string;
   }>();
   breakoutRoomsData: Array<any> = [];
-  breakoutRoomsDataUpdated: EventEmitter<any[]> = new EventEmitter<any[]>();
-  // public broadcastMessageReceived: EventEmitter<any> = new EventEmitter<any>();
+  breakoutRoomsDataUpdated: Subject<any[]> = new Subject<any[]>();
   /**
    * Event emitter for sending messages.
-   * @type {EventEmitter<any>}
+   * @type {Subject<any>}
    */
-  messageEmitter = new EventEmitter<any>();
+  messageEmitter = new Subject<any>();
 
   /**
    * Array of message objects containing sender, text, and timestamp information.
@@ -243,10 +248,8 @@ export class LiveKitService {
   }
 
   private breakoutRoomCounter = 0;
-  public messageContentReceived: EventEmitter<string[]> = new EventEmitter<
-    string[]
-  >();
-  public messageToMain: EventEmitter<string[]> = new EventEmitter<string[]>();
+  public messageContentReceived: Subject<string[]> = new Subject<string[]>();
+  public messageToMain: Subject<string[]> = new Subject<string[]>();
   messageArray: string[] = [];
   messageArrayToMain: string[] = [];
 
@@ -266,7 +269,6 @@ export class LiveKitService {
     await this.room.connect(wsURL, token);
     console.log('Connected to room', this.room);
     // this.connectWebSocket();
-    this.showInitialSpeaker();
     this.updateParticipantNames();
     this.remoteParticipantAfterLocal();
   }
@@ -435,7 +437,7 @@ export class LiveKitService {
     }
 
     // Emit the updated breakout rooms data
-    this.breakoutRoomsDataUpdated.emit(this.breakoutRoomsData);
+    this.breakoutRoomsDataUpdated.next(this.breakoutRoomsData);
     console.log('checking help message', this.breakoutRoomsData);
 
     console.log(
@@ -512,7 +514,7 @@ export class LiveKitService {
       });
 
       // Emit the message
-      this.messageEmitter.emit(dataObj);
+      this.messageEmitter.next(dataObj);
       console.log('Message sent successfully:', dataObj);
     } catch (error: any) {
       console.error('Error sending message:', error);
@@ -613,10 +615,15 @@ export class LiveKitService {
     );
 
     if (remoteParticipants.length > 0) {
-      // Take the first remote participant as the default active speaker
+      // Take the first remote participant as the default initial speaker
       const initialSpeaker = remoteParticipants[0];
-      console.log('speaking', initialSpeaker);
-      this.createSpeakerAvatar(initialSpeaker);
+      console.log('Setting initial speaker:', initialSpeaker.sid);
+      this.activeSpeakers.push(initialSpeaker);
+      setTimeout(() => {
+        this.createSpeakerAvatar(initialSpeaker);
+      }, 0);
+    } else {
+      console.warn('No remote participants found.');
     }
   }
   /**
@@ -713,9 +720,9 @@ export class LiveKitService {
         const message = JSON.parse(strData);
         console.log('mesg', JSON.parse(strData));
         console.log('participant', participant);
-        this.msgDataReceived.emit({ message, participant });
+        this.msgDataReceived.next({ message, participant });
         if (message.type === 'handRaise') {
-          this.handRaised.emit({
+          this.handRaised.next({
             participant: participant,
             handRaised: message.handRaised,
           });
@@ -727,7 +734,7 @@ export class LiveKitService {
 
           // Ensure the message is only sent to the intended participant
           if (participant) {
-            this.breakoutRoom.emit({
+            this.breakoutRoom.next({
               participant: participant,
               roomName: message.roomName, // Use the room name from the message
             });
@@ -740,7 +747,7 @@ export class LiveKitService {
           this.messageArray.push(message);
 
           // Emit the updated message array
-          this.messageContentReceived.emit(this.messageArray);
+          this.messageContentReceived.next(this.messageArray);
         } else {
           console.log(`Message not for this breakout room`);
         }
@@ -752,7 +759,7 @@ export class LiveKitService {
           this.messageArrayToMain.push(message);
 
           // Emit the updated message array
-          this.messageToMain.emit(this.messageArrayToMain);
+          this.messageToMain.next(this.messageArrayToMain);
         } else {
           console.log(`Message not for this main room`);
         }
@@ -975,7 +982,7 @@ export class LiveKitService {
           }
         }
 
-        this.screenShareTrackSubscribed.emit(publication.track);
+        this.screenShareTrackSubscribed.next(publication.track);
         if (publication.source === Track.Source.ScreenShare) {
           this.localScreenShareCount++;
           this.speakerModeLayout = false;
@@ -1086,11 +1093,11 @@ export class LiveKitService {
    */
   updateParticipantNames() {
     this.participantNames = Array.from(this.room.remoteParticipants.values());
-    this.participantNamesUpdated.emit(this.participantNames);
+    this.participantNamesUpdated.next(this.participantNames);
     console.log('logging ', this.room.localParticipant);
     console.log('logging 3', this.participantNames);
     this.loacalParticipant = this.room.localParticipant;
-    this.localParticipantData.emit(this.loacalParticipant);
+    this.localParticipantData.next(this.loacalParticipant);
 
     console.log('participants remote', this.participantNames);
   }
@@ -1316,7 +1323,7 @@ export class LiveKitService {
         console.error('Remote audio container not found');
       }
     }
-    this.screenShareTrackSubscribed.emit(track);
+    this.screenShareTrackSubscribed.next(track);
     if (track.source === Track.Source.ScreenShare && track.kind === 'video') {
       this.remoteScreenShare = true;
       this.remoteScreenShareCount++;
@@ -1445,7 +1452,7 @@ export class LiveKitService {
         .then(() => {
           const newMicStatus = !isMuted;
           console.log('Microphone status after toggling:', newMicStatus); // Debug
-          this.microphoneStatusChanged.emit(newMicStatus);
+          this.microphoneStatusChanged.next(newMicStatus);
           return newMicStatus;
         })
         .catch((error) => {
@@ -1473,7 +1480,7 @@ export class LiveKitService {
     return from(
       localParticipant.setCameraEnabled(!isVideoEnabled).then(() => {
         const newVideoStatus = !isVideoEnabled;
-        this.videoStatusChanged.emit(newVideoStatus);
+        this.videoStatusChanged.next(newVideoStatus);
         return newVideoStatus;
       })
     );
@@ -1680,13 +1687,27 @@ export class LiveKitService {
   //   // Append the participant tile to the speaker layout
   //   speakerLayout.appendChild(participantTile);
   // }
-
-  createSpeakerAvatar(participant: Participant) {
+  rearrangeGalleryView() {
     const gridLayout = document.querySelector('.lk-grid-layout');
     const speakerLayout = document.querySelector('.lk-speaker-layout');
+    if (speakerLayout?.firstElementChild) {
+      gridLayout?.appendChild(speakerLayout.firstElementChild);
+      // speakerLayout?.removeChild(speakerLayout.firstElementChild);
+    }
+  }
+  createSpeakerAvatar(participant: Participant) {
+    console.log('function called');
+    const gridLayout = document.querySelector('.lk-grid-layout');
+    const speakerLayout = document.querySelector('.lk-speaker-layout');
+    console.log('speaker mode is', this.speakerModeLayout);
+    console.log('speaker layout ', speakerLayout);
 
-    if (!gridLayout || !speakerLayout) {
-      console.error('Grid or Speaker layout not found.');
+    if (!gridLayout) {
+      console.error('Grid layout not found.');
+      return;
+    }
+    if (!speakerLayout) {
+      console.error('Speaker layout not found.');
       return;
     }
 
@@ -1697,12 +1718,30 @@ export class LiveKitService {
       return;
     }
 
+    // Clear the speaker layout to ensure only one participant is shown
+    // if (speakerLayout.firstElementChild) {
+    //   const first = speakerLayout.firstElementChild?.getAttribute('id');
+    //   console.log('first child', first);
+    //   gridLayout.appendChild(speakerLayout.firstElementChild);
+    //   speakerLayout.removeChild(speakerLayout.firstElementChild);
+    // }
+
     // Check if the participant is an active speaker
     const isActiveSpeaker = this.activeSpeakers.some(
       (speaker) => speaker.sid === participant.sid
     );
-    // If the audio level is above 0, apply the active border with a smooth transition
+    console.log('active speaker', this.activeSpeakers);
     if (isActiveSpeaker) {
+      if (speakerLayout.firstElementChild) {
+        const first =
+          speakerLayout.firstElementChild?.getAttribute('id') ===
+          participant.sid;
+        console.log('first child', first);
+        if (!first) {
+          gridLayout.appendChild(speakerLayout.firstElementChild);
+          speakerLayout.removeChild(speakerLayout.firstElementChild);
+        }
+      }
       // Move the participant tile to the speaker layout
       if (!speakerLayout.contains(participantTile)) {
         if (gridLayout.contains(participantTile)) {
@@ -1713,20 +1752,20 @@ export class LiveKitService {
         participantTile.style.height = '100%';
       }
       participantTile.style.transition = 'border 0.3s ease-in-out'; // Smooth transition
-      participantTile.style.border = '4px solid #28a745'; // Apply blue border
+      participantTile.style.border = '4px solid #28a745'; // Apply green border
     } else {
       // Move the participant tile back to the grid layout
-      if (!gridLayout.contains(participantTile)) {
-        if (speakerLayout.contains(participantTile)) {
-          speakerLayout.removeChild(participantTile);
-        }
-        gridLayout.appendChild(participantTile);
-        // Apply height styling when in speaker layout
-        participantTile.style.height = '';
-      }
-      // Remove the border when audio level is 0 or participant is not speaking
-      participantTile.style.transition = ''; // Reset transition
-      participantTile.style.border = ''; // Remove the border
+      // if (!gridLayout.contains(participantTile)) {
+      //   if (speakerLayout.contains(participantTile)) {
+      //     speakerLayout.removeChild(participantTile);
+      //   }
+      //   gridLayout.appendChild(participantTile);
+      //   // Reset height styling
+      //   participantTile.style.height = '';
+      // }
+      // // Remove the border when participant is not speaking
+      // participantTile.style.transition = ''; // Reset transition
+      // participantTile.style.border = ''; // Remove the border
     }
   }
 
@@ -1736,8 +1775,7 @@ export class LiveKitService {
     el2.setAttribute('id', `${participant.sid}`);
     el2.setAttribute(
       'style',
-      `
-       position: relative;
+      `position: relative;
        display: flex;
        flex-direction: column;
        gap: 0.375rem;
@@ -2500,5 +2538,8 @@ export class LiveKitService {
     } catch (error) {
       console.error(`Error switching ${kind} to device: ${deviceId}`, error);
     }
+  }
+  speakerLayoutChange() {
+    this.speakerModeLayout = !this.speakerModeLayout;
   }
 }

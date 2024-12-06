@@ -1985,3 +1985,11 @@
     /* Adjust the color and width as desired */
     box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
 }
+
+.speaker-btn {
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed !important;
+        background-color: transparent !important;
+    }
+}

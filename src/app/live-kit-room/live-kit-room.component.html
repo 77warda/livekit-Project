@@ -79,9 +79,10 @@
         </button>
 
         <button
-          class="grid-view"
+          class="speaker-btn grid-view"
           matTooltip="toggle speaker view"
           (click)="speakerMode()"
+          [disabled]="livekitService.room.numParticipants <= 1"
         >
           <i class="far fa-speaker"></i>
         </button>

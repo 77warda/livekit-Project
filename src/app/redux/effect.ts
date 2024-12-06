@@ -303,7 +303,7 @@ export class LiveKitRoomEffects {
                 const breakoutRoomsData = state.breakoutRoomsData;
                 console.log('rooms data is', breakoutRoomsData);
                 // Emit updated breakout rooms data, even if it's empty
-                this.livekitService.breakoutRoomsDataUpdated.emit(
+                this.livekitService.breakoutRoomsDataUpdated.next(
                   breakoutRoomsData
                 );
 
@@ -363,7 +363,7 @@ export class LiveKitRoomEffects {
           });
 
           // Emit the updated breakout rooms data
-          this.livekitService.breakoutRoomsDataUpdated.emit(breakoutRoomsData);
+          this.livekitService.breakoutRoomsDataUpdated.next(breakoutRoomsData);
 
           return of(); // Return empty observable since we're not dispatching further actions
         })
