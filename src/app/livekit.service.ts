@@ -521,7 +521,19 @@ export class LiveKitService {
       this.openSnackBar(`Send message Failed. ${error}`);
     }
   }
-
+  /**
+   * Handles remote participants and their tracks after the local participant joins the room.
+   *
+   * @description
+   * - Retrieves the list of remote participants from the room.
+   * - For each remote participant:
+   *   - Calls `createAvatar` to create a visual representation for the participant.
+   *   - Iterates over the participant's track publications and subscribes to each track.
+   * - Ensures all remote participant tracks published before the local participant joined are subscribed to.
+   * @throws {Error} No explicit errors are thrown, but ensure `createAvatar` and track subscription logic are implemented correctly.
+   *
+   * @returns {void} This method does not return a value.
+   */
   remoteParticipantAfterLocal() {
     // also subscribe to tracks published before participant joined
 
@@ -553,30 +565,6 @@ export class LiveKitService {
    * // Call this method to update speaker borders dynamically
    * this.updateActiveSpeakerBorders();
    */
-  // updateActiveSpeakerBorders() {
-  //   // Combine local participant and remote participants into one array
-  //   const participants = Array.from([
-  //     this.room.localParticipant,
-  //     ...this.room.remoteParticipants.values(),
-  //   ]);
-
-  //   participants.forEach((participant) => {
-  //     const participantTile = document.getElementById(`${participant.sid}`);
-  //     if (participantTile) {
-  //       const isActiveSpeaker = this.activeSpeakers.some(
-  //         (speaker) => speaker.sid === participant.sid
-  //       );
-
-  //       // Apply or remove the border with a smooth transition
-  //       participantTile.style.transition = 'border 0.3s ease-in-out';
-  //       if (isActiveSpeaker) {
-  //         participantTile.style.border = '5px solid red'; // Active speaker border
-  //       } else {
-  //         participantTile.style.border = '5px solid black'; // Default border
-  //       }
-  //     }
-  //   });
-  // }
 
   updateActiveSpeakerBorders() {
     const participants = Array.from([
@@ -609,6 +597,20 @@ export class LiveKitService {
       this.createSpeakerAvatar(participant);
     });
   }
+
+  /**
+   * Displays the initial speaker by selecting the first available remote participant.
+   *
+   * @description
+   * - Retrieves the list of remote participants from the room.
+   * - If there are remote participants, selects the first one as the initial speaker.
+   * - Logs the initial speaker's SID and adds them to the `activeSpeakers` list.
+   * - Calls `createSpeakerAvatar` to display the speaker's avatar after a short delay.
+   * - Logs a warning if no remote participants are found.
+   * @throws {Error} No explicit errors are thrown, but ensure the `createSpeakerAvatar` function is defined.
+   *
+   * @returns {void} This method does not return a value.
+   */
   showInitialSpeaker() {
     const remoteParticipants = Array.from(
       this.room.remoteParticipants.values()
@@ -638,12 +640,14 @@ export class LiveKitService {
     console.log('total participants', this.participants);
 
     /**
-     * Listens for the `ActiveSpeakersChanged` event on the room.
-     * Updates the list of active speakers and applies visual updates to their respective participant tiles.
-     * Logs the active speakers and the first active speaker's details for debugging.
+     * Handles the `ActiveSpeakersChanged` event triggered by the room to update the active speakers list and UI.
      *
      * @event RoomEvent.ActiveSpeakersChanged
-     * @param {Participant[]} speakers - An array of participants who are currently active speakers.
+     * @param {Participant[]} speakers - An array of participants who are currently speaking.
+     *
+     * @throws {Error} No explicit errors are thrown in this code, but ensure `updateActiveSpeakerBorders` and `createSpeakerAvatar` are defined.
+     *
+     * @returns {void} This event handler does not return a value.
      */
 
     this.room.on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => {
@@ -652,16 +656,6 @@ export class LiveKitService {
       // Update the list of active speakers
       this.activeSpeakers = speakers;
       this.updateActiveSpeakerBorders();
-
-      // Log the first active speaker for debugging
-      // if (speakers.length > 0) {
-      //   const activeSpeaker = speakers[0];
-      //   this.createSpeakerAvatar(activeSpeaker);
-
-      //   console.log(
-      //     `${activeSpeaker.identity} is speaking with audio level ${activeSpeaker.audioLevel}`
-      //   );
-      // }
 
       // Append avatars for active speakers
       speakers.forEach((speaker) => {
@@ -985,7 +979,7 @@ export class LiveKitService {
         this.screenShareTrackSubscribed.next(publication.track);
         if (publication.source === Track.Source.ScreenShare) {
           this.localScreenShareCount++;
-          this.speakerModeLayout = false;
+          // this.speakerModeLayout = false;
           console.error('Local Screen Share count', this.localScreenShareCount);
           setTimeout(() => {
             const el2 = document.createElement('div');
@@ -1327,7 +1321,7 @@ export class LiveKitService {
     if (track.source === Track.Source.ScreenShare && track.kind === 'video') {
       this.remoteScreenShare = true;
       this.remoteScreenShareCount++;
-      this.speakerModeLayout = false;
+      // this.speakerModeLayout = false;
       console.error('Remote Screen Share count', this.remoteScreenShareCount);
       setTimeout(() => {
         const el2 = document.createElement('div');
@@ -1577,7 +1571,98 @@ export class LiveKitService {
       duration: 3000, // duration in milliseconds
     });
   }
+  /**
+   * Rearranges the gallery view by moving the first child element from the speaker layout
+   * back to the grid layout. This ensures that any participant currently displayed in the
+   * speaker layout is returned to the grid layout.
+   *
+   * @function rearrangeGalleryView
+   * @returns {void} This function does not return a value.
+   *
+   * @description
+   * - Selects the `.lk-grid-layout` and `.lk-speaker-layout` elements from the DOM.
+   * - If the speaker layout contains a child element, it appends the first child of the
+   *   speaker layout to the grid layout.
+   * - Commented-out code for removing the first child of the speaker layout is included
+   *   but not executed.
+   */
+  rearrangeGalleryView() {
+    const gridLayout = document.querySelector('.lk-grid-layout');
+    const speakerLayout = document.querySelector('.lk-speaker-layout');
+    if (speakerLayout?.firstElementChild) {
+      gridLayout?.appendChild(speakerLayout.firstElementChild);
+      // speakerLayout?.removeChild(speakerLayout.firstElementChild);
+    }
+  }
+  /**
+   * Updates the UI to highlight the active speaker in a video conferencing layout.
+   * Moves the participant tile to the speaker layout if the participant is an active speaker,
+   * and adjusts the height and styling based on the tile's location.
+   *
+   * @function createSpeakerAvatar
+   * @param {Participant} participant - The participant object containing details such as the SID.
+   *
+   * @description
+   * - Selects the `.lk-grid-layout` and `.lk-speaker-layout` elements from the DOM.
+   * - Checks if the layouts and participant's tile exist. Logs errors if not found.
+   * - Determines if the participant is an active speaker by comparing against a list of active speakers.
+   * - Moves the participant tile to the speaker layout if they are active, or back to the grid layout if not.
+   * - Adjusts the tile's height to 100% in the speaker layout or 40% in the grid layout.
+   * - Adds a green border to active speaker tiles and ensures
+   *
+   * @throws {Error} Logs an error if grid or speaker layout elements are not found.
+   * @throws {Error} Logs an error if the participant tile is not found.
+   *
+   * @returns {void} This function does not return a value.
+   */
+  createSpeakerAvatar(participant: Participant) {
+    const gridLayout = document.querySelector('.lk-grid-layout');
+    const speakerLayout = document.querySelector('.lk-speaker-layout');
 
+    if (!gridLayout || !speakerLayout) {
+      console.error('Grid or Speaker layout not found.');
+      return;
+    }
+
+    const participantTile = document.getElementById(`${participant.sid}`);
+    if (!participantTile) {
+      console.error(`Participant tile with SID ${participant.sid} not found.`);
+      return;
+    }
+
+    // Check if the participant is an active speaker
+    const isActiveSpeaker = this.activeSpeakers.some(
+      (speaker) => speaker.sid === participant.sid
+    );
+
+    if (isActiveSpeaker) {
+      // Handle the existing tile in the speaker layout
+      const currentSpeakerTile = speakerLayout.firstElementChild;
+      if (currentSpeakerTile && currentSpeakerTile !== participantTile) {
+        gridLayout.appendChild(currentSpeakerTile); // Move the existing speaker back to the grid
+      }
+
+      // Move the active speaker to the speaker layout
+      if (!speakerLayout.contains(participantTile)) {
+        if (gridLayout.contains(participantTile)) {
+          gridLayout.removeChild(participantTile);
+        }
+        speakerLayout.appendChild(participantTile);
+      }
+
+      // Set height based on location
+      participantTile.style.height = '100%'; // Full height in the speaker layout
+    } else {
+      // Reset height if moved back to grid
+      if (gridLayout.contains(participantTile)) {
+        participantTile.style.height = '40%'; // Reduced height in the grid layout
+      }
+    }
+
+    // Add consistent styling for all tiles
+    participantTile.style.transition = 'border 0.3s ease-in-out';
+    participantTile.style.border = isActiveSpeaker ? '4px solid #28a745' : ''; // Add or remove border based on speaker status
+  }
   /**
    * Creates and appends a participant avatar element to the grid layout.
    *
@@ -1590,184 +1675,6 @@ export class LiveKitService {
    *
    * @returns {void}
    */
-
-  // createSpeakerAvatar(participant: Participant) {
-  //   // Select the containers
-  //   const speakerLayout = document?.querySelector('.lk-speaker-layout');
-  //   const gridLayout = document?.querySelector('.lk-grid-layout');
-
-  //   if (!speakerLayout || !gridLayout) {
-  //     console.error('Speaker or Grid layout not found.');
-  //     return;
-  //   }
-
-  //   // If the participant is already in the speaker layout and is still speaking, do nothing
-  //   if (this.currentActiveSpeakerId === participant.sid) {
-  //     console.log(`Participant ${participant.identity} is already speaking.`);
-  //     return;
-  //   }
-
-  //   // Move the current active speaker back to grid layout (if any)
-  //   if (this.currentActiveSpeakerId) {
-  //     const previousSpeaker = speakerLayout.querySelector(
-  //       `#${this.currentActiveSpeakerId}`
-  //     );
-  //     if (previousSpeaker) {
-  //       gridLayout.appendChild(previousSpeaker); // Move the previous speaker back to the grid layout
-  //     }
-  //   }
-
-  //   // Remove the participant from grid layout if present
-  //   const existingParticipantInGrid = gridLayout.querySelector(
-  //     `#${participant.sid}`
-  //   );
-  //   if (existingParticipantInGrid) {
-  //     gridLayout.removeChild(existingParticipantInGrid);
-  //   }
-
-  //   // Clear the speaker layout and set the new active speaker
-  //   speakerLayout.innerHTML = '';
-  //   this.currentActiveSpeakerId = participant.sid;
-
-  //   // Create the participant tile container
-  //   const participantTile = document.createElement('div');
-  //   participantTile.setAttribute('class', 'lk-participant-tile');
-  //   participantTile.setAttribute('id', `${participant.sid}`);
-  //   participantTile.setAttribute(
-  //     'style',
-  //     `
-  //       position: relative;
-  //       display: flex;
-  //       flex-direction: column;
-  //       align-items: center;
-  //       justify-content: center;
-  //       gap: 0.5rem;
-  //       border-radius: 0.5rem;
-  //       width: 100%;
-  //       min-height: 100%;
-  //       background-color: #000;
-  //       border: 5px solid transparent; /* Default border */
-  //       transition: border-color 0.3s ease; /* Smooth transition for border */
-  //     `
-  //   );
-
-  //   // Add a border to indicate the participant is speaking
-  //   participantTile.style.borderColor = 'red'; // Example border color for speaker
-
-  //   // Create avatar image
-  //   const avatar = document.createElement('img');
-  //   avatar.setAttribute('src', '../assets/avatar.png');
-  //   avatar.setAttribute(
-  //     'style',
-  //     `
-  //       width: 60px;
-  //       height: 60px;
-  //       border-radius: 50%;
-  //       object-fit: cover;
-  //       object-position: center;
-  //     `
-  //   );
-
-  //   // Create participant name element
-  //   const participantName = document.createElement('span');
-  //   participantName.setAttribute('class', 'lk-participant-name');
-  //   participantName.setAttribute(
-  //     'style',
-  //     `
-  //       font-size: 0.875rem;
-  //       color: white;
-  //     `
-  //   );
-  //   participantName.innerText = participant.identity;
-
-  //   // Append avatar and name to the participant tile
-  //   participantTile.appendChild(avatar);
-  //   participantTile.appendChild(participantName);
-
-  //   // Append the participant tile to the speaker layout
-  //   speakerLayout.appendChild(participantTile);
-  // }
-  rearrangeGalleryView() {
-    const gridLayout = document.querySelector('.lk-grid-layout');
-    const speakerLayout = document.querySelector('.lk-speaker-layout');
-    if (speakerLayout?.firstElementChild) {
-      gridLayout?.appendChild(speakerLayout.firstElementChild);
-      // speakerLayout?.removeChild(speakerLayout.firstElementChild);
-    }
-  }
-  createSpeakerAvatar(participant: Participant) {
-    console.log('function called');
-    const gridLayout = document.querySelector('.lk-grid-layout');
-    const speakerLayout = document.querySelector('.lk-speaker-layout');
-    console.log('speaker mode is', this.speakerModeLayout);
-    console.log('speaker layout ', speakerLayout);
-
-    if (!gridLayout) {
-      console.error('Grid layout not found.');
-      return;
-    }
-    if (!speakerLayout) {
-      console.error('Speaker layout not found.');
-      return;
-    }
-
-    // Find the participant's tile
-    const participantTile = document.getElementById(`${participant.sid}`);
-    if (!participantTile) {
-      console.error(`Participant tile with SID ${participant.sid} not found.`);
-      return;
-    }
-
-    // Clear the speaker layout to ensure only one participant is shown
-    // if (speakerLayout.firstElementChild) {
-    //   const first = speakerLayout.firstElementChild?.getAttribute('id');
-    //   console.log('first child', first);
-    //   gridLayout.appendChild(speakerLayout.firstElementChild);
-    //   speakerLayout.removeChild(speakerLayout.firstElementChild);
-    // }
-
-    // Check if the participant is an active speaker
-    const isActiveSpeaker = this.activeSpeakers.some(
-      (speaker) => speaker.sid === participant.sid
-    );
-    console.log('active speaker', this.activeSpeakers);
-    if (isActiveSpeaker) {
-      if (speakerLayout.firstElementChild) {
-        const first =
-          speakerLayout.firstElementChild?.getAttribute('id') ===
-          participant.sid;
-        console.log('first child', first);
-        if (!first) {
-          gridLayout.appendChild(speakerLayout.firstElementChild);
-          speakerLayout.removeChild(speakerLayout.firstElementChild);
-        }
-      }
-      // Move the participant tile to the speaker layout
-      if (!speakerLayout.contains(participantTile)) {
-        if (gridLayout.contains(participantTile)) {
-          gridLayout.removeChild(participantTile);
-        }
-        speakerLayout.appendChild(participantTile);
-        // Apply height styling when in speaker layout
-        participantTile.style.height = '100%';
-      }
-      participantTile.style.transition = 'border 0.3s ease-in-out'; // Smooth transition
-      participantTile.style.border = '4px solid #28a745'; // Apply green border
-    } else {
-      // Move the participant tile back to the grid layout
-      // if (!gridLayout.contains(participantTile)) {
-      //   if (speakerLayout.contains(participantTile)) {
-      //     speakerLayout.removeChild(participantTile);
-      //   }
-      //   gridLayout.appendChild(participantTile);
-      //   // Reset height styling
-      //   participantTile.style.height = '';
-      // }
-      // // Remove the border when participant is not speaking
-      // participantTile.style.transition = ''; // Reset transition
-      // participantTile.style.border = ''; // Remove the border
-    }
-  }
 
   createAvatar(participant: Participant) {
     const el2 = document.createElement('div');

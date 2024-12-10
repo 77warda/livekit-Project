@@ -788,6 +788,7 @@ export class LiveKitRoomComponent {
   async toggleScreenShare(): Promise<void> {
     this.store.dispatch(LiveKitRoomActions.LiveKitActions.toggleScreenShare());
     this.livekitService.speakerModeLayout = false;
+    this.livekitService.rearrangeGalleryView();
   }
 
   /**
@@ -1452,278 +1453,6 @@ export class LiveKitRoomComponent {
    * @function
    * @returns {void}
    */
-  // updatePiPWindow() {
-  //   console.log('updatePiPWindow called'); // Debugging log
-
-  //   if (!this.pipWindow) return;
-
-  //   const mainContainer = this.playerContainer.nativeElement;
-  //   const mainScreenShareContainer = this?.screensharePiP?.nativeElement;
-  //   const pipBody = this.pipWindow.document.body;
-
-  //   // Clear existing content in the PiP window
-  //   pipBody.innerHTML = '';
-
-  //   // Clone the current state of the main container into the PiP window
-  //   const clonedContainer = mainContainer.cloneNode(true) as HTMLElement;
-
-  //   // Clone the header from the main document (ng-container with pip header buttons)
-  //   const pipContainer = this.pipContainer.nativeElement;
-  //   const clonedHeader = pipContainer?.cloneNode(true) as HTMLElement;
-
-  //   this.renderer.setStyle(clonedContainer, 'width', '100%');
-  //   this.renderer.setStyle(clonedContainer, 'height', '100%');
-  //   // Check if screen sharing is active and clone #screensharePiP if so
-  //   console.log(
-  //     'testing',
-  //     this.livekitService.isScreenSharingEnabled ||
-  //       this.livekitService.remoteScreenShare
-  //   );
-  //   if (
-  //     this.livekitService.isScreenSharingEnabled ||
-  //     this.livekitService.remoteScreenShare
-  //   ) {
-  //     const screenSharePiPElment = this.screensharePiP?.nativeElement;
-  //     if (screenSharePiPElment) {
-  //       this.renderer.setAttribute(
-  //         screenSharePiPElment,
-  //         'style',
-  //         `
-  //         --lk-control-bar-height: 180px;
-  //         padding: 10px;
-  //         width: 93%;
-  //         height: calc(100% - var(--lk-control-bar-height));
-  //       `
-  //       );
-  //     }
-  //     const clonedScreenShare = screenSharePiPElment?.cloneNode(
-  //       true
-  //     ) as HTMLElement;
-
-  //     pipBody.appendChild(clonedScreenShare);
-  //   }
-  //   // Append the cloned player container to the PiP window body
-  //   pipBody.appendChild(clonedContainer);
-  //   // Append the cloned header to the PiP window body
-  //   if (clonedHeader) {
-  //     pipBody.appendChild(clonedHeader);
-  //   }
-
-  //   const pipVideoContainer = pipBody.querySelector(
-  //     '.screen-share-layout-wrapper'
-  //   ) as HTMLDivElement;
-  //   if (pipVideoContainer) {
-  //     this.renderer.setStyle(pipVideoContainer, 'height', '53vh');
-  //     this.renderer.setStyle(pipVideoContainer, 'margin-left', '0');
-  //   }
-  //   // pipVideoContainer.style.height = '53vh';
-  //   const pipVideoLayout = pipBody.querySelector(
-  //     '.lk-grid-layout'
-  //   ) as HTMLDivElement;
-  //   if (pipVideoLayout) {
-  //     this.renderer.setStyle(pipVideoLayout, 'overflow', 'hidden');
-  //   }
-  //   const pipVideotile = pipBody.querySelector(
-  //     '.lk-participant-tile'
-  //   ) as HTMLDivElement;
-  //   if (pipVideotile) {
-  //     this.renderer.setStyle(pipVideotile, 'min-height', '100%');
-  //   }
-
-  //   // Get all video elements with class '.pip-video' inside the PiP window
-  //   const pipVideoElements = pipBody.querySelectorAll(
-  //     '.pip-video'
-  //   ) as NodeListOf<HTMLVideoElement>;
-
-  //   // Get all original video elements with class '.pip-video' from the main container
-  //   const originalVideoElements = mainContainer.querySelectorAll(
-  //     '.pip-video'
-  //   ) as NodeListOf<HTMLVideoElement>;
-
-  //   // If there are video elements in both PiP window and main container
-  //   if (pipVideoElements.length > 0 && originalVideoElements.length > 0) {
-  //     // Loop through each pip video element and assign the corresponding original video stream
-  //     pipVideoElements.forEach((pipVideoElement, index) => {
-  //       const originalVideoElement = originalVideoElements[index];
-  //       if (originalVideoElement) {
-  //         pipVideoElement.srcObject = originalVideoElement.srcObject;
-  //         pipVideoElement.play().catch((error) => {
-  //           console.error('Error playing PiP video:', error);
-  //         });
-  //       }
-  //     });
-  //   }
-
-  //   // Get all screenshare elements with class '.pip-video' inside the PiP window
-  //   const pipScreenShareElements = pipBody?.querySelectorAll(
-  //     '.pip-screenShare'
-  //   ) as NodeListOf<HTMLVideoElement>;
-
-  //   const originalScreenShareElements =
-  //     mainScreenShareContainer?.querySelectorAll(
-  //       '.pip-screenShare'
-  //     ) as NodeListOf<HTMLVideoElement>;
-  //   // Ensure there are corresponding screen share elements in both the PiP window and the main container
-
-  //   if (
-  //     pipScreenShareElements.length > 0 &&
-  //     originalScreenShareElements.length > 0
-  //   ) {
-  //     pipScreenShareElements.forEach((pipScreenShareElement, index) => {
-  //       const originalScreenShareElement = originalScreenShareElements[index];
-
-  //       if (originalScreenShareElement) {
-  //         // Assign the original stream to the PiP video element
-  //         const stream = originalScreenShareElement.srcObject as MediaStream;
-  //         if (stream) {
-  //           console.log('Original Screen Share Stream:', stream);
-
-  //           pipScreenShareElement.srcObject = stream;
-  //           pipScreenShareElement.play().catch((error) => {
-  //             console.error('Error playing PiP video:', error);
-  //           });
-  //         } else {
-  //           console.warn('No valid stream found for screen sharing.');
-  //         }
-  //       }
-  //     });
-  //   } else {
-  //     console.warn('Screen share elements not found in PiP or main container.');
-  //   }
-
-  //   // Manually reattach event listeners to each button in the cloned header
-  //   const buttons = clonedHeader.querySelectorAll('button');
-  //   console.log('Buttons in PiP header:', buttons.length); // Debugging log
-
-  //   buttons.forEach((button: HTMLElement) => {
-  //     const tooltipText = button.getAttribute('matTooltip');
-  //     const iconElement = button.querySelector('i');
-
-  //     // Observable subscriptions to automatically update the icons in PiP
-  //     if (tooltipText === 'Video') {
-  //       this.isVideoOn$.subscribe((isVideoOn) => {
-  //         iconElement?.classList.toggle('fa-video', isVideoOn);
-  //         iconElement?.classList.toggle('fa-video-slash', !isVideoOn);
-  //       });
-  //       this.renderer.listen(button, 'click', () => {
-  //         console.log('Video button clicked!');
-  //         this.toggleVideo();
-  //       });
-  //     } else if (tooltipText === 'Mic') {
-  //       this.isMicOn$.subscribe((isMicOn) => {
-  //         iconElement?.classList.toggle('fa-microphone', isMicOn);
-  //         iconElement?.classList.toggle('fa-microphone-slash', !isMicOn);
-  //       });
-  //       this.renderer.listen(button, 'click', () => {
-  //         console.log('Mic button clicked!');
-  //         this.toggleMic();
-  //       });
-  //     } else if (tooltipText === 'Raise Hand') {
-  //       this.renderer.listen(button, 'click', () => {
-  //         console.log('Raise Hand button clicked!');
-  //         this.toggleRaiseHand();
-  //       });
-  //     } else if (tooltipText === 'Leave_Meeting') {
-  //       this.renderer.listen(button, 'click', () => {
-  //         console.log('Leave button clicked!');
-  //         this.leaveBtn();
-  //       });
-  //     }
-  //   });
-  // }
-
-  /**
-   * Exits Picture-in-Picture (PiP) mode and restores the player container.
-   *
-   * This function cleans up the PiP mode by restoring the player container to its original position in
-   * the document. It also removes the PiP-specific styles and closes the PiP window.
-   *
-   * @function
-   * @returns {void}
-   */
-  onLeavePiP() {
-    if (!this.pipWindow) return;
-
-    const playerContainer = this.playerContainer.nativeElement;
-
-    // Re-append playerContainer back to its original parent and position
-    if (this.originalParent) {
-      if (this.originalNextSibling) {
-        this.originalParent.insertBefore(
-          playerContainer,
-          this.originalNextSibling
-        );
-      } else {
-        this.originalParent.appendChild(playerContainer);
-      }
-    }
-
-    playerContainer.classList.remove('pip-mode');
-    this.pipMode = false;
-    this.pipWindow.close();
-    this.pipWindow = null;
-  }
-  /**
-   * Creates a cloned Header in html whose styling is written here in this CreatepipWrapper function.
-   *  It's a wrapper element for the PiP window that includes both the player container and PiP header.
-   *
-   * This function creates a new wrapper element that arranges the video player container and the PiP
-   * header in a grid layout. The player container is placed in the first grid row, and the PiP header is
-   * placed in the second row. It returns the created wrapper element.
-   *
-   * @function
-   * @param {HTMLElement} playerContainer - The main player container element to be included in PiP mode.
-   * @param {HTMLElement} pipContainer - The PiP header container element.
-   * @returns {HTMLElement} - The created wrapper element containing both the player and header.
-   */
-  createPiPWrapper(
-    playerContainer: HTMLElement,
-    pipContainer: HTMLElement
-  ): HTMLElement {
-    const wrapper = this.pipWindow.document.createElement('div');
-    wrapper.style.display = 'grid';
-    wrapper.style.gridTemplateRows = '1fr auto';
-    wrapper.style.height = '100%';
-    wrapper.style.overflow = 'hidden';
-
-    const playerWrapper = this.pipWindow.document.createElement('div');
-    playerWrapper.style.overflow = 'hidden';
-    playerWrapper.style.height = '100%';
-    playerWrapper.style.gridRow = '1 / 2';
-
-    playerWrapper.appendChild(playerContainer);
-    wrapper.appendChild(playerWrapper);
-
-    pipContainer.style.gridRow = '2 / 3';
-    wrapper.appendChild(pipContainer);
-
-    return wrapper;
-  }
-  // ================
-  // //  Toggles the Mic dropdown
-  // toggleMicDropdown() {
-  //   this.isMicDropdownOpen = !this.isMicDropdownOpen;
-  // }
-  // Switch the Mic
-  // switchMic(deviceId: string) {
-  //   this.livekitService.switchSpeaker(deviceId);
-  //   console.log(`Mic switched to device ID: ${deviceId}`);
-  //   this.isMicDropdownOpen = false; // Close dropdown after selection
-  // }
-
-  // // Switch the video
-  // switchVideo(deviceId: string) {
-  //   // this.livekitService.switchVideo(deviceId);
-  //   console.log(`Video switched to device ID: ${deviceId}`);
-  //   this.isVideoDropdownOpen = false; // Close dropdown after selection
-  // }
-
-  // //  Toggles the video dropdown
-  // toggleVideoDropdown() {
-  //   this.isVideoDropdownOpen = !this.isVideoDropdownOpen;
-  // }
-
-  // =========
   updatePiPWindow() {
     console.log('updatePiPWindow called'); // Debugging log
 
@@ -1938,7 +1667,82 @@ export class LiveKitRoomComponent {
       this.pipMode = false;
     }
   }
+
+  /**
+   * Exits Picture-in-Picture (PiP) mode and restores the player container.
+   *
+   * This function cleans up the PiP mode by restoring the player container to its original position in
+   * the document. It also removes the PiP-specific styles and closes the PiP window.
+   *
+   * @function
+   * @returns {void}
+   */
+  onLeavePiP() {
+    if (!this.pipWindow) return;
+
+    const playerContainer = this.playerContainer.nativeElement;
+
+    // Re-append playerContainer back to its original parent and position
+    if (this.originalParent) {
+      if (this.originalNextSibling) {
+        this.originalParent.insertBefore(
+          playerContainer,
+          this.originalNextSibling
+        );
+      } else {
+        this.originalParent.appendChild(playerContainer);
+      }
+    }
+
+    playerContainer.classList.remove('pip-mode');
+    this.pipMode = false;
+    this.pipWindow.close();
+    this.pipWindow = null;
+  }
+  /**
+   * Creates a cloned Header in html whose styling is written here in this CreatepipWrapper function.
+   *  It's a wrapper element for the PiP window that includes both the player container and PiP header.
+   *
+   * This function creates a new wrapper element that arranges the video player container and the PiP
+   * header in a grid layout. The player container is placed in the first grid row, and the PiP header is
+   * placed in the second row. It returns the created wrapper element.
+   *
+   * @function
+   * @param {HTMLElement} playerContainer - The main player container element to be included in PiP mode.
+   * @param {HTMLElement} pipContainer - The PiP header container element.
+   * @returns {HTMLElement} - The created wrapper element containing both the player and header.
+   */
+  createPiPWrapper(
+    playerContainer: HTMLElement,
+    pipContainer: HTMLElement
+  ): HTMLElement {
+    const wrapper = this.pipWindow.document.createElement('div');
+    wrapper.style.display = 'grid';
+    wrapper.style.gridTemplateRows = '1fr auto';
+    wrapper.style.height = '100%';
+    wrapper.style.overflow = 'hidden';
+
+    const playerWrapper = this.pipWindow.document.createElement('div');
+    playerWrapper.style.overflow = 'hidden';
+    playerWrapper.style.height = '100%';
+    playerWrapper.style.gridRow = '1 / 2';
+
+    playerWrapper.appendChild(playerContainer);
+    wrapper.appendChild(playerWrapper);
+
+    pipContainer.style.gridRow = '2 / 3';
+    wrapper.appendChild(pipContainer);
+
+    return wrapper;
+  }
+  // ================
   // Toggle mic dropdown visibility
+  /**
+   * Toggles the microphone dropdown visibility.
+   * If the dropdown is being opened for the first time, it fetches the available devices.
+   * @async
+   * @returns {Promise<void>} Resolves when devices are fetched.
+   */
   async toggleMicDropdown() {
     if (!this.isMicDropdownOpen) {
       // Fetch devices when the dropdown is opened for the first time
@@ -1947,7 +1751,13 @@ export class LiveKitRoomComponent {
 
     this.isMicDropdownOpen = !this.isMicDropdownOpen;
   }
-  // Toggle video dropdown visibility
+
+  /**
+   * Toggles the video dropdown visibility.
+   * If the dropdown is being opened for the first time, it fetches the available devices.
+   * @async
+   * @returns {Promise<void>} Resolves when devices are fetched.
+   */
   async toggleVideoDropdown() {
     if (!this.isVideoDropdownOpen) {
       // Fetch devices when the dropdown is opened for the first time
@@ -1955,36 +1765,46 @@ export class LiveKitRoomComponent {
     }
     this.isVideoDropdownOpen = !this.isVideoDropdownOpen;
   }
-  // Handle mic or speaker device selection
-  // async selectMic(deviceId: string, kind: MediaDeviceKind) {
-  //   if (kind === 'audioinput') {
-  //     this.livekitService.selectedMicId = deviceId;
-  //     console.log(`Microphone selected: ${deviceId}`);
-  //     // Additional logic for switching microphones can go here
-  //   } else if (kind === 'audiooutput') {
-  //     await this.livekitService.setSpeakerDevice(deviceId);
-  //     console.log(`Speaker selected: ${deviceId}`);
-  //   }
-  // }
 
-  // Handle video device selection
+  /**
+   * Selects a video device by its ID and notifies the LiveKit service.
+   * Closes the video dropdown after selection.
+   * @param {string} deviceId - The ID of the video device to select.
+   */
   selectVideo(deviceId: string) {
     this.livekitService.selectVideo(deviceId);
     console.log(`App Component: Selected video device ID: ${deviceId}`);
     this.isVideoDropdownOpen = false; // Close the video dropdown
   }
+
+  /**
+   * Selects a microphone device by its ID and switches to it using the LiveKit service.
+   * @async
+   * @param {string} deviceId - The ID of the microphone device to select.
+   * @returns {Promise<void>} Resolves when the microphone is switched.
+   */
   async selectMic(deviceId: string) {
     this.selectedMicId = deviceId;
     await this.livekitService.switchDevice('audioinput', deviceId);
     console.log('Selected microphone device:', deviceId);
   }
 
+  /**
+   * Selects a speaker device by its ID and switches to it using the LiveKit service.
+   * @async
+   * @param {string} deviceId - The ID of the speaker device to select.
+   * @returns {Promise<void>} Resolves when the speaker is switched.
+   */
   async selectSpeaker(deviceId: string) {
     this.selectedSpeakerId = deviceId;
     await this.livekitService.switchDevice('audiooutput', deviceId);
     console.log('Selected speaker device:', deviceId);
   }
 
+  /**
+   * Toggles the speaker mode in the LiveKit service.
+   * Adjusts the layout and updates the display based on the new mode.
+   */
   speakerMode() {
     this.livekitService.speakerLayoutChange();
     console.log('Speaker mode toggled:', this.livekitService.speakerModeLayout);
