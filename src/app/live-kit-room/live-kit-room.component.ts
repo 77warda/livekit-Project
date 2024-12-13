@@ -18,8 +18,10 @@ import {
 } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Store, select } from '@ngrx/store';
-import { selectLiveKitRoomView } from '../redux/selectors';
+import { selectLiveKitRoomViewState } from '../redux/selectors';
 import * as LiveKitRoomActions from '../redux/actions';
+import { BreakoutRoomService } from '../breakout-room-service/breakout-room.service';
+import { BreakoutRoom } from '../redux/reducer';
 
 const GRIDCOLUMN: { [key: number]: string } = {
   1: '1fr',
@@ -58,10 +60,1771 @@ const PIPGRIDCOLUMN: { [key: number]: string } = {
   styleUrls: ['./live-kit-room.component.scss'],
 })
 export class LiveKitRoomComponent {
-  isPersonSpeaking = false;
-  speakerModeLayout = false;
-  defaultActiveSpeakerName: string | null = null;
+  //   isPersonSpeaking = false;
+  //   speakerModeLayout = false;
+  //   defaultActiveSpeakerName: string | null = null;
 
+  //   videoDevices: MediaDeviceInfo[] = [];
+  //   micDevices: MediaDeviceInfo[] = [];
+  //   speakerDevices: MediaDeviceInfo[] = [];
+
+  //   selectedVideoId: string | null = null;
+  //   selectedMicId: string | null = null;
+  //   selectedSpeakerId: string | null = null;
+
+  //   previousGridStyle: string | null = null; // Store the previous grid style
+
+  //   @ViewChild('gridLayoutWrapper', { static: true })
+  //   gridLayoutWrapper!: ElementRef;
+
+  //   // ==========
+  //   isMicDropdownOpen = false;
+  //   isVideoDropdownOpen = false;
+  //   showModal = false; // Controls modal visibility
+  //   @ViewChild('pipModal') pipModal!: ElementRef<HTMLDivElement>;
+
+  //   selectedParticipants: { [roomIndex: number]: string[] } = {};
+  //   // websocket variables
+  //   webSocketStatus: 'connected' | 'reconnecting' | 'disconnected' =
+  //     'disconnected';
+  //   private statusSubscription!: Subscription;
+  //   // selectors
+  //   isMeetingStarted$!: Observable<boolean>;
+  //   allMessages$!: Observable<any[]>;
+  //   unreadMessagesCount$!: Observable<number>;
+  //   isVideoOn$!: Observable<boolean>;
+  //   isMicOn$!: Observable<boolean>;
+  //   participantSideWindowVisible$!: Observable<boolean>;
+  //   breakoutSideWindowVisible$!: Observable<boolean>;
+  //   chatSideWindowVisible$!: Observable<boolean>;
+  //   isScreenSharing$!: Observable<boolean>;
+  //   iconColor$!: Observable<string>;
+  //   distributionMessage$!: Observable<any>;
+  //   isBreakoutModal$!: Observable<boolean>;
+  //   isInvitationModal$!: Observable<boolean>;
+  //   isHelpMsgModal$!: Observable<boolean>;
+  //   isHostMsgModal$!: Observable<boolean>;
+  //   breakoutRoomsData$!: Observable<any[]>;
+  //   nextRoomIndex$!: Observable<number>;
+  //   remoteParticipantNames$!: Observable<{ [roomIndex: number]: string[] }>;
+  //   // =========mic adjustment ======
+  //   @ViewChild('audioCanvas', { static: true })
+  //   audioCanvasRef!: ElementRef<HTMLCanvasElement>;
+  //   messageContent: string = '';
+  //   participantName: string = '';
+  //   breakoutRoomsData: any[] = [];
+  //   selectedBreakoutRoom = '';
+  //   // pip
+  //   pipWindow: any = null;
+  //   @ViewChild('playerContainer') playerContainer!: ElementRef<HTMLDivElement>;
+  //   @ViewChild('pipContainer') pipContainer!: ElementRef<HTMLDivElement>;
+  //   // for screensharing
+  //   @ViewChild('screensharePiP') screensharePiP!: ElementRef<HTMLDivElement>;
+
+  //   pipMode = false;
+  //   private originalParent: HTMLElement | null = null;
+  //   private originalNextSibling: Node | null = null;
+  //   isVideoToggling = false;
+
+  //   public breakoutMessageContent: any[] = [];
+  //   @ViewChild('messageContainer') messageContainer!: ElementRef | any;
+  //   attachedTrack: HTMLElement | null = null;
+  //   startForm!: FormGroup;
+  //   chatForm!: FormGroup;
+  //   screenShareTrackSubscription!: Subscription;
+  //   screenShareTrack!: RemoteTrack | undefined;
+  //   unreadMessagesCount = 0;
+  //   remoteParticipantNames: any;
+  //   localParticipant: any;
+  //   handRaiseStates: { [identity: string]: boolean } = {};
+  //   allMessages: any[] = [];
+  //   allMessagesToMainRoom: any[] = [];
+  //   room!: Room;
+  //   totalParticipants!: number;
+  //   breakoutForm!: FormGroup;
+  //   hostName!: string | undefined;
+  //   roomName: any;
+
+  //   breakoutRoomTypes = [
+  //     { value: 'automatic', viewValue: 'automatic' },
+  //     { value: 'manual', viewValue: 'manual' },
+  //   ];
+  //   private subscription!: Subscription;
+  //   private remoteVideoSubscription!: Subscription;
+  //   private screenShareSubscription!: Subscription;
+
+  //   constructor(
+  //     private formBuilder: FormBuilder,
+  //     public livekitService: LiveKitService,
+  //     private snackBar: MatSnackBar,
+  //     public store: Store,
+  //     private renderer: Renderer2
+  //   ) {}
+
+  //   async ngOnInit() {
+  //     // Initialize WebSocket and audio/video handler
+  //     this.initializeWebSocketAndAudioVideoHandler();
+
+  //     // Initialize state observables
+  //     this.initializeStateObservables();
+
+  //     // Initialize forms
+  //     this.initializeForms();
+
+  //     // Handle message subscriptions
+  //     this.setupMessageSubscriptions();
+
+  //     // Attach track to remote video container
+  //     this.attachRemoteVideoTrack();
+
+  //     // store remote participant names
+  //     this.storeRemoteParticipantNames();
+
+  //     // Store local participant data
+  //     this.storeLocalParticipantData();
+  //     // / Get available speakers on component load
+  //     // this.livekitService.getAvailableSpeakers().then(() => {
+  //     //   this.micDevices = this.livekitService.speakerDevices;
+  //     // });
+  //     // this.livekitService.getAvailableVideoDevices().then(() => {
+  //     //   this.videoDevices = this.livekitService.videoDevices;
+  //     // });
+  //     // Fetch all devices initially
+  //     try {
+  //       const devices = await this.livekitService.getAllDevices();
+
+  //       // Populate the devices lists
+  //       this.videoDevices = devices.cameras;
+  //       this.micDevices = devices.microphones;
+  //       this.speakerDevices = devices.speakers;
+
+  //       // Select the first device from each category by default
+  //       if (this.videoDevices.length > 0) {
+  //         this.selectedVideoId = this.videoDevices[0].deviceId;
+  //         await this.livekitService.switchDevice(
+  //           'videoinput',
+  //           this.selectedVideoId
+  //         );
+  //       }
+
+  //       if (this.micDevices.length > 0) {
+  //         this.selectedMicId = this.micDevices[0].deviceId;
+  //         await this.livekitService.switchDevice(
+  //           'audioinput',
+  //           this.selectedMicId
+  //         );
+  //       }
+
+  //       if (this.speakerDevices.length > 0) {
+  //         this.selectedSpeakerId = this.speakerDevices[0].deviceId;
+  //         await this.livekitService.switchDevice(
+  //           'audiooutput',
+  //           this.selectedSpeakerId
+  //         );
+  //       }
+
+  //       console.log('Default devices selected:');
+  //       console.log('Video:', this.selectedVideoId);
+  //       console.log('Mic:', this.selectedMicId);
+  //       console.log('Speaker:', this.selectedSpeakerId);
+  //     } catch (error) {
+  //       console.error('Error initializing default devices:', error);
+  //     }
+  //     // Expose livekitService for Cypress
+  //     // this.exposeLivekitServiceForCypress();
+  //     //// For pip window should change when we change tab
+  //     // document.addEventListener('visibilitychange', () => {
+  //     //   if (document.hidden) {
+  //     //     this.enterPiP();
+  //     //   } else {
+  //     //     this.onLeavePiP();
+  //     //   }
+  //     // });
+  //   }
+  //   ngOnDestroy() {
+  //     // //Clean up the event listener when the component is destroyed
+  //     // document.removeEventListener('visibilitychange', () => {
+  //     //   if (document.hidden) {
+  //     //     this.enterPiP();
+  //     //   } else {
+  //     //     this.onLeavePiP();
+  //     //   }
+  //     // });
+  //     if (this.subscription) {
+  //       this.subscription.unsubscribe();
+  //     }
+  //     if (this.remoteVideoSubscription) {
+  //       this.remoteVideoSubscription.unsubscribe();
+  //     }
+  //     if (this.screenShareSubscription) {
+  //       this.screenShareSubscription.unsubscribe();
+  //     }
+  //   }
+  //   private initializeWebSocketAndAudioVideoHandler() {
+  //     // Uncomment this if you want to connect the WebSocket
+  //     // this.livekitService.connectWebSocket();
+  //     this.livekitService.audioVideoHandler();
+
+  //     this.statusSubscription = this.livekitService.webSocketStatus$.subscribe(
+  //       (status) => {
+  //         this.webSocketStatus = status;
+  //         console.log('WebSocket status updated:', status);
+  //       }
+  //     );
+  //   }
+
+  //   // private initializeStateObservables() {
+  //   //   this.isMeetingStarted$ = this.store.pipe(select(selectIsMeetingStarted));
+  //   //   this.isScreenSharing$ = this.store.pipe(select(selectIsScreenSharing));
+
+  //   //   this.iconColor$ = this.store.pipe(select(selectIconColor));
+  //   //   this.isVideoOn$ = this.store.pipe(select(selectIsVideoOn));
+  //   //   this.participantSideWindowVisible$ = this.store.pipe(
+  //   //     select(selectParticipantSideWindowVisible)
+  //   //   );
+  //   //   this.breakoutSideWindowVisible$ = this.store.pipe(
+  //   //     select(selectBreakoutSideWindowVisible)
+  //   //   );
+  //   //   this.chatSideWindowVisible$ = this.store.pipe(
+  //   //     select(selectChatSideWindowVisible)
+  //   //   );
+
+  //   //   this.allMessages$ = this.store.pipe(select(selectAllMessages));
+  //   //   this.unreadMessagesCount$ = this.store.pipe(
+  //   //     select(selectUnreadMessagesCount)
+  //   //   );
+  //   //   this.unreadMessagesCount$.subscribe((unread) => {
+  //   //     console.log('ts unread', unread);
+  //   //   });
+  //   //   this.isMicOn$ = this.store.pipe(select(selectIsMicOn));
+  //   //   this.isBreakoutModal$ = this.store.select(isBreakoutModalOpen);
+  //   //   this.isInvitationModal$ = this.store.select(isInvitationModalOpen);
+  //   //   this.isHostMsgModal$ = this.store.select(isHostMsgModalOpen);
+  //   //   this.distributionMessage$ = this.store.select(selectDistributionMessage);
+  //   //   this.breakoutRoomsData$ = this.store.select(selectBreakoutRoomsData);
+  //   //   this.nextRoomIndex$ = this.store.select(selectNextRoomIndex);
+  //   //   this.store.select(selectBreakoutRoomsData).subscribe((rooms) => {
+  //   //     this.breakoutRoomsData = rooms;
+  //   //   });
+  //   //   this.isHelpMsgModal$ = this.store.select(selectHelpMessageModal);
+  //   // }
+  //   private initializeStateObservables() {
+  //     const state$ = this.store.pipe(select(selectLiveKitRoomView));
+
+  //     this.isMeetingStarted$ = state$.pipe(
+  //       map((state) => state.isMeetingStarted)
+  //     );
+  //     this.isVideoOn$ = state$.pipe(map((state) => state.isVideoOn));
+  //     this.isMicOn$ = state$.pipe(map((state) => state.isMicOn));
+  //     this.participantSideWindowVisible$ = state$.pipe(
+  //       map((state) => state.participantSideWindowVisible)
+  //     );
+  //     this.chatSideWindowVisible$ = state$.pipe(
+  //       map((state) => state.chatSideWindowVisible)
+  //     );
+  //     this.isScreenSharing$ = state$.pipe(map((state) => state.isScreenSharing));
+  //     this.iconColor$ = state$.pipe(map((state) => state.iconColor));
+  //     this.allMessages$ = state$.pipe(map((state) => state.allMessages));
+  //     this.unreadMessagesCount$ = state$.pipe(
+  //       map((state) => state.unreadMessagesCount)
+  //     );
+  //     this.breakoutSideWindowVisible$ = state$.pipe(
+  //       map((state) => state.breakoutSideWindowVisible)
+  //     );
+  //     this.isBreakoutModal$ = state$.pipe(
+  //       map((state) => state.isBreakoutModalOpen)
+  //     );
+  //     this.isInvitationModal$ = state$.pipe(
+  //       map((state) => state.isInvitationModalOpen)
+  //     );
+  //     this.isHostMsgModal$ = state$.pipe(
+  //       map((state) => state.isHostMsgModalOpen)
+  //     );
+  //     this.distributionMessage$ = state$.pipe(
+  //       map((state) => state.distributionMessage)
+  //     );
+  //     this.breakoutRoomsData$ = state$.pipe(
+  //       map((state) => state.breakoutRoomsData)
+  //     );
+  //     this.nextRoomIndex$ = state$.pipe(map((state) => state.nextRoomIndex));
+  //     this.isHelpMsgModal$ = state$.pipe(map((state) => state.helpMessageModal));
+  //   }
+
+  //   private initializeForms() {
+  //     this.startForm = this.formBuilder.group({
+  //       token: [''],
+  //     });
+
+  //     this.chatForm = this.formBuilder.group({
+  //       message: [''],
+  //       participant: [''],
+  //     });
+
+  //     this.breakoutForm = this.formBuilder.group({
+  //       numberOfRooms: ['', [Validators.required]],
+  //       roomName: ['', Validators.required],
+  //       roomType: ['', Validators.required],
+  //       selectedParticipants: [[]],
+  //     });
+
+  //     // this.chatSideWindowVisible$.subscribe((visible) => {
+  //     //   if (visible) {
+  //     //     this.store.dispatch(
+  //     //       LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
+  //     //     );
+  //     //     this.scrollToBottom();
+  //     //   }
+  //     // });
+  //   }
+
+  //   private setupMessageSubscriptions() {
+  //     this.livekitService.messageToMain.subscribe((msgArrayTomainRoom: any[]) => {
+  //       console.log('Received message in main room:', msgArrayTomainRoom);
+  //       msgArrayTomainRoom.forEach((content) => {
+  //         if (content.content === 'I need help') {
+  //           const newMessage = {
+  //             senderName: content.title,
+  //             receivedMsg: content.content,
+  //             receivingTime: new Date(content.timestamp),
+  //             type: 'received',
+  //           };
+  //           this.roomName = content.title;
+  //           console.log('msg to main room', this.roomName);
+  //           this.allMessagesToMainRoom.push(newMessage);
+  //           this.openReceiveMsgModal();
+  //           console.log('Updated chat messages:', this.allMessagesToMainRoom);
+  //         }
+  //       });
+  //     });
+
+  //     this.livekitService.messageContentReceived.subscribe(
+  //       (contentArray: any[]) => {
+  //         console.log('Received message content array:', contentArray);
+  //         contentArray.forEach((content) => {
+  //           if (content.content && content.title === 'test-room') {
+  //             this.handleNewMessage(content);
+  //           }
+  //         });
+  //       }
+  //     );
+
+  //     this.livekitService.msgDataReceived.subscribe((data) => {
+  //       this.handleMsgDataReceived(data);
+  //       console.log('sending');
+  //     });
+
+  //     this.livekitService.messageEmitter.subscribe((data: any) => {
+  //       this.handleMessageEmitter(data);
+  //     });
+  //   }
+
+  //   handleNewMessage(content: any) {
+  //     const newMessage = {
+  //       senderName: content.title,
+  //       receivedMsg: content.content,
+  //       receivingTime: new Date(content.timestamp),
+  //       type: 'received',
+  //     };
+
+  //     const isDuplicate = this.allMessages.some((message) => {
+  //       const messageTime = new Date(message.receivingTime);
+  //       return (
+  //         message.receivedMsg === newMessage.receivedMsg &&
+  //         message.senderName === newMessage.senderName &&
+  //         messageTime.getTime() === newMessage.receivingTime.getTime()
+  //       );
+  //     });
+
+  //     if (!isDuplicate) {
+  //       this.allMessages.push(newMessage);
+  //       this.chatSideWindowVisible$.subscribe((visible) => {
+  //         if (!visible) {
+  //           this.store.dispatch(
+  //             LiveKitRoomActions.LiveKitActions.updateUnreadMessagesCount({
+  //               count: this.unreadMessagesCount + 1,
+  //             })
+  //           );
+  //           this.scrollToBottom();
+  //         } else {
+  //           // this.unreadMessagesCount = 0;
+  //           this.store.dispatch(
+  //             LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
+  //           );
+  //         }
+  //       });
+  //     }
+  //     console.log('Updated chat messages:', this.allMessages);
+  //   }
+
+  //   handleMsgDataReceived(data: any) {
+  //     console.log('Participant Data:', data);
+  //     this.hostName = data.participant?.identity;
+
+  //     if (data.message.handRaised !== undefined) {
+  //       this.handRaiseStates[data.participant.identity] = data.message.handRaised;
+  //       const action = data.message.handRaised
+  //         ? 'raised its hand'
+  //         : 'lowered its hand';
+  //       this.openSnackBar(`${data.participant.identity} ${action}`);
+  //     }
+
+  //     if (data.message.type === 'breakoutRoom') {
+  //       console.log(
+  //         'Breakout room created for participant:',
+  //         data.participant?.identity
+  //       );
+  //       this.roomName = data.message.roomName;
+  //       this.hostName = data.participant?.identity;
+  //       this.showInvitationModal();
+  //     }
+
+  //     if (
+  //       data.message.type !== 'handRaise' &&
+  //       data.message.type !== 'breakoutRoom' &&
+  //       data.message.title !== 'test-room' &&
+  //       // data.message.title !== this.roomName &&
+  //       data.message.content !== 'I need help'
+  //     ) {
+  //       const receivedMsg = data?.message?.message;
+  //       const senderName = data?.participant?.identity;
+  //       const receivingTime = data?.message?.timestamp;
+  //       this.allMessages.push({
+  //         senderName,
+  //         receivedMsg,
+  //         receivingTime,
+  //         type: 'received',
+  //       });
+  //       console.log('sending 22');
+
+  //       this.updateUnreadMessageCount();
+  //       this.scrollToBottom();
+  //       this.sortMessages();
+  //     }
+  //   }
+
+  //   private handleMessageEmitter(data: any) {
+  //     console.log('data', data);
+  //     const sendMessage = data?.message;
+  //     const sendingTime = data?.timestamp;
+  //     this.allMessages.push({ sendMessage, sendingTime, type: 'sent' });
+  //     this.sortMessages();
+  //     this.scrollToBottom();
+  //   }
+
+  //   private updateUnreadMessageCount() {
+  //     // this.chatSideWindowVisible$.subscribe((visible) => {
+  //     //   if (!visible) {
+  //     //     // this.unreadMessagesCount++;
+  //     //     this.store.dispatch(
+  //     //       LiveKitRoomActions.LiveKitActions.updateUnreadMessagesCount({
+  //     //         count: this.unreadMessagesCount + 1,
+  //     //       })
+  //     //     );
+  //     //     this.scrollToBottom();
+  //     //   }
+  //     // });
+  //   }
+
+  //   private attachRemoteVideoTrack() {
+  //     this.attachedTrack = this.livekitService.attachTrackToElement(
+  //       Track,
+  //       'remoteVideoContainer'
+  //     );
+  //   }
+
+  //   storeRemoteParticipantNames() {
+  //     if (this.livekitService.participantNamesUpdated) {
+  //       this.livekitService.participantNamesUpdated.subscribe((names: any) => {
+  //         this.remoteParticipantNames = names;
+  //         this.totalParticipants = this.remoteParticipantNames.length;
+  //       });
+  //     } else {
+  //       console.error('participantNamesUpdated is undefined');
+  //     }
+  //   }
+  //   storeLocalParticipantData() {
+  //     this.livekitService.localParticipantData.subscribe((data: any) => {
+  //       this.localParticipant = data;
+  //       console.log('local Participant name updated:', this.localParticipant);
+  //     });
+  //   }
+
+  //   private exposeLivekitServiceForCypress() {
+  //     if ((window as any).Cypress) {
+  //       (window as any).livekitService = this.livekitService;
+  //     }
+  //   }
+
+  //   ngAfterViewInit(): void {
+  //     if (this.livekitService.screenShareTrackSubscribed) {
+  //       // Subscribe to the EventEmitter
+  //       this.livekitService.screenShareTrackSubscribed
+  //         .pipe(
+  //           filter(
+  //             (track) => !!track && track.source === Track.Source.ScreenShare
+  //           )
+  //         )
+  //         .subscribe((track: RemoteTrack | undefined) => {
+  //           if (track && track.source === Track.Source.ScreenShare) {
+  //             this.screenShareTrack = track;
+  //             console.log('ss track', track);
+  //           } else {
+  //             this.screenShareTrack = undefined; // Reset if no screen share track
+  //             console.log('else ss track', this.screenShareTrack);
+  //           }
+  //         });
+  //     } else {
+  //       console.error('screenShareTrackSubscribed is undefined');
+  //     }
+  //     this.remoteVideoSubscription =
+  //       this.livekitService.remoteVideoTrackSubscribed
+  //         .pipe(distinctUntilChanged())
+  //         .subscribe({
+  //           next: ({ track, publication, participant }) => {
+  //             this.livekitService.handleTrackSubscribed(
+  //               track,
+  //               publication,
+  //               participant
+  //             );
+  //           },
+  //         });
+  //     this.subscription = this.livekitService.remoteAudioTrackSubscribed
+  //       .pipe(distinctUntilChanged())
+  //       .subscribe(({ track, publication, participant }) => {
+  //         this.livekitService.handleTrackSubscribed(
+  //           track,
+  //           publication,
+  //           participant
+  //         );
+  //       });
+  //     // this.livekitService.initCanvas(this.audioCanvasRef.nativeElement);
+  //   }
+  //   /**
+  //    * Initiates the start of a meeting by dispatching a `startMeeting` action
+  //    * with the WebSocket URL and a dynamic token obtained from the form value.
+  //    *
+  //    * This function:
+  //    * 1. Retrieves the token from the form value.
+  //    * 2. Logs the token to the console.
+  //    * 3. Defines the WebSocket URL.
+  //    * 4. Dispatches the `startMeeting` action with the WebSocket URL and token.
+  //    *
+  //    * @async
+  //    * @function
+  //    * @returns {Promise<void>} - A promise that resolves when the meeting has been initiated.
+  //    */
+  //   async startMeeting() {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.MeetingActions.createMeeting({
+  //         participantNames: [this.participantName],
+  //         roomName: 'test-room',
+  //       })
+  //     );
+  //   }
+
+  //   /**
+  //    * Calculates the distribution of participants across breakout rooms.
+  //    *
+  //    * This function retrieves the number of breakout rooms from the `breakoutForm` and
+  //    * the total number of participants. It then dispatches the `calculateDistribution` action
+  //    * to the store with these values, initiating the distribution calculation.
+  //    *
+  //    * @function
+  //    * @returns {void} - No return value.
+  //    */
+  //   calculateDistribution() {
+  //     const numberOfRooms = this.breakoutForm.get('numberOfRooms')?.value;
+  //     const totalParticipants = this.totalParticipants;
+
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.BreakoutActions.calculateDistribution({
+  //         numberOfRooms,
+  //         totalParticipants,
+  //       })
+  //     );
+  //   }
+
+  //   /**
+  //    * Extracts the initials from a given name by taking the first character of each word.
+  //    *
+  //    * This function:
+  //    * 1. Splits the name into words.
+  //    * 2. Maps each word to its first character.
+  //    * 3. Joins the characters to form the initials.
+  //    *
+  //    * @param {any} name - The name from which to extract initials.
+  //    * @returns {string} - The initials derived from the name.
+  //    */
+  //   extractInitials(name: any) {
+  //     const words = name.split(' ').map((word: any) => word.charAt(0));
+  //     return words.join('');
+  //   }
+
+  //   /**
+  //    * Sorts the `allMessages` array in ascending order based on the message's timestamp.
+  //    *
+  //    * This function:
+  //    * 1. Sorts messages by their `receivingTime` or `sendingTime` in ascending order.
+  //    * 2. Modifies the `allMessages` array in place.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   sortMessages() {
+  //     this.allMessages.sort(
+  //       (a, b) =>
+  //         new Date(a.receivingTime || a.sendingTime).getTime() -
+  //         new Date(b.receivingTime || b.sendingTime).getTime()
+  //     );
+  //   }
+
+  //   /**
+  //    * Determines whether the avatar should be shown for a message at a given index.
+  //    *
+  //    * This function:
+  //    * 1. Always shows the avatar for the first message.
+  //    * 2. Shows the avatar if the sender of the current message is different from the sender of the previous message.
+  //    *
+  //    * @param {number} index - The index of the message in the `allMessages` array.
+  //    * @returns {boolean} - `true` if the avatar should be shown, otherwise `false`.
+  //    */
+
+  //   shouldShowAvatar(index: number): boolean {
+  //     if (index === 0) {
+  //       return true;
+  //     }
+  //     const currentMessage = this.allMessages[index];
+  //     const previousMessage = this.allMessages[index - 1];
+  //     return currentMessage.senderName !== previousMessage.senderName;
+  //   }
+
+  //   /**
+  //    * Sends a chat message using the LiveKit service and resets the chat form.
+  //    *
+  //    * This function:
+  //    * 1. Retrieves the message and recipient from the chat form.
+  //    * 2. Calls the `sendChatMessage` method of the LiveKit service with the message and recipient.
+  //    * 3. Resets the chat form.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   sendMessage() {
+  //     const msg = this.chatForm.value.message;
+  //     const recipient = this.chatForm.value.participant;
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.ChatActions.sendChatMessage({ msg, recipient })
+  //     );
+
+  //     this.chatForm.reset();
+  //   }
+
+  //   /**
+  //    * Toggles the raise hand status of the local participant.
+  //    *
+  //    * This function:
+  //    * 1. Checks the current hand raise status of the local participant.
+  //    * 2. If the hand is raised, calls the `lowerHand` method of the LiveKit service.
+  //    * 3. If the hand is not raised, calls the `raiseHand` method of the LiveKit service.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+
+  //   toggleRaiseHand() {
+  //     if (this.localParticipant.handRaised) {
+  //       this.localParticipant.handRaised = false;
+  //       this.livekitService.lowerHand(this.localParticipant);
+  //       this.openSnackBar(`${this.localParticipant.identity} lowered hand`);
+  //       this.handRaiseStates[this.localParticipant.identity] = false;
+
+  //       if (this.pipWindow) {
+  //         const pipBody = this.pipWindow.document.body;
+  //         const raiseHandIcon = pipBody.querySelector('[data-cy="raise-hand"] i');
+  //         if (raiseHandIcon) {
+  //           raiseHandIcon.classList.remove(
+  //             'hand-raised',
+  //             this.localParticipant.handRaised
+  //           );
+  //         }
+  //       }
+  //     } else {
+  //       this.localParticipant.handRaised = true;
+  //       this.livekitService.raiseHand(this.localParticipant);
+  //       this.openSnackBar(`${this.localParticipant.identity} raised hand`);
+  //       this.handRaiseStates[this.localParticipant.identity] = true;
+  //       // Update the "Raise Hand" icon in the PiP window if it exists
+  //       if (this.pipWindow) {
+  //         const pipBody = this.pipWindow.document.body;
+  //         const raiseHandIcon = pipBody.querySelector('[data-cy="raise-hand"] i');
+  //         if (raiseHandIcon) {
+  //           raiseHandIcon.classList.add(
+  //             'hand-raised',
+  //             this.localParticipant.handRaised
+  //           );
+  //         }
+  //       }
+  //     }
+  //   }
+
+  //   /**
+  //    * Dispatches an action to leave the meeting.
+  //    * And leave the pip window
+  //    *
+  //    * @async
+  //    * @function
+  //    * @returns {Promise<void>}
+  //    */
+  //   async leaveBtn(): Promise<void> {
+  //     this.store.dispatch(LiveKitRoomActions.MeetingActions.leaveMeeting());
+  //     this.onLeavePiP();
+  //   }
+
+  //   /**
+  //    * Dispatches an action to toggle screen sharing.
+  //    *
+  //    * @async
+  //    * @function
+  //    * @returns {Promise<void>}
+  //    */
+  //   async toggleScreenShare(): Promise<void> {
+  //     this.store.dispatch(LiveKitRoomActions.LiveKitActions.toggleScreenShare());
+  //     this.livekitService.speakerModeLayout = false;
+  //     this.livekitService.rearrangeGalleryView();
+  //   }
+
+  //   /**
+  //    * Dispatches an action to toggle video.
+  //    *
+  //    * @async
+  //    * @function
+  //    * @returns {Promise<void>}
+  //    */
+  //   async toggleVideo(): Promise<void> {
+  //     this.store.dispatch(LiveKitRoomActions.LiveKitActions.toggleVideo());
+  //   }
+
+  //   /**
+  //    * Dispatches an action to toggle the microphone.
+  //    *
+  //    * @async
+  //    * @function
+  //    * @returns {Promise<void>}
+  //    */
+  //   async toggleMic(): Promise<void> {
+  //     this.store.dispatch(LiveKitRoomActions.LiveKitActions.toggleMic());
+  //     // this.livekitService.toggleMicrophone().subscribe((isMicOn: boolean) => {
+  //     //   if (isMicOn) {
+  //     //     this.livekitService.startAudioCapture();
+  //     //   } else {
+  //     //     this.livekitService.stopAudioCapture();
+  //     //   }
+  //     // });
+  //   }
+
+  //   /**
+  //    * Dispatches an action to toggle the participant side window.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   openParticipantSideWindow(): void {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.LiveKitActions.toggleParticipantSideWindow()
+  //     );
+  //   }
+  //   /**
+  //    * Dispatches an action to toggle the breakout side window.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   openPBreakoutSideWindow(): void {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.BreakoutActions.toggleBreakoutSideWindow()
+  //     );
+  //   }
+
+  //   /**
+  //    * Dispatches an action to toggle the chat side window.
+  //    * Resets the unread messages count and scrolls to the bottom if the chat window is visible.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   openChatSideWindow(): void {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.LiveKitActions.toggleChatSideWindow()
+  //     );
+  //     console.log('clicked');
+  //     // this.chatSideWindowVisible$.subscribe((visible) => {
+  //     //   if (!visible) {
+  //     //     this.store.dispatch(
+  //     //       LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
+  //     //     );
+  //     //   }
+  //     // });
+  //   }
+
+  //   /**
+  //    * Dispatches an action to close the chat side window.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   closeChatSideWindow(): void {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.LiveKitActions.closeChatSideWindow()
+  //     );
+  //   }
+
+  //   /**
+  //    * Dispatches an action to close the participant side window.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   closeParticipantSideWindow(): void {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.LiveKitActions.closeParticipantSideWindow()
+  //     );
+  //   }
+
+  //   /**
+  //    * Dispatches an action to close the breakout side window.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   closeBreakoutSideWindow(): void {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.BreakoutActions.closeBreakoutSideWindow()
+  //     );
+  //   }
+  //   /**
+  //    * Returns the CSS grid column style based on the number of participants in the LiveKit room.
+  //    * If the number of participants is 6 or fewer, returns a predefined grid column style.
+  //    * If the number of participants is more than 6, returns a default grid column style.
+  //    *
+  //    * @readonly
+  //    * @type {string}
+  //    */
+  //   get GalleryGridColumnStyle() {
+  //     if (this.pipMode) {
+  //       return PIPGRIDCOLUMN[this.livekitService.room.numParticipants];
+  //     } else if (this.livekitService.room.numParticipants <= 6) {
+  //       return GRIDCOLUMN[this.livekitService.room.numParticipants];
+  //     } else {
+  //       return 'repeat(auto-fill, minmax(200px, 1fr))';
+  //     }
+  //   }
+
+  //   /**
+  //    * Scrolls the message container to the bottom.
+  //    * Uses a timeout to ensure the scroll action occurs after the view has updated.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   scrollToBottom(): void {
+  //     try {
+  //       setTimeout(() => {
+  //         this.messageContainer.nativeElement.scrollTop =
+  //           this.messageContainer.nativeElement.scrollHeight;
+  //       }, 100);
+  //     } catch (err) {}
+  //   }
+
+  //   /**
+  //    * Opens a snack bar with a given message.
+  //    * The snack bar includes a 'Close' action and automatically dismisses after 3 seconds.
+  //    *
+  //    * @param {string} message - The message to display in the snack bar.
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   openSnackBar(message: string) {
+  //     this.snackBar.open(message, 'Close', {
+  //       duration: 3000, // duration in milliseconds
+  //     });
+  //   }
+
+  //   /**
+  //    * Returns the CSS grid column style based on the number of screen shared in the LiveKit room.
+  //    * If the number of shared screens are 6 or fewer, returns a predefined grid column style.
+  //    * If the number of shared screens are more than 6, returns a default grid column style.
+  //    *
+  //    * @readonly
+  //    * @type {string}
+  //    */
+  //   get ScreenGalleryGridColumnStyle() {
+  //     if (this.livekitService.totalScreenShareCount <= 6) {
+  //       return GRIDCOLUMN[this.livekitService.totalScreenShareCount];
+  //     } else {
+  //       return 'repeat(auto-fill, minmax(200px, 1fr))';
+  //     }
+  //   }
+  //   /**
+  //    * Dispatches an action to open modal when host receive message from  the breakout participants.
+  //    * When any breakout room participant ask for help from host.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   openReceiveMsgModal() {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.BreakoutActions.openHelpMessageModal()
+  //     );
+  //   }
+  //   /**
+  //    * Dispatches an action to close modal when host receive message from the breakout participants.
+  //    * When any breakout room participant ask for help from host. And clears all messages.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+
+  //   closeReceiveMsgModal() {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.BreakoutActions.closeHelpMessageModal()
+  //     );
+  //     this.allMessagesToMainRoom = [];
+  //   }
+
+  //   /**
+  //    * Dispatches an action to open the breakout modal (select participant  automatically or manually).
+  //    * And creating breskout rooms
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   openBreakoutModal(): void {
+  //     this.store.dispatch(LiveKitRoomActions.BreakoutActions.openBreakoutModal());
+  //   }
+  //   /**
+  //    * Dispatches an action to close the breakout Modal After selecting participants and creating breakout rooms.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   closeBreakoutModal(): void {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.BreakoutActions.closeBreakoutModal()
+  //     );
+  //   }
+  //   /**
+  //    * Dispatches an action to open invitation modal in host (come from breakout room) to join breakout room (for help).
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+
+  //   showInvitationModal(): void {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.BreakoutActions.openInvitationModal()
+  //     );
+  //   }
+  //   /**
+  //    * Dispatches an action to close invitation modal in host (come from breakout room) to join breakout room (for help).
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   closeInvitationModal(): void {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.BreakoutActions.closeInvitationModal()
+  //     );
+  //   }
+  //   /**
+  //    * Submits the breakout room form to initiate room creation based on selected type.
+  //    *
+  //    * This asynchronous function retrieves the room type and number of rooms from the
+  //    * `breakoutForm`. It initiates room creation automatically if the room type is 'automatic'
+  //    * and a valid number of rooms is specified, dispatching an action with the list of participants.
+  //    * If the room type is 'manual', it dispatches an action to initiate manual room selection.
+  //    * After processing, it closes the breakout modal.
+  //    *
+  //    * @async
+  //    * @function
+  //    * @returns {Promise<void>} - Resolves with no value when submission is complete.
+  //    */
+  //   async submitBreakoutForm(): Promise<void> {
+  //     const roomType = this.breakoutForm.get('roomType')?.value;
+  //     const numberOfRooms = this.breakoutForm.get('numberOfRooms')?.value;
+
+  //     if (roomType === 'automatic' && numberOfRooms > 0) {
+  //       const participants = this.remoteParticipantNames.map(
+  //         (p: any) => p.identity
+  //       );
+
+  //       // Dispatch action to create automatic rooms
+  //       this.store.dispatch(
+  //         LiveKitRoomActions.BreakoutActions.initiateAutomaticRoomCreation({
+  //           participants,
+  //           numberOfRooms,
+  //         })
+  //       );
+  //     } else if (roomType === 'manual') {
+  //       console.log('Manual room selection initiated');
+
+  //       // Dispatch action for manual room selection
+  //       this.store.dispatch(
+  //         LiveKitRoomActions.BreakoutActions.initiateManualRoomSelection({
+  //           roomType: 'manual',
+  //         })
+  //       );
+  //     }
+
+  //     console.log('Breakout room invitations sent');
+  //     this.closeBreakoutModal();
+  //   }
+  //   /**
+  //    * Joins a breakout room by first leaving the current room.
+  //    *
+  //    * This function performs a two-step process: it first leaves the current room by
+  //    * calling `leaveCurrentMeeting`, and upon successful completion, it proceeds to
+  //    * join the breakout room by calling `joinBreakoutRoom`.
+  //    *
+  //    * @function
+  //    * @returns {void} - No return value.
+  //    */
+  //   joinNow() {
+  //     // Step 1: Leave the current room
+  //     this.leaveCurrentMeeting().then(() => {
+  //       // Step 2: Join the breakout room
+  //       this.joinBreakoutRoom();
+  //     });
+  //   }
+
+  //   // Step 1: Leave the current meeting
+  //   leaveCurrentMeeting(): Promise<void> {
+  //     return new Promise((resolve) => {
+  //       this.store.dispatch(LiveKitRoomActions.MeetingActions.leaveMeeting());
+  //       resolve();
+  //     });
+  //   }
+
+  //   // Step 2: Join the breakout room
+  //   /**
+  //    * Joins a specified breakout room and initiates the meeting setup.
+  //    *
+  //    * This function retrieves the breakout room name and participant name, then
+  //    * dispatches the `createMeeting` action to initiate the meeting in the breakout room.
+  //    * After dispatching the action, it hides the invitation modal.
+  //    *
+  //    * @function
+  //    * @returns {void} - No return value.
+  //    */
+  //   joinBreakoutRoom() {
+  //     const breakoutRoomName = this.roomName;
+  //     console.log('breakout room', this.roomName);
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.MeetingActions.createMeeting({
+  //         participantNames: [this.participantName],
+  //         roomName: breakoutRoomName,
+  //       })
+  //     );
+  //     // Hide modal after dispatching
+  //     this.closeInvitationModal();
+  //   }
+
+  //   /**
+  //    * Sends a message to a specified breakout room and closes the message modal.
+  //    *
+  //    * This function dispatches the `sendMessageToBreakoutRoom` action to send a message
+  //    * to the selected breakout room with the provided message content. After sending the
+  //    * message, it closes the host-to-breakout-room message modal.
+  //    *
+  //    * @function
+  //    * @returns {void} - No return value.
+  //    */
+  //   sendMessageToBreakoutRoom() {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.ChatActions.sendMessageToBreakoutRoom({
+  //         breakoutRoom: this.selectedBreakoutRoom,
+  //         messageContent: this.messageContent,
+  //       })
+  //     );
+  //     this.closeHostToBrMsgModal();
+  //   }
+
+  //   /**
+  //    * This process starts when Participants ask for help from host by sending message.
+  //    * then host trying to join the meeting to help participants in the breakout room.
+  //    ** Allows the host to join an existing breakout room to assist participants.
+  //  *
+  //  * This asynchronous function performs the following steps:
+  //  * 1. Disconnects the host from the current room by calling `leaveBtn`.
+  //  * 2. Checks if the target breakout room exists in `breakoutRoomsData`.
+  //  * 3. If the room exists, dispatches an action to join the meeting in the existing room,
+  //  *    passing the host's identity as a participant name.
+  //  * 4. If the room does not exist, displays an error message and alerts the host.
+  //  * 5. Closes the message modal after processing.
+  //  *
+  //  * @async
+  //  * @function
+  //  * @returns {Promise<void>} - Resolves with no value upon completion.
+
+  //    */
+  //   async hostJoinNow() {
+  //     // Step 1: Leave the current room (disconnect)
+  //     await this.leaveBtn();
+  //     const existingRoom = this.livekitService.breakoutRoomsData.find(
+  //       (room: any) => room.roomName === this.roomName
+  //     );
+  //     console.log('existtt', this.livekitService.breakoutRoomsData);
+  //     if (existingRoom) {
+  //       // Step 3: If the room exists, join it using the dispatch action
+  //       const participantNames = [this.localParticipant.identity];
+
+  //       // Dispatch action to join the meeting (existing room)
+  //       this.store.dispatch(
+  //         LiveKitRoomActions.MeetingActions.createMeeting({
+  //           participantNames: participantNames,
+  //           roomName: this.roomName,
+  //         })
+  //       );
+
+  //       console.log(
+  //         'Host has successfully joined the existing room:',
+  //         this.roomName
+  //       );
+  //     } else {
+  //       // Step 4: If the room does not exist, show an error and do not create a new room
+  //       console.error(`Room "${this.roomName}" does not exist.`);
+  //       alert(
+  //         `The room "${this.roomName}" does not exist. Please select a valid room.`
+  //       );
+  //     }
+
+  //     // Step 5: Close the message modal
+  //     this.closeReceiveMsgModal();
+  //   }
+  //   /**
+  //    * Sends a help request message to the main room and dispatches a help request action.
+  //    *
+  //    * This function sends a predefined help message ("I need help") to the main room
+  //    * via the `livekitService`. It then dispatches the `sendHelpRequest` action to notify
+  //    * the store that a help request has been made from the current breakout room.
+  //    *
+  //    * @function
+  //    * @returns {void} - No return value.
+  //    */
+  //   sendHelpRequest() {
+  //     const helpMessageContent = 'I need help';
+  //     this.livekitService.sendMessageToMainRoom(
+  //       this.roomName,
+  //       helpMessageContent
+  //     );
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.ChatActions.sendHelpRequest({
+  //         roomName: this.roomName,
+  //       })
+  //     );
+  //   }
+
+  //   /**
+  //    * Initiates the process to create a new breakout room via the sidebar.
+  //    * Also via the modal where we select automatic or manual participants then
+  //    * we can create room also.
+  //    * This function dispatches the `initiateCreateNewRoom` action, which triggers
+  //    * the side window for breakout room creation. It supports both automatic and manual
+  //    * room configuration options within the breakout room modal.
+  //    *
+  //    * @function
+  //    * @returns {void} - No return value.
+  //    */
+  //   // Function to submit breakout form
+  //   //side window of the breakout rooms and modal of automatic and manual working
+  //   createNewRoomSidebar() {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.BreakoutActions.initiateCreateNewRoom()
+  //     );
+  //   }
+
+  //   /**
+  //    * Toggles the visibility of the participants list for a specific breakout room.
+  //    *
+  //    * This function dispatches the `toggleParticipantsList` action, passing the index of the room
+  //    * to update the state of the participant list for the specified breakout room.
+  //    *
+  //    * @function
+  //    * @param {number} index - The index of the breakout room whose participant list visibility is to be toggled.
+  //    * @returns {void} - No return value.
+  //    */
+
+  //   toggleParticipantsList(index: number): void {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.BreakoutActions.toggleParticipantsList({ index })
+  //     );
+  //   }
+
+  //   /**
+  //    * Adds or removes a participant to/from a breakout room based on selection.
+  //    *
+  //    * This function handles the logic for selecting or deselecting participants from a breakout room.
+  //    * If the participant is selected (checked), the participant is added to the room. If deselected,
+  //    * the participant is removed from the room.
+  //    *
+  //    * @function
+  //    * @param {any} room - The breakout room object containing the room details, including `roomName`.
+  //    * @param {any} participant - The participant object representing the selected participant.
+  //    * @param {Event} event - The event object representing the change in selection (checked/unchecked).
+  //    * @returns {void} - No return value.
+  //    */
+  //   onParticipantSelected(room: any, participant: any, event: any): void {
+  //     const roomName = room.roomName;
+  //     if (event.target.checked) {
+  //       this.store.dispatch(
+  //         LiveKitRoomActions.BreakoutActions.addParticipant({
+  //           roomName,
+  //           participantId: participant.identity,
+  //         })
+  //       );
+  //     } else {
+  //       this.store.dispatch(
+  //         LiveKitRoomActions.BreakoutActions.removeParticipant({
+  //           roomName,
+  //           participantId: participant.identity,
+  //         })
+  //       );
+  //     }
+  //   }
+
+  //   /**
+  //    * Returns a list of participants who are not assigned to any breakout room.
+  //    *
+  //    * This function filters through the list of remote participants and returns only those who
+  //    * are not already assigned to any breakout room. It compares each participant's identity
+  //    * with the list of assigned participants in `breakoutRoomsData`.
+  //    *
+  //    * @function
+  //    * @param {any} room - The breakout room object (not directly used in filtering, but relevant for context).
+  //    * @returns {any[]} - An array of participants who are available (not assigned to any breakout room).
+  //    */
+  //   getAvailableParticipants(room: any): any[] {
+  //     const assignedParticipants = this.breakoutRoomsData.reduce(
+  //       (acc: any[], r: any) => acc.concat(r.participantIds),
+  //       []
+  //     );
+  //     return this.remoteParticipantNames.filter(
+  //       (participant: any) => !assignedParticipants.includes(participant.identity)
+  //     );
+  //   }
+
+  //   /**
+  //    * Checks if a participant is assigned to a specific breakout room.
+  //    *
+  //    * This function checks if the participant's identity exists in the list of assigned participant IDs
+  //    * for the specified breakout room. It returns `true` if the participant is assigned to the room,
+  //    * otherwise `false`.
+  //    *
+  //    * @function
+  //    * @param {any} room - The breakout room object containing a list of participant IDs.
+  //    * @param {any} participant - The participant object representing the participant to check.
+  //    * @returns {boolean} - `true` if the participant is assigned to the room, `false` otherwise.
+  //    */
+  //   isParticipantAssigned(room: any, participant: any): boolean {
+  //     return room.participantIds.includes(participant.identity);
+  //   }
+
+  //   /**
+  //    * Dispatches an action to open that modal which send message from host to breakout room.
+  //    *
+  //    * @function
+  //    * @return {void}
+  //    */
+  //   openHostToBrMsgModal() {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.BreakoutActions.openHostToBrMsgModal()
+  //     );
+  //   }
+  //   /**
+  //    * Dispatches an action to close that modal which send message from host to breakout room.
+  //    * When close the modal, clears the message content as well as selected breakout rooms.
+  //    * @function
+  //    * @return {void}
+  //    */
+  //   closeHostToBrMsgModal() {
+  //     this.store.dispatch(
+  //       LiveKitRoomActions.BreakoutActions.closeHostToBrMsgModal()
+  //     );
+  //     this.messageContent = '';
+  //     this.selectedBreakoutRoom = '';
+  //   }
+  //   // ===================pip window styling starting from here===================
+
+  //   /**
+  //    * Enters Picture-in-Picture (PiP) mode for the video player.
+  //    *
+  //    * This function attempts to enable PiP mode for the video player by creating a new PiP window and
+  //    * copying the styles and content of the main player container into it. It also observes the main
+  //    * player container for changes and updates the PiP window accordingly. It listens for the `pagehide`
+  //    * event to clean up when PiP mode is exited.
+  //    *
+  //    * @async
+  //    * @function
+  //    * @returns {Promise<void>} - A promise that resolves when PiP mode has been successfully activated.
+  //    */
+  //   async enterPiP() {
+  //     this.pipMode = true;
+
+  //     const playerContainer = this?.playerContainer?.nativeElement;
+
+  //     //   // Store the original parent and next sibling of playerContainer
+  //     this.originalParent = playerContainer?.parentElement;
+  //     this.originalNextSibling = playerContainer?.nextSibling;
+
+  //     if ((window as any).documentPictureInPicture) {
+  //       const pipOptions = {
+  //         width: playerContainer?.clientWidth,
+  //         height: playerContainer?.clientHeight,
+  //       };
+
+  //       try {
+  //         this.pipWindow = await (
+  //           window as any
+  //         )?.documentPictureInPicture?.requestWindow(pipOptions);
+
+  //         // Copy over initial styles and elements to the PiP window
+  //         this.copyStylesToPiP();
+  //         this.updatePiPWindow();
+  //         // Listen for any changes in the main participant container
+  //         const observer = new MutationObserver(() => {
+  //           this.updatePiPWindow();
+  //         });
+  //         observer.observe(playerContainer, { childList: true, subtree: true });
+  //         // Clean up when PiP mode is exited
+  //         this.pipWindow.addEventListener(
+  //           'pagehide',
+  //           () => {
+  //             observer.disconnect();
+  //             this.onLeavePiP();
+  //           },
+  //           { once: true }
+  //         );
+  //       } catch (error) {
+  //         console.error('Error entering PiP mode:', error);
+  //       }
+  //     } else {
+  //       console.error(
+  //         'documentPictureInPicture API is not available in this browser.'
+  //       );
+  //     }
+  //   }
+
+  //   /**
+  //    * Copies styles from the main document to the PiP window.
+  //    *
+  //    * This function copies over all stylesheets from the main document to the PiP window. It ensures that
+  //    * the PiP window inherits the same styles as the main player container by appending the necessary
+  //    * styles or links to the PiP window's document head.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   copyStylesToPiP() {
+  //     if (!this.pipWindow) return;
+
+  //     Array.from(document.styleSheets).forEach((styleSheet) => {
+  //       try {
+  //         const cssRules = Array.from(styleSheet.cssRules)
+  //           .map((rule) => rule.cssText)
+  //           .join('');
+  //         const styleEl = this.renderer.createElement('style');
+  //         this.renderer.setProperty(styleEl, 'textContent', cssRules);
+
+  //         this.renderer.appendChild(this.pipWindow!.document.head, styleEl);
+  //       } catch (e) {
+  //         if (styleSheet.href) {
+  //           const linkEl = this.renderer.createElement('link');
+  //           this.renderer.setAttribute(linkEl, 'rel', 'stylesheet');
+  //           this.renderer.setAttribute(linkEl, 'href', styleSheet.href);
+  //           this.renderer.appendChild(this.pipWindow!.document.head, linkEl);
+  //         }
+  //       }
+  //     });
+  //   }
+
+  //   /**
+  //    * Updates the content and layout of the PiP window.
+  //    *
+  //    * This function clones the current state of the main player container and its header, appends them to
+  //    * the PiP window, and reattaches any necessary event listeners to the buttons in the cloned header.
+  //    * It updates the PiP window with the latest content from the main player container.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   updatePiPWindow() {
+  //     console.log('updatePiPWindow called'); // Debugging log
+
+  //     if (!this.pipWindow) return;
+  //     this.showModal = true;
+
+  //     const mainContainer = this.playerContainer?.nativeElement;
+  //     const mainScreenShareContainer = this.screensharePiP?.nativeElement;
+  //     const pipBody = this.pipWindow.document.body;
+
+  //     // Clear existing content in the PiP window
+  //     pipBody.innerHTML = '';
+
+  //     // Clone the current state of the main container into the PiP window
+  //     const clonedContainer = mainContainer?.cloneNode(true) as HTMLElement;
+  //     // Clone the modal (if present) into the PiP window
+  //     // const modalElement = document.querySelector('#pipModal') as HTMLElement; // Update with your modal's ID or class
+  //     const modalElement = this.pipModal?.nativeElement;
+  //     if (modalElement) {
+  //       modalElement.remove();
+  //       const clonedModal = modalElement.cloneNode(true) as HTMLElement;
+  //       pipBody.appendChild(clonedModal);
+  //       // Remove the modal from the main DOM
+  //       // this.renderer.setStyle(this.pipModal.nativeElement, 'display', 'none');
+  //       // Attach event listeners for modal buttons
+  //       const allowButton = clonedModal.querySelector('#allowButton'); // Replace with the ID or selector of your allow button
+  //       const cancelButton = clonedModal.querySelector('#cancelButton'); // Replace with the ID or selector of your cancel button
+
+  //       if (allowButton) {
+  //         // Attach the click event
+  //         this.renderer.listen(allowButton, 'click', () => {
+  //           console.log('Allow button clicked in PiP modal!');
+  //           this.allowPiP(); // Call the allowPiP function
+  //         });
+  //       }
+
+  //       if (cancelButton) {
+  //         // Attach the click event
+  //         this.renderer.listen(cancelButton, 'click', () => {
+  //           console.log('Cancel button clicked in PiP modal!');
+  //           this.cancelPiP(); // Call the cancelPiP function
+  //         });
+  //       }
+  //     }
+  //     // Clone the header from the main document (ng-container with pip header buttons)
+  //     const pipContainer = this.pipContainer.nativeElement;
+  //     const clonedHeader = pipContainer?.cloneNode(true) as HTMLElement;
+
+  //     const isScreenSharingActive =
+  //       this.livekitService.isScreenSharingEnabled ||
+  //       this.livekitService.remoteScreenShare;
+  //     // Check if screen sharing is active and clone #screensharePiP if so
+  //     if (isScreenSharingActive) {
+  //       const screenSharePiPElment = this.screensharePiP?.nativeElement;
+  //       if (screenSharePiPElment && this.pipWindow) {
+  //         this.renderer.setAttribute(
+  //           screenSharePiPElment,
+  //           'style',
+  //           `
+  //           --lk-control-bar-height: 380px;
+  //           padding: 10px;
+  //           width: 93%;
+  //           height: calc(100% - var(--lk-control-bar-height));
+  //         `
+  //         );
+  //       }
+  //       const clonedScreenShare = screenSharePiPElment?.cloneNode(
+  //         true
+  //       ) as HTMLElement;
+
+  //       pipBody.appendChild(clonedScreenShare);
+  //     }
+  //     // Append the cloned player container to the PiP window body
+  //     pipBody.appendChild(clonedContainer);
+  //     // Append the cloned header to the PiP window body
+  //     if (clonedHeader) {
+  //       pipBody.appendChild(clonedHeader);
+  //     }
+
+  //     const pipVideoContainer = pipBody?.querySelector(
+  //       '.screen-share-layout-wrapper'
+  //     ) as HTMLDivElement;
+  //     if (pipVideoContainer) {
+  //       this.renderer.setStyle(pipVideoContainer, 'height', '53vh');
+  //       this.renderer.setStyle(pipVideoContainer, 'margin-left', '0');
+  //     }
+  //     // pipVideoContainer.style.height = '53vh';
+  //     const pipVideoLayout = pipBody?.querySelector(
+  //       '.lk-grid-layout'
+  //     ) as HTMLDivElement;
+  //     if (pipVideoLayout) {
+  //       this.renderer.setStyle(pipVideoLayout, 'overflow', 'hidden');
+  //     }
+
+  //     // Get all screenshare elements with class '.pip-video' inside the PiP window
+  //     const pipScreenShareElements = pipBody?.querySelectorAll(
+  //       '.pip-screenShare'
+  //     ) as NodeListOf<HTMLVideoElement>;
+
+  //     const originalScreenShareElements =
+  //       mainScreenShareContainer?.querySelectorAll(
+  //         '.pip-screenShare'
+  //       ) as NodeListOf<HTMLVideoElement>;
+  //     // Ensure there are corresponding screen share elements in both the PiP window and the main container
+  //     if (
+  //       pipScreenShareElements.length > 0 &&
+  //       originalScreenShareElements.length > 0
+  //     ) {
+  //       pipScreenShareElements.forEach((pipScreenShareElement, index) => {
+  //         const originalScreenShareElement = originalScreenShareElements[index];
+  //         if (originalScreenShareElement) {
+  //           pipScreenShareElement.srcObject =
+  //             originalScreenShareElement.srcObject;
+  //           pipScreenShareElement.play().catch((error) => {
+  //             console.error('Error playing PiP video:', error);
+  //           });
+  //         }
+  //       });
+  //     } else {
+  //       console.warn('Screen share elements not found in PiP or main container.');
+  //     }
+
+  //     // Get all video elements with class '.pip-video' inside the PiP window
+  //     const pipVideoElements = pipBody.querySelectorAll(
+  //       '.pip-video'
+  //     ) as NodeListOf<HTMLVideoElement>;
+
+  //     // Get all original video elements with class '.pip-video' from the main container
+  //     const originalVideoElements = mainContainer.querySelectorAll(
+  //       '.pip-video'
+  //     ) as NodeListOf<HTMLVideoElement>;
+
+  //     // If there are video elements in both PiP window and main container
+  //     if (pipVideoElements.length > 0 && originalVideoElements.length > 0) {
+  //       // Loop through each pip video element and assign the corresponding original video stream
+  //       pipVideoElements.forEach((pipVideoElement, index) => {
+  //         const originalVideoElement = originalVideoElements[index];
+  //         if (originalVideoElement) {
+  //           pipVideoElement.srcObject = originalVideoElement.srcObject;
+  //           pipVideoElement.play().catch((error) => {
+  //             console.error('Error playing PiP video:', error);
+  //           });
+  //         }
+  //       });
+  //     }
+
+  //     // Manually reattach event listeners to each button in the cloned header
+  //     const buttons = clonedHeader.querySelectorAll('button');
+  //     console.log('Buttons in PiP header:', buttons.length); // Debugging log
+
+  //     buttons.forEach((button: HTMLElement) => {
+  //       const tooltipText = button.getAttribute('matTooltip');
+  //       const iconElement = button.querySelector('i');
+
+  //       // Observable subscriptions to automatically update the icons in PiP
+  //       if (tooltipText === 'Video') {
+  //         this.isVideoOn$.subscribe((isVideoOn) => {
+  //           iconElement?.classList.toggle('fa-video', isVideoOn);
+  //           iconElement?.classList.toggle('fa-video-slash', !isVideoOn);
+  //         });
+  //         this.renderer.listen(button, 'click', () => {
+  //           console.log('Video button clicked!');
+  //           this.toggleVideo();
+  //         });
+  //       } else if (tooltipText === 'Mic') {
+  //         this.isMicOn$.subscribe((isMicOn) => {
+  //           iconElement?.classList.toggle('fa-microphone', isMicOn);
+  //           iconElement?.classList.toggle('fa-microphone-slash', !isMicOn);
+  //         });
+  //         this.renderer.listen(button, 'click', () => {
+  //           console.log('Mic button clicked!');
+  //           this.toggleMic();
+  //         });
+  //       } else if (tooltipText === 'Raise Hand') {
+  //         this.renderer.listen(button, 'click', () => {
+  //           console.log('Raise Hand button clicked!');
+  //           this.toggleRaiseHand();
+  //         });
+  //       } else if (tooltipText === 'Leave_Meeting') {
+  //         this.renderer.listen(button, 'click', () => {
+  //           console.log('Leave button clicked!');
+  //           this.leaveBtn();
+  //         });
+  //       }
+  //     });
+  //   }
+  //   allowPiP() {
+  //     // if (this.pipWindow) {
+  //     //   this.showModal = false;
+  //     //   this.updatePiPWindow();
+  //     // }
+  //     this.showModal = false;
+  //     if (this.pipWindow) {
+  //       const pipBody = this.pipWindow.document.body;
+
+  //       // Hide the modal in PiP window
+  //       const modalElement = this.pipModal.nativeElement;
+  //       if (modalElement) {
+  //         modalElement.style.display = 'none';
+  //       }
+
+  //       // Proceed with interaction restrictions
+  //       this.updatePiPWindow(); // Update PiP content
+  //     }
+  //   }
+
+  //   cancelPiP() {
+  //     this.showModal = false; // Hide the modal
+  //     if (this.pipWindow) {
+  //       this.pipWindow.close(); // Close PiP window
+  //       this.pipWindow = null;
+  //       this.pipMode = false;
+  //     }
+  //   }
+
+  //   /**
+  //    * Exits Picture-in-Picture (PiP) mode and restores the player container.
+  //    *
+  //    * This function cleans up the PiP mode by restoring the player container to its original position in
+  //    * the document. It also removes the PiP-specific styles and closes the PiP window.
+  //    *
+  //    * @function
+  //    * @returns {void}
+  //    */
+  //   onLeavePiP() {
+  //     if (!this.pipWindow) return;
+
+  //     const playerContainer = this.playerContainer.nativeElement;
+
+  //     // Re-append playerContainer back to its original parent and position
+  //     if (this.originalParent) {
+  //       if (this.originalNextSibling) {
+  //         this.originalParent.insertBefore(
+  //           playerContainer,
+  //           this.originalNextSibling
+  //         );
+  //       } else {
+  //         this.originalParent.appendChild(playerContainer);
+  //       }
+  //     }
+
+  //     playerContainer.classList.remove('pip-mode');
+  //     this.pipMode = false;
+  //     this.pipWindow.close();
+  //     this.pipWindow = null;
+  //   }
+  //   /**
+  //    * Creates a cloned Header in html whose styling is written here in this CreatepipWrapper function.
+  //    *  It's a wrapper element for the PiP window that includes both the player container and PiP header.
+  //    *
+  //    * This function creates a new wrapper element that arranges the video player container and the PiP
+  //    * header in a grid layout. The player container is placed in the first grid row, and the PiP header is
+  //    * placed in the second row. It returns the created wrapper element.
+  //    *
+  //    * @function
+  //    * @param {HTMLElement} playerContainer - The main player container element to be included in PiP mode.
+  //    * @param {HTMLElement} pipContainer - The PiP header container element.
+  //    * @returns {HTMLElement} - The created wrapper element containing both the player and header.
+  //    */
+  //   createPiPWrapper(
+  //     playerContainer: HTMLElement,
+  //     pipContainer: HTMLElement
+  //   ): HTMLElement {
+  //     const wrapper = this.pipWindow.document.createElement('div');
+  //     wrapper.style.display = 'grid';
+  //     wrapper.style.gridTemplateRows = '1fr auto';
+  //     wrapper.style.height = '100%';
+  //     wrapper.style.overflow = 'hidden';
+
+  //     const playerWrapper = this.pipWindow.document.createElement('div');
+  //     playerWrapper.style.overflow = 'hidden';
+  //     playerWrapper.style.height = '100%';
+  //     playerWrapper.style.gridRow = '1 / 2';
+
+  //     playerWrapper.appendChild(playerContainer);
+  //     wrapper.appendChild(playerWrapper);
+
+  //     pipContainer.style.gridRow = '2 / 3';
+  //     wrapper.appendChild(pipContainer);
+
+  //     return wrapper;
+  //   }
+  //   // ================
+  //   // Toggle mic dropdown visibility
+  //   /**
+  //    * Toggles the microphone dropdown visibility.
+  //    * If the dropdown is being opened for the first time, it fetches the available devices.
+  //    * @async
+  //    * @returns {Promise<void>} Resolves when devices are fetched.
+  //    */
+  //   async toggleMicDropdown() {
+  //     if (!this.isMicDropdownOpen) {
+  //       // Fetch devices when the dropdown is opened for the first time
+  //       await this.livekitService.fetchDevices();
+  //     }
+
+  //     this.isMicDropdownOpen = !this.isMicDropdownOpen;
+  //   }
+
+  //   /**
+  //    * Toggles the video dropdown visibility.
+  //    * If the dropdown is being opened for the first time, it fetches the available devices.
+  //    * @async
+  //    * @returns {Promise<void>} Resolves when devices are fetched.
+  //    */
+  //   async toggleVideoDropdown() {
+  //     if (!this.isVideoDropdownOpen) {
+  //       // Fetch devices when the dropdown is opened for the first time
+  //       await this.livekitService.fetchDevices();
+  //     }
+  //     this.isVideoDropdownOpen = !this.isVideoDropdownOpen;
+  //   }
+
+  //   /**
+  //    * Selects a video device by its ID and notifies the LiveKit service.
+  //    * Closes the video dropdown after selection.
+  //    * @param {string} deviceId - The ID of the video device to select.
+  //    */
+  //   selectVideo(deviceId: string) {
+  //     this.livekitService.selectVideo(deviceId);
+  //     console.log(`App Component: Selected video device ID: ${deviceId}`);
+  //     this.isVideoDropdownOpen = false; // Close the video dropdown
+  //   }
+
+  //   /**
+  //    * Selects a microphone device by its ID and switches to it using the LiveKit service.
+  //    * @async
+  //    * @param {string} deviceId - The ID of the microphone device to select.
+  //    * @returns {Promise<void>} Resolves when the microphone is switched.
+  //    */
+  //   async selectMic(deviceId: string) {
+  //     this.selectedMicId = deviceId;
+  //     await this.livekitService.switchDevice('audioinput', deviceId);
+  //     console.log('Selected microphone device:', deviceId);
+  //   }
+
+  //   /**
+  //    * Selects a speaker device by its ID and switches to it using the LiveKit service.
+  //    * @async
+  //    * @param {string} deviceId - The ID of the speaker device to select.
+  //    * @returns {Promise<void>} Resolves when the speaker is switched.
+  //    */
+  //   async selectSpeaker(deviceId: string) {
+  //     this.selectedSpeakerId = deviceId;
+  //     await this.livekitService.switchDevice('audiooutput', deviceId);
+  //     console.log('Selected speaker device:', deviceId);
+  //   }
+
+  //   /**
+  //    * Toggles the speaker mode in the LiveKit service.
+  //    * Adjusts the layout and updates the display based on the new mode.
+  //    */
+  //   speakerMode() {
+  //     this.livekitService.speakerLayoutChange();
+  //     console.log('Speaker mode toggled:', this.livekitService.speakerModeLayout);
+
+  //     // Update the active speaker borders when toggling modes
+  //     // this.livekitService.updateActiveSpeakerBorders();
+  //     if (this.livekitService.speakerModeLayout) {
+  //       // Show the initial speaker in speaker layout
+  //       this.livekitService.showInitialSpeaker();
+  //     } else {
+  //       this.livekitService.rearrangeGalleryView();
+  //     }
+  //   }
+  nestBreakoutRooms: BreakoutRoom[] = [];
+  errorMessage = '';
+  isMicDropdownOpen = false; // To toggle mic dropdown visibility
+  isVideoDropdownOpen = false; // To toggle video dropdown visibility
+  chatSideWindowVisible: boolean = false;
   videoDevices: MediaDeviceInfo[] = [];
   micDevices: MediaDeviceInfo[] = [];
   speakerDevices: MediaDeviceInfo[] = [];
@@ -70,41 +1833,17 @@ export class LiveKitRoomComponent {
   selectedMicId: string | null = null;
   selectedSpeakerId: string | null = null;
 
-  previousGridStyle: string | null = null; // Store the previous grid style
-
-  @ViewChild('gridLayoutWrapper', { static: true })
-  gridLayoutWrapper!: ElementRef;
-
-  // ==========
-  isMicDropdownOpen = false;
-  isVideoDropdownOpen = false;
-  showModal = false; // Controls modal visibility
-  @ViewChild('pipModal') pipModal!: ElementRef<HTMLDivElement>;
-
+  videoDevicesLoaded = false;
+  audioDevicesLoaded = false;
+  // speakerDevices: MediaDeviceInfo[] = [];
   selectedParticipants: { [roomIndex: number]: string[] } = {};
   // websocket variables
   webSocketStatus: 'connected' | 'reconnecting' | 'disconnected' =
     'disconnected';
   private statusSubscription!: Subscription;
   // selectors
-  isMeetingStarted$!: Observable<boolean>;
-  allMessages$!: Observable<any[]>;
-  unreadMessagesCount$!: Observable<number>;
-  isVideoOn$!: Observable<boolean>;
-  isMicOn$!: Observable<boolean>;
-  participantSideWindowVisible$!: Observable<boolean>;
-  breakoutSideWindowVisible$!: Observable<boolean>;
-  chatSideWindowVisible$!: Observable<boolean>;
-  isScreenSharing$!: Observable<boolean>;
-  iconColor$!: Observable<string>;
-  distributionMessage$!: Observable<any>;
-  isBreakoutModal$!: Observable<boolean>;
-  isInvitationModal$!: Observable<boolean>;
-  isHelpMsgModal$!: Observable<boolean>;
-  isHostMsgModal$!: Observable<boolean>;
-  breakoutRoomsData$!: Observable<any[]>;
-  nextRoomIndex$!: Observable<number>;
-  remoteParticipantNames$!: Observable<{ [roomIndex: number]: string[] }>;
+  liveKitViewState$!: Observable<any>;
+  speakerModeLayout = false;
   // =========mic adjustment ======
   @ViewChild('audioCanvas', { static: true })
   audioCanvasRef!: ElementRef<HTMLCanvasElement>;
@@ -114,9 +1853,10 @@ export class LiveKitRoomComponent {
   selectedBreakoutRoom = '';
   // pip
   pipWindow: any = null;
+  showModal = false; // Controls modal visibility
+  @ViewChild('pipModal') pipModal!: ElementRef<HTMLDivElement>;
   @ViewChild('playerContainer') playerContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('pipContainer') pipContainer!: ElementRef<HTMLDivElement>;
-  // for screensharing
   @ViewChild('screensharePiP') screensharePiP!: ElementRef<HTMLDivElement>;
 
   pipMode = false;
@@ -150,13 +1890,13 @@ export class LiveKitRoomComponent {
   private subscription!: Subscription;
   private remoteVideoSubscription!: Subscription;
   private screenShareSubscription!: Subscription;
-
   constructor(
     private formBuilder: FormBuilder,
     public livekitService: LiveKitService,
     private snackBar: MatSnackBar,
     public store: Store,
-    private renderer: Renderer2
+    private renderer: Renderer2,
+    private breakoutRoomService: BreakoutRoomService
   ) {}
 
   async ngOnInit() {
@@ -180,12 +1920,11 @@ export class LiveKitRoomComponent {
 
     // Store local participant data
     this.storeLocalParticipantData();
-    // / Get available speakers on component load
-    // this.livekitService.getAvailableSpeakers().then(() => {
-    //   this.micDevices = this.livekitService.speakerDevices;
-    // });
-    // this.livekitService.getAvailableVideoDevices().then(() => {
-    //   this.videoDevices = this.livekitService.videoDevices;
+
+    // this.livekitService.deviceLists$.subscribe((devices) => {
+    //   this.videoDevices = devices.videoDevices;
+    //   this.micDevices = devices.micDevices;
+    //   this.speakerDevices = devices.speakerDevices;
     // });
     // Fetch all devices initially
     try {
@@ -228,26 +1967,9 @@ export class LiveKitRoomComponent {
     } catch (error) {
       console.error('Error initializing default devices:', error);
     }
-    // Expose livekitService for Cypress
-    // this.exposeLivekitServiceForCypress();
-    //// For pip window should change when we change tab
-    // document.addEventListener('visibilitychange', () => {
-    //   if (document.hidden) {
-    //     this.enterPiP();
-    //   } else {
-    //     this.onLeavePiP();
-    //   }
-    // });
   }
+
   ngOnDestroy() {
-    // //Clean up the event listener when the component is destroyed
-    // document.removeEventListener('visibilitychange', () => {
-    //   if (document.hidden) {
-    //     this.enterPiP();
-    //   } else {
-    //     this.onLeavePiP();
-    //   }
-    // });
     if (this.subscription) {
       this.subscription.unsubscribe();
     }
@@ -257,7 +1979,82 @@ export class LiveKitRoomComponent {
     if (this.screenShareSubscription) {
       this.screenShareSubscription.unsubscribe();
     }
+    // Clean up the event listener when the component is destroyed
+    // document.removeEventListener('visibilitychange', () => {
+    //   if (document.hidden) {
+    //     this.enterPiP();
+    //   } else {
+    //     this.onLeavePiP();
+    //   }
+    // });
   }
+  async onDeviceSelected(kind: MediaDeviceKind, deviceId: string) {
+    try {
+      console.log(`Selected ${kind}: ${deviceId}`);
+      // Update the selected device
+      if (kind === 'videoinput') this.selectedVideoId = deviceId;
+      if (kind === 'audioinput') this.selectedMicId = deviceId;
+      if (kind === 'audiooutput') this.selectedSpeakerId = deviceId;
+
+      // Switch the active device using the LiveKit service
+      await this.livekitService.switchDevice(kind, deviceId);
+
+      console.log(`Successfully switched ${kind} to device: ${deviceId}`);
+    } catch (error) {
+      console.error(`Error switching ${kind} to device: ${deviceId}`, error);
+    }
+  }
+
+  async toggleVideoDropdown() {
+    if (!this.videoDevicesLoaded) {
+      try {
+        this.videoDevices = await this.livekitService.getDevices('videoinput');
+        this.videoDevicesLoaded = true; // Mark as loaded
+        console.log('Video devices loaded:', this.videoDevices);
+      } catch (error) {
+        console.error('Error fetching video devices:', error);
+      }
+    }
+    this.isVideoDropdownOpen = !this.isVideoDropdownOpen;
+  }
+
+  async toggleMicDropdown() {
+    if (!this.audioDevicesLoaded) {
+      try {
+        const devices = await this.livekitService.getAllDevices();
+        this.micDevices = devices.microphones;
+        this.speakerDevices = devices.speakers;
+        this.audioDevicesLoaded = true; // Mark as loaded
+        console.log(
+          'Audio devices loaded:',
+          this.micDevices,
+          this.speakerDevices
+        );
+      } catch (error) {
+        console.error('Error fetching audio devices:', error);
+      }
+    }
+    this.isMicDropdownOpen = !this.isMicDropdownOpen;
+  }
+
+  async selectVideo(deviceId: string) {
+    this.selectedVideoId = deviceId;
+    await this.livekitService.switchDevice('videoinput', deviceId);
+    console.log('Selected video device:', deviceId);
+  }
+
+  async selectMic(deviceId: string) {
+    this.selectedMicId = deviceId;
+    await this.livekitService.switchDevice('audioinput', deviceId);
+    console.log('Selected microphone device:', deviceId);
+  }
+
+  async selectSpeaker(deviceId: string) {
+    this.selectedSpeakerId = deviceId;
+    await this.livekitService.switchDevice('audiooutput', deviceId);
+    console.log('Selected speaker device:', deviceId);
+  }
+
   private initializeWebSocketAndAudioVideoHandler() {
     // Uncomment this if you want to connect the WebSocket
     // this.livekitService.connectWebSocket();
@@ -271,81 +2068,25 @@ export class LiveKitRoomComponent {
     );
   }
 
-  // private initializeStateObservables() {
-  //   this.isMeetingStarted$ = this.store.pipe(select(selectIsMeetingStarted));
-  //   this.isScreenSharing$ = this.store.pipe(select(selectIsScreenSharing));
-
-  //   this.iconColor$ = this.store.pipe(select(selectIconColor));
-  //   this.isVideoOn$ = this.store.pipe(select(selectIsVideoOn));
-  //   this.participantSideWindowVisible$ = this.store.pipe(
-  //     select(selectParticipantSideWindowVisible)
-  //   );
-  //   this.breakoutSideWindowVisible$ = this.store.pipe(
-  //     select(selectBreakoutSideWindowVisible)
-  //   );
-  //   this.chatSideWindowVisible$ = this.store.pipe(
-  //     select(selectChatSideWindowVisible)
-  //   );
-
-  //   this.allMessages$ = this.store.pipe(select(selectAllMessages));
-  //   this.unreadMessagesCount$ = this.store.pipe(
-  //     select(selectUnreadMessagesCount)
-  //   );
-  //   this.unreadMessagesCount$.subscribe((unread) => {
-  //     console.log('ts unread', unread);
-  //   });
-  //   this.isMicOn$ = this.store.pipe(select(selectIsMicOn));
-  //   this.isBreakoutModal$ = this.store.select(isBreakoutModalOpen);
-  //   this.isInvitationModal$ = this.store.select(isInvitationModalOpen);
-  //   this.isHostMsgModal$ = this.store.select(isHostMsgModalOpen);
-  //   this.distributionMessage$ = this.store.select(selectDistributionMessage);
-  //   this.breakoutRoomsData$ = this.store.select(selectBreakoutRoomsData);
-  //   this.nextRoomIndex$ = this.store.select(selectNextRoomIndex);
-  //   this.store.select(selectBreakoutRoomsData).subscribe((rooms) => {
-  //     this.breakoutRoomsData = rooms;
-  //   });
-  //   this.isHelpMsgModal$ = this.store.select(selectHelpMessageModal);
-  // }
   private initializeStateObservables() {
-    const state$ = this.store.pipe(select(selectLiveKitRoomView));
+    this.liveKitViewState$ = this.store.pipe(
+      select(selectLiveKitRoomViewState)
+    );
 
-    this.isMeetingStarted$ = state$.pipe(
-      map((state) => state.isMeetingStarted)
-    );
-    this.isVideoOn$ = state$.pipe(map((state) => state.isVideoOn));
-    this.isMicOn$ = state$.pipe(map((state) => state.isMicOn));
-    this.participantSideWindowVisible$ = state$.pipe(
-      map((state) => state.participantSideWindowVisible)
-    );
-    this.chatSideWindowVisible$ = state$.pipe(
-      map((state) => state.chatSideWindowVisible)
-    );
-    this.isScreenSharing$ = state$.pipe(map((state) => state.isScreenSharing));
-    this.iconColor$ = state$.pipe(map((state) => state.iconColor));
-    this.allMessages$ = state$.pipe(map((state) => state.allMessages));
-    this.unreadMessagesCount$ = state$.pipe(
-      map((state) => state.unreadMessagesCount)
-    );
-    this.breakoutSideWindowVisible$ = state$.pipe(
-      map((state) => state.breakoutSideWindowVisible)
-    );
-    this.isBreakoutModal$ = state$.pipe(
-      map((state) => state.isBreakoutModalOpen)
-    );
-    this.isInvitationModal$ = state$.pipe(
-      map((state) => state.isInvitationModalOpen)
-    );
-    this.isHostMsgModal$ = state$.pipe(
-      map((state) => state.isHostMsgModalOpen)
-    );
-    this.distributionMessage$ = state$.pipe(
-      map((state) => state.distributionMessage)
-    );
-    this.breakoutRoomsData$ = state$.pipe(
-      map((state) => state.breakoutRoomsData)
-    );
-    this.nextRoomIndex$ = state$.pipe(map((state) => state.nextRoomIndex));
-    this.isHelpMsgModal$ = state$.pipe(map((state) => state.helpMessageModal));
+    this.liveKitViewState$.subscribe((state) => {
+      this.breakoutRoomsData = state.breakoutRoomsData;
+      console.log('ngOnInit Breakout Rooms Data:', this.breakoutRoomsData);
+      this.chatSideWindowVisible = state.chatSideWindowVisible;
+      if (state.isMeetingStarted) {
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            this.enterPiP();
+          } else {
+            this.onLeavePiP();
+          }
+        });
+      }
+    });
   }
 
   private initializeForms() {
@@ -364,15 +2105,6 @@ export class LiveKitRoomComponent {
       roomType: ['', Validators.required],
       selectedParticipants: [[]],
     });
-
-    // this.chatSideWindowVisible$.subscribe((visible) => {
-    //   if (visible) {
-    //     this.store.dispatch(
-    //       LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
-    //     );
-    //     this.scrollToBottom();
-    //   }
-    // });
   }
 
   private setupMessageSubscriptions() {
@@ -408,7 +2140,6 @@ export class LiveKitRoomComponent {
 
     this.livekitService.msgDataReceived.subscribe((data) => {
       this.handleMsgDataReceived(data);
-      console.log('sending');
     });
 
     this.livekitService.messageEmitter.subscribe((data: any) => {
@@ -435,21 +2166,19 @@ export class LiveKitRoomComponent {
 
     if (!isDuplicate) {
       this.allMessages.push(newMessage);
-      this.chatSideWindowVisible$.subscribe((visible) => {
-        if (!visible) {
-          this.store.dispatch(
-            LiveKitRoomActions.LiveKitActions.updateUnreadMessagesCount({
-              count: this.unreadMessagesCount + 1,
-            })
-          );
-          this.scrollToBottom();
-        } else {
-          // this.unreadMessagesCount = 0;
-          this.store.dispatch(
-            LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
-          );
-        }
-      });
+      if (!this.chatSideWindowVisible) {
+        this.store.dispatch(
+          LiveKitRoomActions.LiveKitActions.updateUnreadMessagesCount({
+            count: this.unreadMessagesCount + 1,
+          })
+        );
+        this.scrollToBottom();
+      } else {
+        // this.unreadMessagesCount = 0;
+        this.store.dispatch(
+          LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
+        );
+      }
     }
     console.log('Updated chat messages:', this.allMessages);
   }
@@ -480,7 +2209,6 @@ export class LiveKitRoomComponent {
       data.message.type !== 'handRaise' &&
       data.message.type !== 'breakoutRoom' &&
       data.message.title !== 'test-room' &&
-      // data.message.title !== this.roomName &&
       data.message.content !== 'I need help'
     ) {
       const receivedMsg = data?.message?.message;
@@ -492,8 +2220,6 @@ export class LiveKitRoomComponent {
         receivingTime,
         type: 'received',
       });
-      console.log('sending 22');
-
       this.updateUnreadMessageCount();
       this.scrollToBottom();
       this.sortMessages();
@@ -510,17 +2236,14 @@ export class LiveKitRoomComponent {
   }
 
   private updateUnreadMessageCount() {
-    // this.chatSideWindowVisible$.subscribe((visible) => {
-    //   if (!visible) {
-    //     // this.unreadMessagesCount++;
-    //     this.store.dispatch(
-    //       LiveKitRoomActions.LiveKitActions.updateUnreadMessagesCount({
-    //         count: this.unreadMessagesCount + 1,
-    //       })
-    //     );
-    //     this.scrollToBottom();
-    //   }
-    // });
+    if (!this.chatSideWindowVisible) {
+      this.store.dispatch(
+        LiveKitRoomActions.LiveKitActions.updateUnreadMessagesCount({
+          count: this.unreadMessagesCount + 1,
+        })
+      );
+      this.scrollToBottom();
+    }
   }
 
   private attachRemoteVideoTrack() {
@@ -598,14 +2321,14 @@ export class LiveKitRoomComponent {
     // this.livekitService.initCanvas(this.audioCanvasRef.nativeElement);
   }
   /**
-   * Initiates the start of a meeting by dispatching a `startMeeting` action
+   * Initiates the start of a meeting by dispatching a startMeeting action
    * with the WebSocket URL and a dynamic token obtained from the form value.
    *
    * This function:
    * 1. Retrieves the token from the form value.
    * 2. Logs the token to the console.
    * 3. Defines the WebSocket URL.
-   * 4. Dispatches the `startMeeting` action with the WebSocket URL and token.
+   * 4. Dispatches the startMeeting action with the WebSocket URL and token.
    *
    * @async
    * @function
@@ -618,13 +2341,14 @@ export class LiveKitRoomComponent {
         roomName: 'test-room',
       })
     );
+    this.store.dispatch(LiveKitRoomActions.BreakoutActions.loadBreakoutRooms());
   }
 
   /**
    * Calculates the distribution of participants across breakout rooms.
    *
-   * This function retrieves the number of breakout rooms from the `breakoutForm` and
-   * the total number of participants. It then dispatches the `calculateDistribution` action
+   * This function retrieves the number of breakout rooms from the breakoutForm and
+   * the total number of participants. It then dispatches the calculateDistribution action
    * to the store with these values, initiating the distribution calculation.
    *
    * @function
@@ -659,11 +2383,11 @@ export class LiveKitRoomComponent {
   }
 
   /**
-   * Sorts the `allMessages` array in ascending order based on the message's timestamp.
+   * Sorts the allMessages array in ascending order based on the message's timestamp.
    *
    * This function:
-   * 1. Sorts messages by their `receivingTime` or `sendingTime` in ascending order.
-   * 2. Modifies the `allMessages` array in place.
+   * 1. Sorts messages by their receivingTime or sendingTime in ascending order.
+   * 2. Modifies the allMessages array in place.
    *
    * @function
    * @returns {void}
@@ -683,8 +2407,8 @@ export class LiveKitRoomComponent {
    * 1. Always shows the avatar for the first message.
    * 2. Shows the avatar if the sender of the current message is different from the sender of the previous message.
    *
-   * @param {number} index - The index of the message in the `allMessages` array.
-   * @returns {boolean} - `true` if the avatar should be shown, otherwise `false`.
+   * @param {number} index - The index of the message in the allMessages array.
+   * @returns {boolean} - true if the avatar should be shown, otherwise false.
    */
 
   shouldShowAvatar(index: number): boolean {
@@ -701,7 +2425,7 @@ export class LiveKitRoomComponent {
    *
    * This function:
    * 1. Retrieves the message and recipient from the chat form.
-   * 2. Calls the `sendChatMessage` method of the LiveKit service with the message and recipient.
+   * 2. Calls the sendChatMessage method of the LiveKit service with the message and recipient.
    * 3. Resets the chat form.
    *
    * @function
@@ -722,8 +2446,8 @@ export class LiveKitRoomComponent {
    *
    * This function:
    * 1. Checks the current hand raise status of the local participant.
-   * 2. If the hand is raised, calls the `lowerHand` method of the LiveKit service.
-   * 3. If the hand is not raised, calls the `raiseHand` method of the LiveKit service.
+   * 2. If the hand is raised, calls the lowerHand method of the LiveKit service.
+   * 3. If the hand is not raised, calls the raiseHand method of the LiveKit service.
    *
    * @function
    * @returns {void}
@@ -788,7 +2512,7 @@ export class LiveKitRoomComponent {
   async toggleScreenShare(): Promise<void> {
     this.store.dispatch(LiveKitRoomActions.LiveKitActions.toggleScreenShare());
     this.livekitService.speakerModeLayout = false;
-    this.livekitService.rearrangeGalleryView();
+    this.livekitService.switchSpeakerViewLayout();
   }
 
   /**
@@ -799,6 +2523,7 @@ export class LiveKitRoomComponent {
    * @returns {Promise<void>}
    */
   async toggleVideo(): Promise<void> {
+    // await this.livekitService.connectDefaultDevices();
     this.store.dispatch(LiveKitRoomActions.LiveKitActions.toggleVideo());
   }
 
@@ -810,6 +2535,7 @@ export class LiveKitRoomComponent {
    * @returns {Promise<void>}
    */
   async toggleMic(): Promise<void> {
+    // await this.livekitService.connectDefaultDevices();
     this.store.dispatch(LiveKitRoomActions.LiveKitActions.toggleMic());
     // this.livekitService.toggleMicrophone().subscribe((isMicOn: boolean) => {
     //   if (isMicOn) {
@@ -837,7 +2563,7 @@ export class LiveKitRoomComponent {
    * @function
    * @returns {void}
    */
-  openPBreakoutSideWindow(): void {
+  openBreakoutSideWindow(): void {
     this.store.dispatch(
       LiveKitRoomActions.BreakoutActions.toggleBreakoutSideWindow()
     );
@@ -854,14 +2580,11 @@ export class LiveKitRoomComponent {
     this.store.dispatch(
       LiveKitRoomActions.LiveKitActions.toggleChatSideWindow()
     );
-    console.log('clicked');
-    // this.chatSideWindowVisible$.subscribe((visible) => {
-    //   if (!visible) {
-    //     this.store.dispatch(
-    //       LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
-    //     );
-    //   }
-    // });
+    // if (!this.chatSideWindowVisible) {
+    //   this.store.dispatch(
+    //     LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
+    //   );
+    // }
   }
 
   /**
@@ -997,6 +2720,12 @@ export class LiveKitRoomComponent {
    */
   openBreakoutModal(): void {
     this.store.dispatch(LiveKitRoomActions.BreakoutActions.openBreakoutModal());
+    console.log(
+      'check',
+      this.liveKitViewState$.subscribe((h) => {
+        console.log('h', h);
+      })
+    );
   }
   /**
    * Dispatches an action to close the breakout Modal After selecting participants and creating breakout rooms.
@@ -1036,7 +2765,7 @@ export class LiveKitRoomComponent {
    * Submits the breakout room form to initiate room creation based on selected type.
    *
    * This asynchronous function retrieves the room type and number of rooms from the
-   * `breakoutForm`. It initiates room creation automatically if the room type is 'automatic'
+   * breakoutForm. It initiates room creation automatically if the room type is 'automatic'
    * and a valid number of rooms is specified, dispatching an action with the list of participants.
    * If the room type is 'manual', it dispatches an action to initiate manual room selection.
    * After processing, it closes the breakout modal.
@@ -1048,7 +2777,7 @@ export class LiveKitRoomComponent {
   async submitBreakoutForm(): Promise<void> {
     const roomType = this.breakoutForm.get('roomType')?.value;
     const numberOfRooms = this.breakoutForm.get('numberOfRooms')?.value;
-
+    console.log('room type is', roomType);
     if (roomType === 'automatic' && numberOfRooms > 0) {
       const participants = this.remoteParticipantNames.map(
         (p: any) => p.identity
@@ -1079,8 +2808,8 @@ export class LiveKitRoomComponent {
    * Joins a breakout room by first leaving the current room.
    *
    * This function performs a two-step process: it first leaves the current room by
-   * calling `leaveCurrentMeeting`, and upon successful completion, it proceeds to
-   * join the breakout room by calling `joinBreakoutRoom`.
+   * calling leaveCurrentMeeting, and upon successful completion, it proceeds to
+   * join the breakout room by calling joinBreakoutRoom.
    *
    * @function
    * @returns {void} - No return value.
@@ -1106,7 +2835,7 @@ export class LiveKitRoomComponent {
    * Joins a specified breakout room and initiates the meeting setup.
    *
    * This function retrieves the breakout room name and participant name, then
-   * dispatches the `createMeeting` action to initiate the meeting in the breakout room.
+   * dispatches the createMeeting action to initiate the meeting in the breakout room.
    * After dispatching the action, it hides the invitation modal.
    *
    * @function
@@ -1128,7 +2857,7 @@ export class LiveKitRoomComponent {
   /**
    * Sends a message to a specified breakout room and closes the message modal.
    *
-   * This function dispatches the `sendMessageToBreakoutRoom` action to send a message
+   * This function dispatches the sendMessageToBreakoutRoom action to send a message
    * to the selected breakout room with the provided message content. After sending the
    * message, it closes the host-to-breakout-room message modal.
    *
@@ -1146,23 +2875,23 @@ export class LiveKitRoomComponent {
   }
 
   /**
-   * This process starts when Participants ask for help from host by sending message.
-   * then host trying to join the meeting to help participants in the breakout room.
-   ** Allows the host to join an existing breakout room to assist participants.
- *
- * This asynchronous function performs the following steps:
- * 1. Disconnects the host from the current room by calling `leaveBtn`.
- * 2. Checks if the target breakout room exists in `breakoutRoomsData`.
- * 3. If the room exists, dispatches an action to join the meeting in the existing room,
- *    passing the host's identity as a participant name.
- * 4. If the room does not exist, displays an error message and alerts the host.
- * 5. Closes the message modal after processing.
- *
- * @async
- * @function
- * @returns {Promise<void>} - Resolves with no value upon completion.
+* This process starts when Participants ask for help from host by sending message.
+* then host trying to join the meeting to help participants in the breakout room.
+** Allows the host to join an existing breakout room to assist participants.
+*
+* This asynchronous function performs the following steps:
+* 1. Disconnects the host from the current room by calling leaveBtn.
+* 2. Checks if the target breakout room exists in breakoutRoomsData.
+* 3. If the room exists, dispatches an action to join the meeting in the existing room,
+*    passing the host's identity as a participant name.
+* 4. If the room does not exist, displays an error message and alerts the host.
+* 5. Closes the message modal after processing.
+*
+* @async
+* @function
+* @returns {Promise<void>} - Resolves with no value upon completion.
 
-   */
+*/
   async hostJoinNow() {
     // Step 1: Leave the current room (disconnect)
     await this.leaveBtn();
@@ -1201,7 +2930,7 @@ export class LiveKitRoomComponent {
    * Sends a help request message to the main room and dispatches a help request action.
    *
    * This function sends a predefined help message ("I need help") to the main room
-   * via the `livekitService`. It then dispatches the `sendHelpRequest` action to notify
+   * via the livekitService. It then dispatches the sendHelpRequest action to notify
    * the store that a help request has been made from the current breakout room.
    *
    * @function
@@ -1224,7 +2953,7 @@ export class LiveKitRoomComponent {
    * Initiates the process to create a new breakout room via the sidebar.
    * Also via the modal where we select automatic or manual participants then
    * we can create room also.
-   * This function dispatches the `initiateCreateNewRoom` action, which triggers
+   * This function dispatches the initiateCreateNewRoom action, which triggers
    * the side window for breakout room creation. It supports both automatic and manual
    * room configuration options within the breakout room modal.
    *
@@ -1234,15 +2963,13 @@ export class LiveKitRoomComponent {
   // Function to submit breakout form
   //side window of the breakout rooms and modal of automatic and manual working
   createNewRoomSidebar() {
-    this.store.dispatch(
-      LiveKitRoomActions.BreakoutActions.initiateCreateNewRoom()
-    );
+    this.store.dispatch(LiveKitRoomActions.BreakoutActions.createNewRoom());
   }
 
   /**
    * Toggles the visibility of the participants list for a specific breakout room.
    *
-   * This function dispatches the `toggleParticipantsList` action, passing the index of the room
+   * This function dispatches the toggleParticipantsList action, passing the index of the room
    * to update the state of the participant list for the specified breakout room.
    *
    * @function
@@ -1264,7 +2991,7 @@ export class LiveKitRoomComponent {
    * the participant is removed from the room.
    *
    * @function
-   * @param {any} room - The breakout room object containing the room details, including `roomName`.
+   * @param {any} room - The breakout room object containing the room details, including roomName.
    * @param {any} participant - The participant object representing the selected participant.
    * @param {Event} event - The event object representing the change in selection (checked/unchecked).
    * @returns {void} - No return value.
@@ -1293,7 +3020,7 @@ export class LiveKitRoomComponent {
    *
    * This function filters through the list of remote participants and returns only those who
    * are not already assigned to any breakout room. It compares each participant's identity
-   * with the list of assigned participants in `breakoutRoomsData`.
+   * with the list of assigned participants in breakoutRoomsData.
    *
    * @function
    * @param {any} room - The breakout room object (not directly used in filtering, but relevant for context).
@@ -1313,13 +3040,13 @@ export class LiveKitRoomComponent {
    * Checks if a participant is assigned to a specific breakout room.
    *
    * This function checks if the participant's identity exists in the list of assigned participant IDs
-   * for the specified breakout room. It returns `true` if the participant is assigned to the room,
-   * otherwise `false`.
+   * for the specified breakout room. It returns true if the participant is assigned to the room,
+   * otherwise false.
    *
    * @function
    * @param {any} room - The breakout room object containing a list of participant IDs.
    * @param {any} participant - The participant object representing the participant to check.
-   * @returns {boolean} - `true` if the participant is assigned to the room, `false` otherwise.
+   * @returns {boolean} - true if the participant is assigned to the room, false otherwise.
    */
   isParticipantAssigned(room: any, participant: any): boolean {
     return room.participantIds.includes(participant.identity);
@@ -1356,7 +3083,7 @@ export class LiveKitRoomComponent {
    *
    * This function attempts to enable PiP mode for the video player by creating a new PiP window and
    * copying the styles and content of the main player container into it. It also observes the main
-   * player container for changes and updates the PiP window accordingly. It listens for the `pagehide`
+   * player container for changes and updates the PiP window accordingly. It listens for the pagehide
    * event to clean up when PiP mode is exited.
    *
    * @async
@@ -1365,38 +3092,89 @@ export class LiveKitRoomComponent {
    */
   async enterPiP() {
     this.pipMode = true;
+    // if (this.pipWindow) {
+    //   this.showModal = true;
+    // }
 
     const playerContainer = this?.playerContainer?.nativeElement;
-
+    const mainScreenShareContainer = this?.screensharePiP?.nativeElement;
     //   // Store the original parent and next sibling of playerContainer
     this.originalParent = playerContainer?.parentElement;
     this.originalNextSibling = playerContainer?.nextSibling;
 
     if ((window as any).documentPictureInPicture) {
       const pipOptions = {
-        width: playerContainer?.clientWidth,
-        height: playerContainer?.clientHeight,
+        width: 300,
+        height: 500,
       };
 
       try {
         this.pipWindow = await (
           window as any
         )?.documentPictureInPicture?.requestWindow(pipOptions);
+        playerContainer.style.height = '75vh';
+        playerContainer.style.overflow = 'hidden';
+        // const pipBody = this.pipWindow.document.body;
 
+        // pipVideoLayout.style.overflow = 'hidden';
         // Copy over initial styles and elements to the PiP window
         this.copyStylesToPiP();
         this.updatePiPWindow();
         // Listen for any changes in the main participant container
-        const observer = new MutationObserver(() => {
-          this.updatePiPWindow();
+        // Create a MutationObserver to update the PiP window
+        const observerPlayerContainer = new MutationObserver(() => {
+          this.updatePiPWindow(); // Update PiP window when mutation happens in playerContainer
         });
-        observer.observe(playerContainer, { childList: true, subtree: true });
+
+        const observerScreenShareContainer = new MutationObserver(() => {
+          this.updatePiPWindow(); // Update PiP window when mutation happens in mainScreenShareContainer
+        });
+
+        // Observe playerContainer and mainScreenShareContainer separately
+        observerPlayerContainer.observe(playerContainer, {
+          childList: true,
+          subtree: true,
+        });
+        observerScreenShareContainer.observe(mainScreenShareContainer, {
+          childList: true,
+          subtree: true,
+        });
+
         // Clean up when PiP mode is exited
         this.pipWindow.addEventListener(
           'pagehide',
           () => {
-            observer.disconnect();
-            this.onLeavePiP();
+            // Disconnect both observers
+            observerPlayerContainer.disconnect();
+            observerScreenShareContainer.disconnect();
+
+            // Remove the PiP-specific inline styles only
+            const currentStyle = mainScreenShareContainer.getAttribute('style');
+
+            // Check if the attribute includes our PiP styles and remove them
+            if (currentStyle) {
+              const newStyle = currentStyle
+                .replace('--lk-control-bar-height: 380px;', '')
+                .replace('padding: 10px;', '')
+                .replace('width: 93%;', '')
+                .replace(
+                  'height: calc(100% - var(--lk-control-bar-height));',
+                  ''
+                );
+              if (newStyle.trim()) {
+                this.renderer.setAttribute(
+                  mainScreenShareContainer,
+                  'style',
+                  newStyle.trim()
+                );
+              } else {
+                this.renderer.removeAttribute(
+                  mainScreenShareContainer,
+                  'style'
+                );
+              }
+            }
+            this.onLeavePiP(); // Perform any PiP exit cleanup
           },
           { once: true }
         );
@@ -1453,6 +3231,7 @@ export class LiveKitRoomComponent {
    * @function
    * @returns {void}
    */
+
   updatePiPWindow() {
     console.log('updatePiPWindow called'); // Debugging log
 
@@ -1467,10 +3246,10 @@ export class LiveKitRoomComponent {
     pipBody.innerHTML = '';
 
     // Clone the current state of the main container into the PiP window
-    const clonedContainer = mainContainer?.cloneNode(true) as HTMLElement;
+    const clonedContainer = mainContainer.cloneNode(true) as HTMLElement;
     // Clone the modal (if present) into the PiP window
     // const modalElement = document.querySelector('#pipModal') as HTMLElement; // Update with your modal's ID or class
-    const modalElement = this.pipModal?.nativeElement;
+    const modalElement = this.pipModal.nativeElement;
     if (modalElement) {
       modalElement.remove();
       const clonedModal = modalElement.cloneNode(true) as HTMLElement;
@@ -1512,11 +3291,11 @@ export class LiveKitRoomComponent {
           screenSharePiPElment,
           'style',
           `
-          --lk-control-bar-height: 380px;
-          padding: 10px;
-          width: 93%;
-          height: calc(100% - var(--lk-control-bar-height));
-        `
+        --lk-control-bar-height: 380px;
+        padding: 10px;
+        width: 93%;
+        height: calc(100% - var(--lk-control-bar-height));
+      `
         );
       }
       const clonedScreenShare = screenSharePiPElment?.cloneNode(
@@ -1609,18 +3388,21 @@ export class LiveKitRoomComponent {
 
       // Observable subscriptions to automatically update the icons in PiP
       if (tooltipText === 'Video') {
-        this.isVideoOn$.subscribe((isVideoOn) => {
-          iconElement?.classList.toggle('fa-video', isVideoOn);
-          iconElement?.classList.toggle('fa-video-slash', !isVideoOn);
+        this.liveKitViewState$.subscribe((viewState) => {
+          iconElement?.classList.toggle('fa-video', viewState.isVideoOn);
+          iconElement?.classList.toggle('fa-video-slash', !viewState.isVideoOn);
         });
         this.renderer.listen(button, 'click', () => {
           console.log('Video button clicked!');
           this.toggleVideo();
         });
       } else if (tooltipText === 'Mic') {
-        this.isMicOn$.subscribe((isMicOn) => {
-          iconElement?.classList.toggle('fa-microphone', isMicOn);
-          iconElement?.classList.toggle('fa-microphone-slash', !isMicOn);
+        this.liveKitViewState$.subscribe((viewState) => {
+          iconElement?.classList.toggle('fa-microphone', viewState.isMicOn);
+          iconElement?.classList.toggle(
+            'fa-microphone-slash',
+            !viewState.isMicOn
+          );
         });
         this.renderer.listen(button, 'click', () => {
           console.log('Mic button clicked!');
@@ -1638,34 +3420,6 @@ export class LiveKitRoomComponent {
         });
       }
     });
-  }
-  allowPiP() {
-    // if (this.pipWindow) {
-    //   this.showModal = false;
-    //   this.updatePiPWindow();
-    // }
-    this.showModal = false;
-    if (this.pipWindow) {
-      const pipBody = this.pipWindow.document.body;
-
-      // Hide the modal in PiP window
-      const modalElement = this.pipModal.nativeElement;
-      if (modalElement) {
-        modalElement.style.display = 'none';
-      }
-
-      // Proceed with interaction restrictions
-      this.updatePiPWindow(); // Update PiP content
-    }
-  }
-
-  cancelPiP() {
-    this.showModal = false; // Hide the modal
-    if (this.pipWindow) {
-      this.pipWindow.close(); // Close PiP window
-      this.pipWindow = null;
-      this.pipMode = false;
-    }
   }
 
   /**
@@ -1699,123 +3453,65 @@ export class LiveKitRoomComponent {
     this.pipWindow.close();
     this.pipWindow = null;
   }
-  /**
-   * Creates a cloned Header in html whose styling is written here in this CreatepipWrapper function.
-   *  It's a wrapper element for the PiP window that includes both the player container and PiP header.
-   *
-   * This function creates a new wrapper element that arranges the video player container and the PiP
-   * header in a grid layout. The player container is placed in the first grid row, and the PiP header is
-   * placed in the second row. It returns the created wrapper element.
-   *
-   * @function
-   * @param {HTMLElement} playerContainer - The main player container element to be included in PiP mode.
-   * @param {HTMLElement} pipContainer - The PiP header container element.
-   * @returns {HTMLElement} - The created wrapper element containing both the player and header.
-   */
-  createPiPWrapper(
-    playerContainer: HTMLElement,
-    pipContainer: HTMLElement
-  ): HTMLElement {
-    const wrapper = this.pipWindow.document.createElement('div');
-    wrapper.style.display = 'grid';
-    wrapper.style.gridTemplateRows = '1fr auto';
-    wrapper.style.height = '100%';
-    wrapper.style.overflow = 'hidden';
 
-    const playerWrapper = this.pipWindow.document.createElement('div');
-    playerWrapper.style.overflow = 'hidden';
-    playerWrapper.style.height = '100%';
-    playerWrapper.style.gridRow = '1 / 2';
+  allowPiP() {
+    // if (this.pipWindow) {
+    //   this.showModal = false;
+    //   this.updatePiPWindow();
+    // }
+    this.showModal = false;
+    if (this.pipWindow) {
+      const pipBody = this.pipWindow.document.body;
 
-    playerWrapper.appendChild(playerContainer);
-    wrapper.appendChild(playerWrapper);
+      // Hide the modal in PiP window
+      const modalElement = this.pipModal.nativeElement;
+      if (modalElement) {
+        modalElement.style.display = 'none';
+      }
 
-    pipContainer.style.gridRow = '2 / 3';
-    wrapper.appendChild(pipContainer);
-
-    return wrapper;
-  }
-  // ================
-  // Toggle mic dropdown visibility
-  /**
-   * Toggles the microphone dropdown visibility.
-   * If the dropdown is being opened for the first time, it fetches the available devices.
-   * @async
-   * @returns {Promise<void>} Resolves when devices are fetched.
-   */
-  async toggleMicDropdown() {
-    if (!this.isMicDropdownOpen) {
-      // Fetch devices when the dropdown is opened for the first time
-      await this.livekitService.fetchDevices();
+      // Proceed with interaction restrictions
+      this.updatePiPWindow(); // Update PiP content
     }
-
-    this.isMicDropdownOpen = !this.isMicDropdownOpen;
   }
 
-  /**
-   * Toggles the video dropdown visibility.
-   * If the dropdown is being opened for the first time, it fetches the available devices.
-   * @async
-   * @returns {Promise<void>} Resolves when devices are fetched.
-   */
-  async toggleVideoDropdown() {
-    if (!this.isVideoDropdownOpen) {
-      // Fetch devices when the dropdown is opened for the first time
-      await this.livekitService.fetchDevices();
+  cancelPiP() {
+    this.showModal = false; // Hide the modal
+    if (this.pipWindow) {
+      this.pipWindow.close(); // Close PiP window
+      this.pipWindow = null;
+      this.pipMode = false;
     }
-    this.isVideoDropdownOpen = !this.isVideoDropdownOpen;
   }
 
   /**
-   * Selects a video device by its ID and notifies the LiveKit service.
-   * Closes the video dropdown after selection.
-   * @param {string} deviceId - The ID of the video device to select.
-   */
-  selectVideo(deviceId: string) {
-    this.livekitService.selectVideo(deviceId);
-    console.log(`App Component: Selected video device ID: ${deviceId}`);
-    this.isVideoDropdownOpen = false; // Close the video dropdown
-  }
-
-  /**
-   * Selects a microphone device by its ID and switches to it using the LiveKit service.
-   * @async
-   * @param {string} deviceId - The ID of the microphone device to select.
-   * @returns {Promise<void>} Resolves when the microphone is switched.
-   */
-  async selectMic(deviceId: string) {
-    this.selectedMicId = deviceId;
-    await this.livekitService.switchDevice('audioinput', deviceId);
-    console.log('Selected microphone device:', deviceId);
-  }
-
-  /**
-   * Selects a speaker device by its ID and switches to it using the LiveKit service.
-   * @async
-   * @param {string} deviceId - The ID of the speaker device to select.
-   * @returns {Promise<void>} Resolves when the speaker is switched.
-   */
-  async selectSpeaker(deviceId: string) {
-    this.selectedSpeakerId = deviceId;
-    await this.livekitService.switchDevice('audiooutput', deviceId);
-    console.log('Selected speaker device:', deviceId);
-  }
-
-  /**
-   * Toggles the speaker mode in the LiveKit service.
-   * Adjusts the layout and updates the display based on the new mode.
+   * Toggles between speaker mode and grid view layout in the LiveKit service.
+   *
+   * - When enabling speaker mode, it highlights the current active speaker.
+   * - When disabling, it switches back to the default grid view layout.
    */
   speakerMode() {
-    this.livekitService.speakerLayoutChange();
+    this.livekitService.speakerModeLayout =
+      !this.livekitService.speakerModeLayout;
     console.log('Speaker mode toggled:', this.livekitService.speakerModeLayout);
 
-    // Update the active speaker borders when toggling modes
-    // this.livekitService.updateActiveSpeakerBorders();
     if (this.livekitService.speakerModeLayout) {
-      // Show the initial speaker in speaker layout
+      // Highlight the initial speaker in speaker mode
       this.livekitService.showInitialSpeaker();
     } else {
-      this.livekitService.rearrangeGalleryView();
+      // Revert to grid view layout
+      this.livekitService.switchSpeakerViewLayout();
     }
+  }
+
+  /**
+   * Checks if there are any remote participants currently connected to the LiveKit room.
+   *
+   * @returns {boolean} - `true` if there are remote participants, otherwise `false`.
+   */
+  hasRemoteParticipants(): boolean {
+    return (
+      Array.from(this.livekitService.room.remoteParticipants.values()).length >
+      0
+    );
   }
 }

@@ -746,7 +746,7 @@ export class LiveKitService {
           console.log(`Message not for this breakout room`);
         }
         //======
-        if (message.title.includes('Breakout_Room')) {
+        if (message.title.includes('Room')) {
           console.log(`Received message in main room: ${message}`);
 
           // Add the new message content to the array
@@ -1576,7 +1576,7 @@ export class LiveKitService {
    * back to the grid layout. This ensures that any participant currently displayed in the
    * speaker layout is returned to the grid layout.
    *
-   * @function rearrangeGalleryView
+   * @function switchSpeakerViewLayout
    * @returns {void} This function does not return a value.
    *
    * @description
@@ -1586,7 +1586,7 @@ export class LiveKitService {
    * - Commented-out code for removing the first child of the speaker layout is included
    *   but not executed.
    */
-  rearrangeGalleryView() {
+  switchSpeakerViewLayout() {
     const gridLayout = document.querySelector('.lk-grid-layout');
     const speakerLayout = document.querySelector('.lk-speaker-layout');
     if (speakerLayout?.firstElementChild) {

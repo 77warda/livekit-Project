@@ -5,7 +5,7 @@ import { LiveKitRoomState } from './reducer';
 export const selectLiveKitRoomState =
   createFeatureSelector<LiveKitRoomState>('liveKitRoom');
 
-// Specific property selectors
+// // Specific property selectors
 // export const selectIsMeetingStarted = createSelector(
 //   selectLiveKitRoomState,
 //   (state: LiveKitRoomState) => {
@@ -17,14 +17,6 @@ export const selectLiveKitRoomState =
 // export const selectIsVideoOn = createSelector(
 //   selectLiveKitRoomState,
 //   (state: LiveKitRoomState) => state.isVideoOn
-// );
-
-// export const selectIsMicOn = createSelector(
-//   selectLiveKitRoomState,
-//   (state: LiveKitRoomState) => {
-//     console.log('selector mic', state.isMicOn);
-//     return state.isMicOn;
-//   }
 // );
 
 // export const selectParticipantSideWindowVisible = createSelector(
@@ -45,6 +37,14 @@ export const selectLiveKitRoomState =
 // export const selectIconColor = createSelector(
 //   selectLiveKitRoomState,
 //   (state: LiveKitRoomState) => state.iconColor
+// );
+
+// export const selectIsMicOn = createSelector(
+//   selectLiveKitRoomState,
+//   (state: LiveKitRoomState) => {
+//     console.log('selector mic', state.isMicOn);
+//     return state.isMicOn;
+//   }
 // );
 
 // export const selectAllMessages = createSelector(
@@ -112,19 +112,19 @@ export const selectLiveKitRoomState =
 //   }
 // );
 
-export const selectLiveKitRoomView = createSelector(
+export const selectLiveKitRoomViewState = createSelector(
   selectLiveKitRoomState,
   (state: LiveKitRoomState) => ({
     isMeetingStarted: state.isMeetingStarted,
-    isVideoOn: state.isVideoOn,
-    isMicOn: state.isMicOn,
-    participantSideWindowVisible: state.participantSideWindowVisible,
-    chatSideWindowVisible: state.chatSideWindowVisible,
     isScreenSharing: state.isScreenSharing,
     iconColor: state.iconColor,
+    isVideoOn: state.isVideoOn,
+    participantSideWindowVisible: state.participantSideWindowVisible,
+    breakoutSideWindowVisible: state.breakoutSideWindowVisible,
+    chatSideWindowVisible: state.chatSideWindowVisible,
     allMessages: state.allMessages,
     unreadMessagesCount: state.unreadMessagesCount,
-    breakoutSideWindowVisible: state.breakoutSideWindowVisible,
+    isMicOn: state.isMicOn,
     isBreakoutModalOpen: state.isBreakoutModalOpen,
     isInvitationModalOpen: state.isInvitationModalOpen,
     isHostMsgModalOpen: state.isHostMsgModalOpen,
@@ -132,5 +132,6 @@ export const selectLiveKitRoomView = createSelector(
     breakoutRoomsData: state.breakoutRoomsData,
     nextRoomIndex: state.nextRoomIndex,
     helpMessageModal: state.helpMessageModal,
+    breakoutRoomsLoading: state.loading,
   })
 );
