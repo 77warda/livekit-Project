@@ -1376,12 +1376,94 @@
     }
 }
 
+.unassigned-participants {
+    padding: 0.8rem 1.3rem;
+
+    .allocated-headings {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .available-participants-list {
+        list-style: none;
+        padding: 0;
+
+        .available-participant {
+            display: flex;
+            flex-direction: column;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+
+            .participant-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .assign-btn {
+                padding: 5px 10px;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+
+                &:hover {
+                    background-color: #0056b3;
+                }
+            }
+
+            .accordion-content {
+                margin-top: 10px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+
+                .room-inputs {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+
+                    .room-item {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+
+                        input[type='checkbox'] {
+                            width: 18px;
+                            height: 18px;
+                            cursor: pointer;
+                        }
+
+                        .room-label {
+                            font-size: 14px;
+                            color: #333;
+                            cursor: pointer;
+                        }
+
+                        &:hover {
+                            background-color: #e9ecef;
+                            border-radius: 5px;
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
+}
+
 .breakout-container {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     margin-top: 30px;
+    margin-bottom: 5rem;
     gap: 8px;
+
 
     .allocated-headings {
         font-weight: 600;
@@ -1506,6 +1588,7 @@
 
 .create-room-section {
     margin-top: 20px;
+    padding: 0.4rem 1rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1991,5 +2074,20 @@
         opacity: 0.5;
         cursor: not-allowed !important;
         background-color: transparent !important;
+    }
+}
+
+.people {
+    position: relative;
+
+    .badge {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background-color: red;
+        color: white;
+        border-radius: 50%;
+        padding: 5px 10px;
+        font-size: 12px;
     }
 }

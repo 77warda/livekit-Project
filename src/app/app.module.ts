@@ -16,6 +16,7 @@ import { StoreModule } from '@ngrx/store';
 import { EffectsModule } from '@ngrx/effects';
 import { LiveKitRoomEffects } from './redux/effect';
 import { liveKitRoomReducer } from './redux/reducer';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @NgModule({
   declarations: [AppComponent, LiveKitRoomComponent, ErrorDialogComponent],
@@ -32,6 +33,7 @@ import { liveKitRoomReducer } from './redux/reducer';
     StoreModule.forRoot({ liveKitRoom: liveKitRoomReducer }, {}),
     EffectsModule.forRoot([LiveKitRoomEffects]),
     StoreDevtoolsModule.instrument({ maxAge: 25 }),
+    MatTooltipModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Actions, createEffect, ofType } from '@ngrx/effects';
+import { Actions, concatLatestFrom, createEffect, ofType } from '@ngrx/effects';
 import { LiveKitService } from '../livekit.service';
 import * as LiveKitRoomActions from './actions';
 import {
@@ -14,7 +14,10 @@ import {
 import { of, from, forkJoin, EMPTY } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MeetingService } from '../Meeting-Service/meeting.service';
-import { selectLiveKitRoomViewState } from './selectors';
+import {
+  selectBreakoutRoomsData,
+  selectLiveKitRoomViewState,
+} from './selectors';
 import { Store } from '@ngrx/store';
 import { BreakoutRoomService } from '../breakout-room-service/breakout-room.service';
 
@@ -236,71 +239,34 @@ export class LiveKitRoomEffects {
     )
   );
 
-  // initiateCreateNewRoom$ = createEffect(() =>
-  //   this.actions$.pipe(
-  //     ofType(LiveKitRoomActions.BreakoutActions.initiateCreateNewRoom),
-  //     mergeMap(() =>
-  //       this.store.select(selectLiveKitRoomViewState).pipe(
-  //         take(1), // Take the first emitted value
-  //         map((viewState) => {
-  //           const newRoomName = `Breakout_Room_${viewState.breakoutRoomsData.length + 1}`;
-  //           console.log(newRoomName, 'new room name is');
-  //           return LiveKitRoomActions.BreakoutActions.createNewRoomSuccess({
-  //             roomName: newRoomName,
-  //           });
-  //         })
-  //       )
-  //     ),
-  //     // Dispatch the action to create a new room
-  //     mergeMap((action) => [action])
-  //   )
-  // );
   // manual
   initiateManualRoomSelection$ = createEffect(
     () =>
       this.actions$.pipe(
         ofType(LiveKitRoomActions.BreakoutActions.initiateManualRoomSelection),
-        switchMap(({ roomType }) => {
-          if (roomType === 'manual') {
-            console.log('Manual room selection initiated');
+        concatLatestFrom(() => this.store.select(selectBreakoutRoomsData)),
+        map(([action, viewState]) => {
+          console.log('Manual room selection initiated');
+          console.log('Rooms data:', viewState);
 
-            return this.store.select(selectLiveKitRoomViewState).pipe(
-              take(1),
-              map((viewState) => {
-                console.log('rooms data is', viewState.breakoutRoomsData);
-                // Emit updated breakout rooms data, even if it's empty
-                this.livekitService.breakoutRoomsDataUpdated.next(
-                  viewState.breakoutRoomsData
-                );
+          // Send invitations for each room with participants
+          viewState.forEach((room) => {
+            const { roomName, participantIds } = room;
 
-                if (viewState.breakoutRoomsData.length > 0) {
-                  viewState.breakoutRoomsData.forEach((room) => {
-                    const roomParticipants = room.participantIds;
-                    const roomName = room.roomName;
+            if (participantIds && participantIds.length > 0) {
+              console.log(`Sending invitations to room: ${roomName}`);
+              this.livekitService.breakoutRoomAlert(participantIds, roomName);
+            } else {
+              console.log(`No participants in room: ${roomName}`);
+            }
+          });
 
-                    if (roomParticipants && roomParticipants.length > 0) {
-                      console.log(`Sending invitations to room: ${roomName}`);
-                      this.livekitService.breakoutRoomAlert(
-                        roomParticipants,
-                        roomName
-                      );
-                    } else {
-                      console.log(
-                        `No participants selected for room: ${room.roomName}`
-                      );
-                    }
-                  });
-                } else {
-                  console.log('No breakout rooms configured.');
-                }
-              })
-            );
-          }
-          return [];
+          // return EMPTY; // Return an empty observable since no further actions are dispatched
         })
       ),
-    { dispatch: false } // No action is dispatched after this effect
+    { dispatch: false }
   );
+
   createAutomaticRooms$ = createEffect(
     () =>
       this.actions$.pipe(
@@ -308,33 +274,41 @@ export class LiveKitRoomEffects {
           LiveKitRoomActions.BreakoutActions.initiateAutomaticRoomCreation
         ),
         switchMap(({ participants, numberOfRooms }) => {
+          // Step 1: Split participants into rooms
           const rooms = this.splitParticipantsIntoRooms(
             participants,
             numberOfRooms
           );
 
-          // Prepare breakout room data
+          // Step 2: Prepare breakout room data
           const breakoutRoomsData = rooms.map((roomParticipants, index) => ({
             participantIds: roomParticipants,
-            roomName: `Room_${index + 1}`,
+            roomName: `Room ${index + 1}`,
             type: 'automatic',
           }));
 
-          // Send invitations and emit updates
-          breakoutRoomsData.forEach((room) => {
-            this.livekitService.breakoutRoomAlert(
-              room.participantIds,
-              room.roomName
-            );
-          });
+          // Step 3: Send breakout room alerts and add participants
+          const addParticipantActions = breakoutRoomsData.flatMap((room) =>
+            room.participantIds.map((participantId) => {
+              // Send invitation (side effect)
+              this.livekitService.breakoutRoomAlert(
+                [participantId],
+                room.roomName
+              );
 
-          // Emit the updated breakout rooms data
-          this.livekitService.breakoutRoomsDataUpdated.next(breakoutRoomsData);
+              // Dispatch action to add participant to the room
+              return LiveKitRoomActions.BreakoutActions.addParticipantToRoom({
+                roomName: room.roomName,
+                participantId,
+              });
+            })
+          );
 
-          return of(); // Return empty observable since we're not dispatching further actions
+          // Step 4: Dispatch all `addParticipantToRoom` actions
+          return of(...addParticipantActions);
         })
       ),
-    { dispatch: false } // No action is dispatched after this effect
+    { dispatch: true } // Allow dispatching actions
   );
 
   // Utility function to split participants into rooms

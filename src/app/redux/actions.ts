@@ -87,7 +87,7 @@ export const BreakoutActions = createActionGroup({
     openHelpMessageModal: emptyProps(),
     closeHelpMessageModal: emptyProps(),
     //creating new rooms
-    initiateCreateNewRoom: emptyProps(),
+    // initiateCreateNewRoom: emptyProps(),
     CreateNewRoom: emptyProps(),
     // CreateNewRoomSuccess: props<{
     //   roomName: string;
@@ -105,5 +105,6 @@ export const BreakoutActions = createActionGroup({
       participants: string[];
       numberOfRooms: number;
     }>(),
+    addParticipantToRoom: props<{ roomName: string; participantId: string }>(),
   },
 });

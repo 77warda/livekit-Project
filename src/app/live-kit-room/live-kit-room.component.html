@@ -96,6 +96,10 @@
             class="grid-view"
             matTooltip="Open breakout modal"
             (click)="openBreakoutModal()"
+            *ngIf="
+              !liveKitViewState.breakoutRoomsData ||
+              liveKitViewState.breakoutRoomsData.length === 0
+            "
           >
             <i class="far fa-th-large"></i>
           </button>
@@ -111,9 +115,9 @@
             data-cy="raise-hand"
             *ngIf="localParticipant.isLocal"
             (click)="toggleRaiseHand()"
-            matTooltip="
-            localParticipant.handRaised ? 'Lower Hand' : 'Raise Hand'
-          "
+            [matTooltip]="
+              localParticipant.handRaised ? 'Lower Hand' : 'Raise Hand'
+            "
           >
             <i
               class="fas fa-hand-paper"
@@ -141,8 +145,17 @@
             class="people"
             matTooltip="Breakout Rooms"
             (click)="openBreakoutSideWindow()"
+            *ngIf="
+              liveKitViewState.breakoutRoomsData &&
+              liveKitViewState.breakoutRoomsData.length > 0
+            "
           >
             <i class="fas fa-th-large"></i>
+            <span
+              *ngIf="getAvailableParticipants(room).length > 0"
+              class="badge"
+              >{{ liveKitViewState.breakoutRoomsData.length }}</span
+            >
           </button>
           <button
             class="people"
@@ -171,6 +184,9 @@
           <div class="video-dropdown">
             <button
               data-test="video-test"
+              [matTooltip]="
+                liveKitViewState.isVideoOn ? 'Turn Off Video' : 'Turn On Video'
+              "
               class="video"
               (click)="toggleVideo()"
             >
@@ -201,7 +217,13 @@
           </div>
 
           <div class="mic-dropdown">
-            <button class="mic" matTooltip="Mic" (click)="toggleMic()">
+            <button
+              class="mic"
+              [matTooltip]="
+                liveKitViewState.isMicOn ? 'Turn Off Mic' : 'Turn On Mic'
+              "
+              (click)="toggleMic()"
+            >
               <i
                 class="fas"
                 [ngClass]="{
@@ -703,11 +725,70 @@
           <div>
             <h2>Breakout rooms</h2>
             <button
-              (click)="submitBreakoutForm()"
+              (click)="createRoomFromSideWindow()"
               class="sidenav-invitation-btn"
             >
               Send Invitation
             </button>
+          </div>
+          <div class="unassigned-participants">
+            <h4 class="allocated-headings">UnAllocated Participants</h4>
+
+            <!-- Check if participants are available -->
+            <div
+              *ngIf="
+                getAvailableParticipants(room).length > 0;
+                else noMoreParticipants
+              "
+            >
+              <ul class="available-participants-list">
+                <!-- Loop through unassigned participants -->
+                <li
+                  *ngFor="
+                    let participant of getAvailableParticipants(room);
+                    let i = index
+                  "
+                  class="available-participant"
+                >
+                  <div class="participant-header">
+                    <label>{{ participant.identity }}</label>
+                    <!-- Assign Button -->
+                    <button class="assign-btn" (click)="toggleRoomAccordion(i)">
+                      Assign
+                    </button>
+                  </div>
+
+                  <!-- Accordion Content -->
+                  <div *ngIf="isRoomAccordionOpen[i]" class="accordion-content">
+                    <div class="room-inputs">
+                      <!-- Loop through breakout rooms -->
+                      <div
+                        *ngFor="let room of liveKitViewState.breakoutRoomsData"
+                        class="room-item"
+                      >
+                        <!-- Checkbox and Room Name -->
+                        <input
+                          type="checkbox"
+                          [id]="'room-checkbox-' + room.roomName"
+                          (change)="onRoomSelection(room, participant)"
+                        />
+                        <label
+                          [for]="'room-checkbox-' + room.roomName"
+                          class="room-label"
+                        >
+                          {{ room.roomName }}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Template when no participants are available -->
+            <ng-template #noMoreParticipants>
+              <p>No more participants available for this room</p>
+            </ng-template>
           </div>
           <div class="create-room-section">
             <label>Create New Room</label>
@@ -899,7 +980,9 @@
   <!-- Modal for asking asking help to host from breakout rooms participants -->
   <div
     class="receive-msg-modal"
-    *ngIf="liveKitViewState.isHelpMsgModal && allMessagesToMainRoom.length > 0"
+    *ngIf="
+      liveKitViewState.helpMessageModal && allMessagesToMainRoom.length > 0
+    "
   >
     <div class="modal-header">
       <h2>Messages in Main Room</h2>
