@@ -16,10 +16,12 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MeetingService } from '../Meeting-Service/meeting.service';
 import {
   selectBreakoutRoomsData,
+  selectGetRoomName,
   selectLiveKitRoomViewState,
 } from './selectors';
 import { Store } from '@ngrx/store';
 import { BreakoutRoomService } from '../breakout-room-service/breakout-room.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Injectable()
 export class LiveKitRoomEffects {
@@ -29,7 +31,8 @@ export class LiveKitRoomEffects {
     private meetingService: MeetingService,
     private snackBar: MatSnackBar,
     private store: Store,
-    private breakoutRoomService: BreakoutRoomService
+    private breakoutRoomService: BreakoutRoomService,
+    private activatedRoute: ActivatedRoute
   ) {}
 
   createMeeting$ = createEffect(() =>
@@ -240,16 +243,44 @@ export class LiveKitRoomEffects {
   );
 
   // manual
-  initiateManualRoomSelection$ = createEffect(
-    () =>
-      this.actions$.pipe(
-        ofType(LiveKitRoomActions.BreakoutActions.initiateManualRoomSelection),
-        concatLatestFrom(() => this.store.select(selectBreakoutRoomsData)),
-        map(([action, viewState]) => {
+  // initiateManualRoomSelection$ = createEffect(
+  //   () =>
+  //     this.actions$.pipe(
+  //       ofType(LiveKitRoomActions.BreakoutActions.initiateManualRoomSelection),
+  //       concatLatestFrom(() => this.store.select(selectBreakoutRoomsData)),
+  //       map(([action, viewState]) => {
+  //         console.log('Manual room selection initiated');
+  //         console.log('Rooms data:', viewState);
+
+  //         // Send invitations for each room with participants
+  //         viewState.forEach((room) => {
+  //           const { roomName, participantIds } = room;
+
+  //           if (participantIds && participantIds.length > 0) {
+  //             console.log(`Sending invitations to room: ${roomName}`);
+  //             this.livekitService.breakoutRoomAlert(participantIds, roomName);
+  //           } else {
+  //             console.log(`No participants in room: ${roomName}`);
+  //           }
+  //         });
+
+  //         // return EMPTY; // Return an empty observable since no further actions are dispatched
+  //       })
+  //     ),
+  //   { dispatch: false }
+  // );
+
+  initiateManualRoomSelection$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.BreakoutActions.sendBreakoutRoomsInvitation),
+      concatLatestFrom(() => this.store.select(selectBreakoutRoomsData)),
+      mergeMap(([action, viewState]) => {
+        console.log('sendBreakoutRoomsInvitation action received');
+        try {
           console.log('Manual room selection initiated');
           console.log('Rooms data:', viewState);
 
-          // Send invitations for each room with participants
+          // Process each room and send invitations
           viewState.forEach((room) => {
             const { roomName, participantIds } = room;
 
@@ -261,54 +292,109 @@ export class LiveKitRoomEffects {
             }
           });
 
-          // return EMPTY; // Return an empty observable since no further actions are dispatched
-        })
-      ),
-    { dispatch: false }
-  );
-
-  createAutomaticRooms$ = createEffect(
-    () =>
-      this.actions$.pipe(
-        ofType(
-          LiveKitRoomActions.BreakoutActions.initiateAutomaticRoomCreation
-        ),
-        switchMap(({ participants, numberOfRooms }) => {
-          // Step 1: Split participants into rooms
-          const rooms = this.splitParticipantsIntoRooms(
-            participants,
-            numberOfRooms
-          );
-
-          // Step 2: Prepare breakout room data
-          const breakoutRoomsData = rooms.map((roomParticipants, index) => ({
-            participantIds: roomParticipants,
-            roomName: `Room ${index + 1}`,
-            type: 'automatic',
-          }));
-
-          // Step 3: Send breakout room alerts and add participants
-          const addParticipantActions = breakoutRoomsData.flatMap((room) =>
-            room.participantIds.map((participantId) => {
-              // Send invitation (side effect)
-              this.livekitService.breakoutRoomAlert(
-                [participantId],
-                room.roomName
-              );
-
-              // Dispatch action to add participant to the room
-              return LiveKitRoomActions.BreakoutActions.addParticipantToRoom({
-                roomName: room.roomName,
-                participantId,
-              });
+          // Dispatch success action
+          return of(
+            LiveKitRoomActions.BreakoutActions.breakoutRoomsInvitationSuccess({
+              message: 'Invitations sent successfully',
             })
           );
+        } catch (error) {
+          console.error('Error during manual room selection:', error);
 
-          // Step 4: Dispatch all `addParticipantToRoom` actions
-          return of(...addParticipantActions);
-        })
-      ),
-    { dispatch: true } // Allow dispatching actions
+          // Dispatch failure action
+          return of(
+            LiveKitRoomActions.BreakoutActions.breakoutRoomsInvitationFailure({
+              error: 'Failed to send invitations',
+            })
+          );
+        }
+      })
+    )
+  );
+
+  // createAutomaticRooms$ = createEffect(
+  //   () =>
+  //     this.actions$.pipe(
+  //       ofType(
+  //         LiveKitRoomActions.BreakoutActions.initiateAutomaticRoomCreation
+  //       ),
+  //       switchMap(({ participants, numberOfRooms }) => {
+  //         // Step 1: Split participants into rooms
+  //         const rooms = this.splitParticipantsIntoRooms(
+  //           participants,
+  //           numberOfRooms
+  //         );
+
+  //         // Step 2: Prepare breakout room data
+  //         const breakoutRoomsData = rooms.map((roomParticipants, index) => ({
+  //           participantIds: roomParticipants,
+  //           roomName: `Room ${index + 1}`,
+  //           type: 'automatic',
+  //         }));
+
+  //         // Step 3: Send breakout room alerts and add participants
+  //         const addParticipantActions = breakoutRoomsData.flatMap((room) =>
+  //           room.participantIds.map((participantId) => {
+  //             // Send invitation (side effect)
+  //             this.livekitService.breakoutRoomAlert(
+  //               [participantId],
+  //               room.roomName
+  //             );
+
+  //             // Dispatch action to add participant to the room
+  //             return LiveKitRoomActions.BreakoutActions.addParticipantToRoom({
+  //               roomName: room.roomName,
+  //               participantId,
+  //             });
+  //           })
+  //         );
+
+  //         // Step 4: Dispatch all `addParticipantToRoom` actions
+  //         return of(...addParticipantActions);
+  //       })
+  //     ),
+  //   { dispatch: true } // Allow dispatching actions
+  // );
+
+  createAutomaticRooms$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.BreakoutActions.initiateAutomaticRoomCreation),
+      concatLatestFrom(() => this.store.select(selectGetRoomName)), // Get roomName from store
+      switchMap(([{ participants, numberOfRooms }, roomName]) => {
+        // Step 1: Split participants into rooms
+        const rooms = this.splitParticipantsIntoRooms(
+          participants,
+          numberOfRooms
+        );
+
+        // Step 2: Prepare breakout room data
+        const breakoutRoomsData = rooms.map((roomParticipants, index) => ({
+          participantIds: roomParticipants,
+          roomName: `${roomName} Room ${index + 1}`, // Dynamically use roomName from store
+          type: 'automatic',
+        }));
+
+        // Step 3: Send breakout room alerts and add participants
+        const addParticipantActions = breakoutRoomsData.flatMap((room) =>
+          room.participantIds.map((participantId) => {
+            // Send invitation (side effect)
+            this.livekitService.breakoutRoomAlert(
+              [participantId],
+              room.roomName
+            );
+
+            // Dispatch action to add participant to the room
+            return LiveKitRoomActions.BreakoutActions.addParticipantToRoom({
+              roomName: room.roomName,
+              participantId,
+            });
+          })
+        );
+
+        // Step 4: Dispatch all `addParticipantToRoom` actions
+        return of(...addParticipantActions);
+      })
+    )
   );
 
   // Utility function to split participants into rooms
@@ -320,17 +406,42 @@ export class LiveKitRoomEffects {
     });
     return rooms;
   }
+  // loadBreakoutRooms$ = createEffect(() =>
+  //   this.actions$.pipe(
+  //     ofType(LiveKitRoomActions.BreakoutActions.loadBreakoutRooms), // Action to trigger breakout rooms loading
+  //     switchMap(() => {
+  //       const roomName = 'test-room';
+  //       return this.breakoutRoomService.getAllBreakoutRooms(roomName).pipe(
+  //         map(
+  //           (rooms) =>
+  //             LiveKitRoomActions.BreakoutActions.loadBreakoutRoomsSuccess({
+  //               breakoutRoomsData: rooms,
+  //             }) // Action to update state
+  //         ),
+  //         catchError((error) =>
+  //           of(
+  //             LiveKitRoomActions.BreakoutActions.loadBreakoutRoomsFailure({
+  //               error: error.message,
+  //             })
+  //           )
+  //         )
+  //       );
+  //     })
+  //   )
+  // );
+
   loadBreakoutRooms$ = createEffect(() =>
     this.actions$.pipe(
       ofType(LiveKitRoomActions.BreakoutActions.loadBreakoutRooms), // Action to trigger breakout rooms loading
-      switchMap(() => {
-        const roomName = 'test-room';
+      concatLatestFrom(() => this.store.select(selectGetRoomName)), // Get latest roomName from store
+      switchMap(([action, roomName]) => {
+        console.log('Room name from effect:', roomName); // Log the room name
+
         return this.breakoutRoomService.getAllBreakoutRooms(roomName).pipe(
-          map(
-            (rooms) =>
-              LiveKitRoomActions.BreakoutActions.loadBreakoutRoomsSuccess({
-                breakoutRoomsData: rooms,
-              }) // Action to update state
+          map((rooms) =>
+            LiveKitRoomActions.BreakoutActions.loadBreakoutRoomsSuccess({
+              breakoutRoomsData: rooms,
+            })
           ),
           catchError((error) =>
             of(

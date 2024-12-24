@@ -22,6 +22,7 @@ import { selectLiveKitRoomViewState } from '../redux/selectors';
 import * as LiveKitRoomActions from '../redux/actions';
 import { BreakoutRoomService } from '../breakout-room-service/breakout-room.service';
 import { BreakoutRoom } from '../redux/reducer';
+import { ActivatedRoute, Router } from '@angular/router';
 
 const GRIDCOLUMN: { [key: number]: string } = {
   1: '1fr',
@@ -60,7 +61,17 @@ const PIPGRIDCOLUMN: { [key: number]: string } = {
   styleUrls: ['./live-kit-room.component.scss'],
 })
 export class LiveKitRoomComponent {
+  showCloseRoomModal = false;
+  countdown = 60; // Countdown time in seconds
+  timerInterval: any;
+
+  dynamicRoomName = '';
+  isRedirectionModalVisible: boolean = false;
+  redirectionMessage: string = 'Please wait while we redirect you.';
+
+  isLeaveAccordionOpen = false;
   isRoomAccordionOpen: boolean[] = [];
+  checkBreakoutRoom = '';
 
   nestBreakoutRooms: BreakoutRoom[] = [];
   errorMessage = '';
@@ -138,7 +149,9 @@ export class LiveKitRoomComponent {
     private snackBar: MatSnackBar,
     public store: Store,
     private renderer: Renderer2,
-    private breakoutRoomService: BreakoutRoomService
+    private breakoutRoomService: BreakoutRoomService,
+    private route: ActivatedRoute,
+    private router: Router
   ) {}
 
   async ngOnInit() {
@@ -163,11 +176,14 @@ export class LiveKitRoomComponent {
     // Store local participant data
     this.storeLocalParticipantData();
 
-    // this.livekitService.deviceLists$.subscribe((devices) => {
-    //   this.videoDevices = devices.videoDevices;
-    //   this.micDevices = devices.micDevices;
-    //   this.speakerDevices = devices.speakerDevices;
-    // });
+    this.livekitService.deviceLists$.subscribe((devices) => {
+      console.log('mic', devices);
+      this.videoDevices = devices.videoDevices;
+      this.micDevices = devices.micDevices;
+      this.speakerDevices = devices.speakerDevices;
+    });
+
+    this.livekitService.updateDeviceLists();
     // Fetch all devices initially
     try {
       const devices = await this.livekitService.getAllDevices();
@@ -209,6 +225,15 @@ export class LiveKitRoomComponent {
     } catch (error) {
       console.error('Error initializing default devices:', error);
     }
+    this.route.params.subscribe((params) => {
+      console.log('Route params:', params);
+      this.dynamicRoomName = params['roomname'];
+    });
+    this.store.dispatch(
+      LiveKitRoomActions.MeetingActions.setRoomName({
+        roomName: this.dynamicRoomName,
+      })
+    );
   }
 
   ngOnDestroy() {
@@ -317,10 +342,6 @@ export class LiveKitRoomComponent {
 
     this.liveKitViewState$.subscribe((state) => {
       this.breakoutRoomsData = state.breakoutRoomsData;
-      console.log(
-        'ngOnInit Breakout Rooms Data:',
-        this.breakoutRoomsData.length
-      );
       this.chatSideWindowVisible = state.chatSideWindowVisible;
       // if (state.isMeetingStarted) {
       //   document.addEventListener('visibilitychange', () => {
@@ -376,7 +397,7 @@ export class LiveKitRoomComponent {
       (contentArray: any[]) => {
         console.log('Received message content array:', contentArray);
         contentArray.forEach((content) => {
-          if (content.content && content.title === 'test-room') {
+          if (content.content && content.title === this.dynamicRoomName) {
             this.handleNewMessage(content);
           }
         });
@@ -385,6 +406,8 @@ export class LiveKitRoomComponent {
 
     this.livekitService.msgDataReceived.subscribe((data) => {
       this.handleMsgDataReceived(data);
+      this.checkBreakoutRoom = data.message.type;
+      console.log('check is it breakout room', this.checkBreakoutRoom);
     });
 
     this.livekitService.messageEmitter.subscribe((data: any) => {
@@ -428,6 +451,49 @@ export class LiveKitRoomComponent {
     console.log('Updated chat messages:', this.allMessages);
   }
 
+  // handleMsgDataReceived(data: any) {
+  //   console.log('Participant Data:', data);
+
+  //   this.hostName = data.participant?.identity;
+
+  //   if (data.message.handRaised !== undefined) {
+  //     this.handRaiseStates[data.participant.identity] = data.message.handRaised;
+  //     const action = data.message.handRaised
+  //       ? 'raised its hand'
+  //       : 'lowered its hand';
+  //     this.openSnackBar(`${data.participant.identity} ${action}`);
+  //   }
+
+  //   if (data.message.type === 'breakoutRoom') {
+  //     console.log(
+  //       'Breakout room created for participant:',
+  //       data.participant?.identity
+  //     );
+  //     this.roomName = data.message.roomName;
+  //     this.hostName = data.participant?.identity;
+  //     this.showInvitationModal();
+  //   }
+
+  //   if (
+  //     data.message.type !== 'handRaise' &&
+  //     data.message.type !== 'breakoutRoom' &&
+  //     data.message.title !== this.dynamicRoomName &&
+  //     data.message.content !== 'I need help'
+  //   ) {
+  //     const receivedMsg = data?.message?.message;
+  //     const senderName = data?.participant?.identity;
+  //     const receivingTime = data?.message?.timestamp;
+  //     this.allMessages.push({
+  //       senderName,
+  //       receivedMsg,
+  //       receivingTime,
+  //       type: 'received',
+  //     });
+  //     this.updateUnreadMessageCount();
+  //     this.scrollToBottom();
+  //     this.sortMessages();
+  //   }
+  // }
   handleMsgDataReceived(data: any) {
     console.log('Participant Data:', data);
     this.hostName = data.participant?.identity;
@@ -449,12 +515,22 @@ export class LiveKitRoomComponent {
       this.hostName = data.participant?.identity;
       this.showInvitationModal();
     }
+    // Ensure data.message.type exists before proceeding
+    if (data?.message?.type === 'closeRoomAlert') {
+      console.log('Close Room Alert received');
+      this.showCloseRoomModal = true;
+      this.countdown = data.message.countdown || 60;
+      this.startCountdown();
+      return;
+    }
 
     if (
       data.message.type !== 'handRaise' &&
       data.message.type !== 'breakoutRoom' &&
-      data.message.title !== 'test-room' &&
-      data.message.content !== 'I need help'
+      // data.message.title !== 'test-room' &&
+      data.message.title !== this.roomName &&
+      data.message.content !== 'I need help' &&
+      data.message.type !== 'closeRoomAlert'
     ) {
       const receivedMsg = data?.message?.message;
       const senderName = data?.participant?.identity;
@@ -580,10 +656,11 @@ export class LiveKitRoomComponent {
    * @returns {Promise<void>} - A promise that resolves when the meeting has been initiated.
    */
   async startMeeting() {
+    console.log('room name is ', this.dynamicRoomName);
     this.store.dispatch(
       LiveKitRoomActions.MeetingActions.createMeeting({
         participantNames: [this.participantName],
-        roomName: 'test-room',
+        roomName: this.dynamicRoomName,
       })
     );
     this.store.dispatch(LiveKitRoomActions.BreakoutActions.loadBreakoutRooms());
@@ -743,9 +820,11 @@ export class LiveKitRoomComponent {
    * @function
    * @returns {Promise<void>}
    */
-  async leaveBtn(): Promise<void> {
+  async leaveMeetingRoom(): Promise<void> {
     this.store.dispatch(LiveKitRoomActions.MeetingActions.leaveMeeting());
+    this.isLeaveAccordionOpen = false;
     this.onLeavePiP();
+    this.isLeaveAccordionOpen = false;
   }
 
   /**
@@ -1041,9 +1120,7 @@ export class LiveKitRoomComponent {
 
       // Dispatch action for manual room selection
       this.store.dispatch(
-        LiveKitRoomActions.BreakoutActions.initiateManualRoomSelection({
-          roomType: 'manual',
-        })
+        LiveKitRoomActions.BreakoutActions.sendBreakoutRoomsInvitation()
       );
     }
 
@@ -1055,9 +1132,7 @@ export class LiveKitRoomComponent {
 
     // Dispatch action for manual room selection
     this.store.dispatch(
-      LiveKitRoomActions.BreakoutActions.initiateManualRoomSelection({
-        roomType: 'manual',
-      })
+      LiveKitRoomActions.BreakoutActions.sendBreakoutRoomsInvitation()
     );
 
     console.log('Breakout room invitations sent');
@@ -1072,12 +1147,28 @@ export class LiveKitRoomComponent {
    * @function
    * @returns {void} - No return value.
    */
-  joinNow() {
-    // Step 1: Leave the current room
-    this.leaveCurrentMeeting().then(() => {
-      // Step 2: Join the breakout room
-      this.joinBreakoutRoom();
-    });
+  joinNow(): void {
+    // Step 1: Show the redirection modal
+    this.redirectionMessage =
+      'Please wait while we redirect you to the breakout room.';
+    this.isRedirectionModalVisible = true;
+
+    // Step 2: Leave the current room
+    this.leaveCurrentMeeting()
+      .then(() => {
+        console.log('Left the current meeting.');
+        // Step 3: Join the breakout room
+        this.joinBreakoutRoom();
+      })
+      .catch((error) => {
+        console.error('Error leaving the current meeting:', error);
+      })
+      .finally(() => {
+        // Step 4: Hide the redirection modal after the operation
+        setTimeout(() => {
+          this.isRedirectionModalVisible = false;
+        }, 3000); // Optional delay for better user experience
+      });
   }
 
   // Step 1: Leave the current meeting
@@ -1138,7 +1229,7 @@ export class LiveKitRoomComponent {
 ** Allows the host to join an existing breakout room to assist participants.
 *
 * This asynchronous function performs the following steps:
-* 1. Disconnects the host from the current room by calling leaveBtn.
+* 1. Disconnects the host from the current room by calling leaveMeetingRoom.
 * 2. Checks if the target breakout room exists in breakoutRoomsData.
 * 3. If the room exists, dispatches an action to join the meeting in the existing room,
 *    passing the host's identity as a participant name.
@@ -1152,7 +1243,7 @@ export class LiveKitRoomComponent {
 */
   async hostJoinNow() {
     // Step 1: Leave the current room (disconnect)
-    await this.leaveBtn();
+    await this.leaveMeetingRoom();
     const existingRoom = this.livekitService.breakoutRoomsData.find(
       (room: any) => room.roomName === this.roomName
     );
@@ -1674,7 +1765,7 @@ export class LiveKitRoomComponent {
       } else if (tooltipText === 'Leave_Meeting') {
         this.renderer.listen(button, 'click', () => {
           console.log('Leave button clicked!');
-          this.leaveBtn();
+          this.leaveMeetingRoom();
         });
       }
     });
@@ -1788,5 +1879,64 @@ export class LiveKitRoomComponent {
 
     // Optionally mark the participant as assigned to avoid duplicates
     participant.assigned = true;
+  }
+  // Leave meeting accordion
+  leaveBtnAccordion() {
+    this.isLeaveAccordionOpen = !this.isLeaveAccordionOpen;
+  }
+
+  // Function to re-join the main room
+  joinMainRoom(): void {
+    const mainRoomName = this.dynamicRoomName;
+    this.store.dispatch(
+      LiveKitRoomActions.MeetingActions.createMeeting({
+        participantNames: [this.participantName],
+        roomName: mainRoomName,
+      })
+    );
+    console.log('Joined main room');
+  }
+
+  leaveBreakoutRoomAndJoinMainRoom(): void {
+    this.isLeaveAccordionOpen = false;
+    this.checkBreakoutRoom = '';
+    this.redirectionMessage =
+      'Please wait while we redirect you to the main room.';
+    console.log('Showing redirection modal');
+    this.isRedirectionModalVisible = true;
+
+    this.leaveCurrentMeeting()
+      .then(() => {
+        console.log('Left breakout room successfully');
+        this.joinMainRoom();
+      })
+      .catch((error) => {
+        console.error('Error while leaving breakout room:', error);
+      })
+      .finally(() => {
+        console.log('Hiding redirection modal');
+        setTimeout(() => {
+          this.isRedirectionModalVisible = false;
+        }, 3000);
+      });
+    this.showCloseRoomModal = false;
+  }
+
+  // closeAllBrRooms() {
+  //   console.log('br data is', this.breakoutRoomsData);
+  // }
+  startCountdown() {
+    this.timerInterval = setInterval(() => {
+      this.countdown--;
+      if (this.countdown === 0) {
+        clearInterval(this.timerInterval);
+        this.leaveBreakoutRoomAndJoinMainRoom(); // Automatically leave when countdown ends
+      }
+    }, 1000);
+  }
+  // Host sends "close-room" message
+  closeAllBreakoutRooms() {
+    this.livekitService.sendCloseAlertToBreakoutRooms();
+    console.log('Close all breakout rooms button clicked');
   }
 }

@@ -30,6 +30,7 @@ export interface LiveKitRoomState {
   nextRoomIndex: number;
   helpMessageModal: boolean;
   loading: boolean;
+  roomName: string;
 }
 
 export const initialState: LiveKitRoomState = {
@@ -55,10 +56,15 @@ export const initialState: LiveKitRoomState = {
   nextRoomIndex: 1,
   helpMessageModal: false,
   loading: false,
+  roomName: '',
 };
 
 export const liveKitRoomReducer = createReducer(
   initialState,
+  on(LiveKitRoomActions.MeetingActions.setRoomName, (state, { roomName }) => ({
+    ...state,
+    roomName: roomName,
+  })),
   on(
     LiveKitRoomActions.MeetingActions.createMeetingSuccess,
     (state, { token }) => ({
@@ -170,6 +176,10 @@ export const liveKitRoomReducer = createReducer(
         state.chatSideWindowVisible && !state.participantSideWindowVisible
           ? false
           : state.chatSideWindowVisible,
+      breakoutSideWindowVisible:
+        state.breakoutSideWindowVisible && !state.participantSideWindowVisible
+          ? false
+          : state.breakoutSideWindowVisible,
     })
   ),
 
@@ -182,6 +192,10 @@ export const liveKitRoomReducer = createReducer(
       state.participantSideWindowVisible && !state.chatSideWindowVisible
         ? false
         : state.participantSideWindowVisible,
+    breakoutSideWindowVisible:
+      state.breakoutSideWindowVisible && !state.chatSideWindowVisible
+        ? false
+        : state.breakoutSideWindowVisible,
   })),
 
   on(
@@ -257,6 +271,10 @@ export const liveKitRoomReducer = createReducer(
       state.chatSideWindowVisible && !state.breakoutSideWindowVisible
         ? false
         : state.chatSideWindowVisible,
+    participantSideWindowVisible:
+      state.participantSideWindowVisible && !state.breakoutSideWindowVisible
+        ? false
+        : state.participantSideWindowVisible,
   })),
 
   on(LiveKitRoomActions.BreakoutActions.closeBreakoutSideWindow, (state) => ({
@@ -340,7 +358,9 @@ export const liveKitRoomReducer = createReducer(
     breakoutRoomsData: [
       ...state.breakoutRoomsData,
       {
-        roomName: `Room ${state.breakoutRoomsData.length + 1}`,
+        roomName: `${state.roomName} Room ${
+          state.breakoutRoomsData.length + 1
+        }`,
         participantIds: [],
         showAvailableParticipants: false,
       },

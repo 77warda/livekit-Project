@@ -17,6 +17,7 @@ import { EffectsModule } from '@ngrx/effects';
 import { LiveKitRoomEffects } from './redux/effect';
 import { liveKitRoomReducer } from './redux/reducer';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @NgModule({
   declarations: [AppComponent, LiveKitRoomComponent, ErrorDialogComponent],
@@ -34,6 +35,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     EffectsModule.forRoot([LiveKitRoomEffects]),
     StoreDevtoolsModule.instrument({ maxAge: 25 }),
     MatTooltipModule,
+    MatProgressSpinnerModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

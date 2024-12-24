@@ -19,6 +19,15 @@ export class MeetingService {
     const body = { roomName, sender: 'test-room', content };
     return this.http.post<any>(`${this.apiUrl}/broadcast`, body);
   }
+
+  sendCloseBreakoutRoomAlert(
+    roomName: string,
+    content: string
+  ): Observable<any> {
+    const body = { roomName, sender: 'test-room', content };
+    return this.http.post<any>(`${this.apiUrl}/broadcast`, body);
+  }
+
   sendMessageToMainRoom(
     roomName: string,
     breakoutRoomName: string,

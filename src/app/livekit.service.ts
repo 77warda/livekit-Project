@@ -29,11 +29,23 @@ import {
 } from 'rxjs';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { MeetingService } from './Meeting-Service/meeting.service';
+import { ActivatedRoute } from '@angular/router';
+import { Store } from '@ngrx/store';
+import * as LiveKitRoomActions from './redux/actions';
 
 @Injectable({
   providedIn: 'root',
 })
 export class LiveKitService {
+  // Subjects to broadcast device changes
+  private deviceListsSubject = new BehaviorSubject({
+    videoDevices: [],
+    micDevices: [],
+    speakerDevices: [],
+  });
+
+  closeRoomAlert: any;
+  deviceLists$ = this.deviceListsSubject.asObservable();
   createdAvatars = new Set();
   private currentActiveSpeakerId: string | null = null;
   speakerModeLayout = false;
@@ -237,7 +249,9 @@ export class LiveKitService {
    */
   constructor(
     public snackBar: MatSnackBar,
-    public meetingService: MeetingService
+    public meetingService: MeetingService,
+    private route: ActivatedRoute,
+    private store: Store
   ) {
     // Listen for device changes
     navigator.mediaDevices.addEventListener('devicechange', () => {
@@ -255,6 +269,7 @@ export class LiveKitService {
 
   localScreenShareCount = 0;
   remoteScreenShareCount = 0;
+  roomNameFromUrl!: string;
   /**
    * Connects to a LiveKit room using the provided WebSocket URL and token.
    *
@@ -267,12 +282,21 @@ export class LiveKitService {
   async connectToRoom(wsURL: string, token: string): Promise<void> {
     // this.audioVideoHandler();
     await this.room.connect(wsURL, token);
-    console.log('Connected to room', this.room);
+    console.log('Connected to room', this.room.name);
     // this.connectWebSocket();
     this.updateParticipantNames();
     this.remoteParticipantAfterLocal();
+    this.store.dispatch(
+      LiveKitRoomActions.MeetingActions.setRoomName({
+        roomName: this.room.name,
+      })
+    );
   }
-
+  getRoomName() {
+    this.roomNameFromUrl = this.room.name;
+    console.log('roomname from service', this.roomNameFromUrl);
+    return this.roomNameFromUrl;
+  }
   // connectWebSocket() {
   //   if (!this.socket$ || this.socket$.closed) {
   //     this.socket$ = webSocket({
@@ -634,6 +658,34 @@ export class LiveKitService {
    * @returns {void}
    */
 
+  sendCloseAlertToBreakoutRooms() {
+    if (this.breakoutRoomsData && this.breakoutRoomsData.length > 0) {
+      this.breakoutRoomsData.forEach((room) => {
+        const alertContent = JSON.stringify({
+          type: 'closeRoomAlert',
+          countdown: 60, // Countdown duration in seconds
+        });
+
+        this.meetingService
+          .sendCloseBreakoutRoomAlert(room.roomName, alertContent)
+          .subscribe({
+            next: () => {
+              console.log(
+                `Close alert sent successfully to breakout room: ${room.roomName}`
+              );
+            },
+            error: (err) => {
+              console.error(
+                `Failed to send close alert to breakout room: ${room.roomName}`,
+                err
+              );
+            },
+          });
+      });
+    } else {
+      console.warn('No breakout rooms available to send close alert.');
+    }
+  }
   audioVideoHandler() {
     this.room = new Room();
     this.participants = this.room.numParticipants;
@@ -703,6 +755,63 @@ export class LiveKitService {
      * @param {RemoteParticipant} [participant] - The participant who sent the data.
      * @param {DataPacket_Kind} [kind] - The kind of data packet.
      */
+    // this.room.on(
+    //   RoomEvent.DataReceived,
+    //   (
+    //     payload: Uint8Array,
+    //     participant: RemoteParticipant | undefined,
+    //     kind: DataPacket_Kind | undefined
+    //   ) => {
+    //     const strData = this.decoder.decode(payload);
+    //     const message = JSON.parse(strData);
+    //     console.log('mesg', JSON.parse(strData));
+    //     console.log('participant', participant);
+    //     this.msgDataReceived.next({ message, participant });
+    //     if (message.type === 'handRaise') {
+    //       this.handRaised.next({
+    //         participant: participant,
+    //         handRaised: message.handRaised,
+    //       });
+    //     }
+    //     if (message.type === 'breakoutRoom') {
+    //       console.log(
+    //         `Breakout room assigned: ${message.roomName} from host "${participant?.identity}"`
+    //       );
+
+    //       // Ensure the message is only sent to the intended participant
+    //       if (participant) {
+    //         this.breakoutRoom.next({
+    //           participant: participant,
+    //           roomName: message.roomName, // Use the room name from the message
+    //         });
+    //       }
+    //     }
+    //     if (message.title === this.roomNameFromUrl) {
+    //       console.log(`Received message in breakout room: ${message}`);
+
+    //       // Add the new message content to the array
+    //       this.messageArray.push(message);
+
+    //       // Emit the updated message array
+    //       this.messageContentReceived.next(this.messageArray);
+    //     } else {
+    //       console.log(`Message not for this breakout room`);
+    //     }
+
+    //     //======
+    //     if (message.title.includes(`${this.roomNameFromUrl} Room`)) {
+    //       console.log(`Received message in main room: ${message}`);
+
+    //       // Add the new message content to the array
+    //       this.messageArrayToMain.push(message);
+
+    //       // Emit the updated message array
+    //       this.messageToMain.next(this.messageArrayToMain);
+    //     } else {
+    //       console.log(`Message not for this main room`);
+    //     }
+    //   }
+    // );
     this.room.on(
       RoomEvent.DataReceived,
       (
@@ -714,13 +823,31 @@ export class LiveKitService {
         const message = JSON.parse(strData);
         console.log('mesg', JSON.parse(strData));
         console.log('participant', participant);
+        // Parse the content field if it exists
+        if (message.content) {
+          try {
+            const parsedContent = JSON.parse(message.content);
+            message.type = parsedContent.type;
+            message.countdown = parsedContent.countdown;
+          } catch (error) {
+            console.error(
+              'Failed to parse content field:',
+              message.content,
+              error
+            );
+          }
+        }
+        console.log('Processed Message:', message);
+        // Use next() instead of emit()
         this.msgDataReceived.next({ message, participant });
+
         if (message.type === 'handRaise') {
           this.handRaised.next({
             participant: participant,
             handRaised: message.handRaised,
           });
         }
+
         if (message.type === 'breakoutRoom') {
           console.log(
             `Breakout room assigned: ${message.roomName} from host "${participant?.identity}"`
@@ -734,7 +861,18 @@ export class LiveKitService {
             });
           }
         }
-        if (message.title === 'test-room') {
+        if (message.type === 'closeRoomAlert') {
+          console.log(
+            `Close Room Alert received: Countdown = ${message.countdown}`
+          );
+          this.closeRoomAlert.next({
+            participant: participant,
+            countdown: message.countdown || 60,
+          });
+        }
+
+        // if (message.title === 'test-room') {
+        if (message.title === this.getRoomName()) {
           console.log(`Received message in breakout room: ${message}`);
 
           // Add the new message content to the array
@@ -745,8 +883,9 @@ export class LiveKitService {
         } else {
           console.log(`Message not for this breakout room`);
         }
+
         //======
-        if (message.title.includes('Room')) {
+        if (message.title.includes(`${this.getRoomName()} Room`)) {
           console.log(`Received message in main room: ${message}`);
 
           // Add the new message content to the array
@@ -2139,7 +2278,7 @@ export class LiveKitService {
 
   sendMessageToMainRoom(breakoutRoomName: string, content: string) {
     return this.meetingService.sendMessageToMainRoom(
-      'test-room',
+      this.roomNameFromUrl,
       breakoutRoomName,
       content
     );
@@ -2382,7 +2521,7 @@ export class LiveKitService {
     try {
       // Call LiveKit's getLocalDevices method
       const devices = await Room.getLocalDevices(kind, true); // Request permissions by default
-      console.log(`Available ${kind}s`, devices);
+      console.log(`Available device ${kind}s`, devices);
       return devices;
     } catch (error) {
       console.error(`Failed to get ${kind}`, error);
@@ -2411,12 +2550,16 @@ export class LiveKitService {
     }
   }
 
+  /**
+   * Updates the lists of available media devices and emits the updated lists.
+   */
   async updateDeviceLists() {
     try {
       this.videoDevices = await this.getDevices('videoinput');
       this.micDevices = await this.getDevices('audioinput');
       this.speakerDevices = await this.getDevices('audiooutput');
-      console.log('Device lists updated:', {
+
+      this.deviceListsSubject.next({
         videoDevices: this.videoDevices,
         micDevices: this.micDevices,
         speakerDevices: this.speakerDevices,
