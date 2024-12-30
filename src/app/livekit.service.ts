@@ -870,6 +870,7 @@ export class LiveKitService {
             countdown: message.countdown || 60,
           });
         }
+        console.log('Received', this.getRoomName());
 
         // if (message.title === 'test-room') {
         if (message.title === this.getRoomName()) {

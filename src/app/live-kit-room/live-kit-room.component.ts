@@ -155,6 +155,8 @@ export class LiveKitRoomComponent {
   ) {}
 
   async ngOnInit() {
+    console.log('Initializing LiveKitRoomComponent');
+
     // Initialize WebSocket and audio/video handler
     this.initializeWebSocketAndAudioVideoHandler();
 
@@ -177,7 +179,7 @@ export class LiveKitRoomComponent {
     this.storeLocalParticipantData();
 
     this.livekitService.deviceLists$.subscribe((devices) => {
-      console.log('mic', devices);
+      console.log('Devices received:', devices);
       this.videoDevices = devices.videoDevices;
       this.micDevices = devices.micDevices;
       this.speakerDevices = devices.speakerDevices;
@@ -225,15 +227,26 @@ export class LiveKitRoomComponent {
     } catch (error) {
       console.error('Error initializing default devices:', error);
     }
+    // this.route.params.subscribe((params) => {
+    //   console.log('Route params:', params);
+    //   this.dynamicRoomName = params['roomname'];
+    // });
+    // this.store.dispatch(
+    //   LiveKitRoomActions.MeetingActions.setRoomName({
+    //     roomName: this.dynamicRoomName,
+    //   })
+    // );
     this.route.params.subscribe((params) => {
       console.log('Route params:', params);
       this.dynamicRoomName = params['roomname'];
+
+      // Dispatch the action after updating dynamicRoomName
+      this.store.dispatch(
+        LiveKitRoomActions.MeetingActions.setRoomName({
+          roomName: this.dynamicRoomName,
+        })
+      );
     });
-    this.store.dispatch(
-      LiveKitRoomActions.MeetingActions.setRoomName({
-        roomName: this.dynamicRoomName,
-      })
-    );
   }
 
   ngOnDestroy() {
@@ -406,8 +419,14 @@ export class LiveKitRoomComponent {
 
     this.livekitService.msgDataReceived.subscribe((data) => {
       this.handleMsgDataReceived(data);
-      this.checkBreakoutRoom = data.message.type;
-      console.log('check is it breakout room', this.checkBreakoutRoom);
+
+      // Safeguard for undefined or incorrect data structure
+      if (data?.message?.type) {
+        this.checkBreakoutRoom = data.message.type;
+        console.log('Check is it breakout room:', this.checkBreakoutRoom);
+      } else {
+        console.error('Invalid data structure:', data);
+      }
     });
 
     this.livekitService.messageEmitter.subscribe((data: any) => {
@@ -532,7 +551,8 @@ export class LiveKitRoomComponent {
       data.message.content !== 'I need help' &&
       data.message.type !== 'closeRoomAlert'
     ) {
-      const receivedMsg = data?.message?.message;
+      // const receivedMsg = data?.message?.message;
+      const receivedMsg = data?.message?.message || data?.message?.content;
       const senderName = data?.participant?.identity;
       const receivingTime = data?.message?.timestamp;
       this.allMessages.push({
@@ -556,7 +576,7 @@ export class LiveKitRoomComponent {
     this.scrollToBottom();
   }
 
-  private updateUnreadMessageCount() {
+  updateUnreadMessageCount() {
     if (!this.chatSideWindowVisible) {
       this.store.dispatch(
         LiveKitRoomActions.LiveKitActions.updateUnreadMessagesCount({
@@ -823,7 +843,7 @@ export class LiveKitRoomComponent {
   async leaveMeetingRoom(): Promise<void> {
     this.store.dispatch(LiveKitRoomActions.MeetingActions.leaveMeeting());
     this.isLeaveAccordionOpen = false;
-    this.onLeavePiP();
+    // this.onLeavePiP();
     this.isLeaveAccordionOpen = false;
   }
 
@@ -1045,12 +1065,6 @@ export class LiveKitRoomComponent {
    */
   openBreakoutModal(): void {
     this.store.dispatch(LiveKitRoomActions.BreakoutActions.openBreakoutModal());
-    console.log(
-      'check',
-      this.liveKitViewState$.subscribe((h) => {
-        console.log('h', h);
-      })
-    );
   }
   /**
    * Dispatches an action to close the breakout Modal After selecting participants and creating breakout rooms.
@@ -1128,14 +1142,9 @@ export class LiveKitRoomComponent {
     this.closeBreakoutModal();
   }
   async createRoomFromSideWindow(): Promise<void> {
-    console.log('Manual room selection initiated');
-
-    // Dispatch action for manual room selection
     this.store.dispatch(
       LiveKitRoomActions.BreakoutActions.sendBreakoutRoomsInvitation()
     );
-
-    console.log('Breakout room invitations sent');
   }
   /**
    * Joins a breakout room by first leaving the current room.
@@ -1156,8 +1165,6 @@ export class LiveKitRoomComponent {
     // Step 2: Leave the current room
     this.leaveCurrentMeeting()
       .then(() => {
-        console.log('Left the current meeting.');
-        // Step 3: Join the breakout room
         this.joinBreakoutRoom();
       })
       .catch((error) => {
@@ -1427,410 +1434,411 @@ export class LiveKitRoomComponent {
   }
   // ===================pip window styling starting from here===================
 
-  /**
-   * Enters Picture-in-Picture (PiP) mode for the video player.
-   *
-   * This function attempts to enable PiP mode for the video player by creating a new PiP window and
-   * copying the styles and content of the main player container into it. It also observes the main
-   * player container for changes and updates the PiP window accordingly. It listens for the pagehide
-   * event to clean up when PiP mode is exited.
-   *
-   * @async
-   * @function
-   * @returns {Promise<void>} - A promise that resolves when PiP mode has been successfully activated.
-   */
-  async enterPiP() {
-    this.pipMode = true;
-    // if (this.pipWindow) {
-    //   this.showModal = true;
-    // }
+  // /**
+  //  * Enters Picture-in-Picture (PiP) mode for the video player.
+  //  *
+  //  * This function attempts to enable PiP mode for the video player by creating a new PiP window and
+  //  * copying the styles and content of the main player container into it. It also observes the main
+  //  * player container for changes and updates the PiP window accordingly. It listens for the pagehide
+  //  * event to clean up when PiP mode is exited.
+  //  *
+  //  * @async
+  //  * @function
+  //  * @returns {Promise<void>} - A promise that resolves when PiP mode has been successfully activated.
+  //  */
+  // async enterPiP() {
+  //   this.pipMode = true;
+  //   // if (this.pipWindow) {
+  //   //   this.showModal = true;
+  //   // }
 
-    const playerContainer = this?.playerContainer?.nativeElement;
-    const mainScreenShareContainer = this?.screensharePiP?.nativeElement;
-    //   // Store the original parent and next sibling of playerContainer
-    this.originalParent = playerContainer?.parentElement;
-    this.originalNextSibling = playerContainer?.nextSibling;
+  //   const playerContainer = this?.playerContainer?.nativeElement;
+  //   const mainScreenShareContainer = this?.screensharePiP?.nativeElement;
+  //   //   // Store the original parent and next sibling of playerContainer
+  //   this.originalParent = playerContainer?.parentElement;
+  //   this.originalNextSibling = playerContainer?.nextSibling;
 
-    if ((window as any).documentPictureInPicture) {
-      const pipOptions = {
-        width: 300,
-        height: 500,
-      };
+  //   if ((window as any).documentPictureInPicture) {
+  //     const pipOptions = {
+  //       width: 300,
+  //       height: 500,
+  //     };
 
-      try {
-        this.pipWindow = await (
-          window as any
-        )?.documentPictureInPicture?.requestWindow(pipOptions);
-        playerContainer.style.height = '75vh';
-        playerContainer.style.overflow = 'hidden';
-        // const pipBody = this.pipWindow.document.body;
+  //     try {
+  //       this.pipWindow = await (
+  //         window as any
+  //       )?.documentPictureInPicture?.requestWindow(pipOptions);
+  //       playerContainer.style.height = '75vh';
+  //       playerContainer.style.overflow = 'hidden';
+  //       // const pipBody = this.pipWindow.document.body;
 
-        // pipVideoLayout.style.overflow = 'hidden';
-        // Copy over initial styles and elements to the PiP window
-        this.copyStylesToPiP();
-        this.updatePiPWindow();
-        // Listen for any changes in the main participant container
-        // Create a MutationObserver to update the PiP window
-        const observerPlayerContainer = new MutationObserver(() => {
-          this.updatePiPWindow(); // Update PiP window when mutation happens in playerContainer
-        });
+  //       // pipVideoLayout.style.overflow = 'hidden';
+  //       // Copy over initial styles and elements to the PiP window
+  //       this.copyStylesToPiP();
+  //       this.updatePiPWindow();
+  //       // Listen for any changes in the main participant container
+  //       // Create a MutationObserver to update the PiP window
+  //       const observerPlayerContainer = new MutationObserver(() => {
+  //         this.updatePiPWindow(); // Update PiP window when mutation happens in playerContainer
+  //       });
 
-        const observerScreenShareContainer = new MutationObserver(() => {
-          this.updatePiPWindow(); // Update PiP window when mutation happens in mainScreenShareContainer
-        });
+  //       const observerScreenShareContainer = new MutationObserver(() => {
+  //         this.updatePiPWindow(); // Update PiP window when mutation happens in mainScreenShareContainer
+  //       });
 
-        // Observe playerContainer and mainScreenShareContainer separately
-        observerPlayerContainer.observe(playerContainer, {
-          childList: true,
-          subtree: true,
-        });
-        observerScreenShareContainer.observe(mainScreenShareContainer, {
-          childList: true,
-          subtree: true,
-        });
+  //       // Observe playerContainer and mainScreenShareContainer separately
+  //       observerPlayerContainer.observe(playerContainer, {
+  //         childList: true,
+  //         subtree: true,
+  //       });
+  //       observerScreenShareContainer.observe(mainScreenShareContainer, {
+  //         childList: true,
+  //         subtree: true,
+  //       });
 
-        // Clean up when PiP mode is exited
-        this.pipWindow.addEventListener(
-          'pagehide',
-          () => {
-            // Disconnect both observers
-            observerPlayerContainer.disconnect();
-            observerScreenShareContainer.disconnect();
+  //       // Clean up when PiP mode is exited
+  //       this.pipWindow.addEventListener(
+  //         'pagehide',
+  //         () => {
+  //           // Disconnect both observers
+  //           observerPlayerContainer.disconnect();
+  //           observerScreenShareContainer.disconnect();
 
-            // Remove the PiP-specific inline styles only
-            const currentStyle = mainScreenShareContainer.getAttribute('style');
+  //           // Remove the PiP-specific inline styles only
+  //           const currentStyle = mainScreenShareContainer.getAttribute('style');
 
-            // Check if the attribute includes our PiP styles and remove them
-            if (currentStyle) {
-              const newStyle = currentStyle
-                .replace('--lk-control-bar-height: 380px;', '')
-                .replace('padding: 10px;', '')
-                .replace('width: 93%;', '')
-                .replace(
-                  'height: calc(100% - var(--lk-control-bar-height));',
-                  ''
-                );
-              if (newStyle.trim()) {
-                this.renderer.setAttribute(
-                  mainScreenShareContainer,
-                  'style',
-                  newStyle.trim()
-                );
-              } else {
-                this.renderer.removeAttribute(
-                  mainScreenShareContainer,
-                  'style'
-                );
-              }
-            }
-            this.onLeavePiP(); // Perform any PiP exit cleanup
-          },
-          { once: true }
-        );
-      } catch (error) {
-        console.error('Error entering PiP mode:', error);
-      }
-    } else {
-      console.error(
-        'documentPictureInPicture API is not available in this browser.'
-      );
-    }
-  }
+  //           // Check if the attribute includes our PiP styles and remove them
+  //           if (currentStyle) {
+  //             const newStyle = currentStyle
+  //               .replace('--lk-control-bar-height: 380px;', '')
+  //               .replace('padding: 10px;', '')
+  //               .replace('width: 93%;', '')
+  //               .replace(
+  //                 'height: calc(100% - var(--lk-control-bar-height));',
+  //                 ''
+  //               );
+  //             if (newStyle.trim()) {
+  //               this.renderer.setAttribute(
+  //                 mainScreenShareContainer,
+  //                 'style',
+  //                 newStyle.trim()
+  //               );
+  //             } else {
+  //               this.renderer.removeAttribute(
+  //                 mainScreenShareContainer,
+  //                 'style'
+  //               );
+  //             }
+  //           }
+  //           this.onLeavePiP(); // Perform any PiP exit cleanup
+  //         },
+  //         { once: true }
+  //       );
+  //     } catch (error) {
+  //       console.error('Error entering PiP mode:', error);
+  //     }
+  //   } else {
+  //     console.error(
+  //       'documentPictureInPicture API is not available in this browser.'
+  //     );
+  //   }
+  // }
 
-  /**
-   * Copies styles from the main document to the PiP window.
-   *
-   * This function copies over all stylesheets from the main document to the PiP window. It ensures that
-   * the PiP window inherits the same styles as the main player container by appending the necessary
-   * styles or links to the PiP window's document head.
-   *
-   * @function
-   * @returns {void}
-   */
-  copyStylesToPiP() {
-    if (!this.pipWindow) return;
+  // /**
+  //  * Copies styles from the main document to the PiP window.
+  //  *
+  //  * This function copies over all stylesheets from the main document to the PiP window. It ensures that
+  //  * the PiP window inherits the same styles as the main player container by appending the necessary
+  //  * styles or links to the PiP window's document head.
+  //  *
+  //  * @function
+  //  * @returns {void}
+  //  */
+  // copyStylesToPiP() {
+  //   if (!this.pipWindow) return;
 
-    Array.from(document.styleSheets).forEach((styleSheet) => {
-      try {
-        const cssRules = Array.from(styleSheet.cssRules)
-          .map((rule) => rule.cssText)
-          .join('');
-        const styleEl = this.renderer.createElement('style');
-        this.renderer.setProperty(styleEl, 'textContent', cssRules);
+  //   Array.from(document.styleSheets).forEach((styleSheet) => {
+  //     try {
+  //       const cssRules = Array.from(styleSheet.cssRules)
+  //         .map((rule) => rule.cssText)
+  //         .join('');
+  //       const styleEl = this.renderer.createElement('style');
+  //       this.renderer.setProperty(styleEl, 'textContent', cssRules);
 
-        this.renderer.appendChild(this.pipWindow!.document.head, styleEl);
-      } catch (e) {
-        if (styleSheet.href) {
-          const linkEl = this.renderer.createElement('link');
-          this.renderer.setAttribute(linkEl, 'rel', 'stylesheet');
-          this.renderer.setAttribute(linkEl, 'href', styleSheet.href);
-          this.renderer.appendChild(this.pipWindow!.document.head, linkEl);
-        }
-      }
-    });
-  }
+  //       this.renderer.appendChild(this.pipWindow!.document.head, styleEl);
+  //     } catch (e) {
+  //       if (styleSheet.href) {
+  //         const linkEl = this.renderer.createElement('link');
+  //         this.renderer.setAttribute(linkEl, 'rel', 'stylesheet');
+  //         this.renderer.setAttribute(linkEl, 'href', styleSheet.href);
+  //         this.renderer.appendChild(this.pipWindow!.document.head, linkEl);
+  //       }
+  //     }
+  //   });
+  // }
 
-  /**
-   * Updates the content and layout of the PiP window.
-   *
-   * This function clones the current state of the main player container and its header, appends them to
-   * the PiP window, and reattaches any necessary event listeners to the buttons in the cloned header.
-   * It updates the PiP window with the latest content from the main player container.
-   *
-   * @function
-   * @returns {void}
-   */
+  // /**
+  //  * Updates the content and layout of the PiP window.
+  //  *
+  //  * This function clones the current state of the main player container and its header, appends them to
+  //  * the PiP window, and reattaches any necessary event listeners to the buttons in the cloned header.
+  //  * It updates the PiP window with the latest content from the main player container.
+  //  *
+  //  * @function
+  //  * @returns {void}
+  //  */
 
-  updatePiPWindow() {
-    console.log('updatePiPWindow called'); // Debugging log
+  // updatePiPWindow() {
+  //   console.log('updatePiPWindow called'); // Debugging log
 
-    if (!this.pipWindow) return;
-    this.showModal = true;
+  //   if (!this.pipWindow) return;
+  //   this.showModal = true;
 
-    const mainContainer = this.playerContainer?.nativeElement;
-    const mainScreenShareContainer = this.screensharePiP?.nativeElement;
-    const pipBody = this.pipWindow.document.body;
+  //   const mainContainer = this.playerContainer?.nativeElement;
+  //   const mainScreenShareContainer = this.screensharePiP?.nativeElement;
+  //   const pipBody = this.pipWindow.document.body;
 
-    // Clear existing content in the PiP window
-    pipBody.innerHTML = '';
+  //   // Clear existing content in the PiP window
+  //   pipBody.innerHTML = '';
 
-    // Clone the current state of the main container into the PiP window
-    const clonedContainer = mainContainer.cloneNode(true) as HTMLElement;
-    // Clone the modal (if present) into the PiP window
-    // const modalElement = document.querySelector('#pipModal') as HTMLElement; // Update with your modal's ID or class
-    const modalElement = this.pipModal.nativeElement;
-    if (modalElement) {
-      modalElement.remove();
-      const clonedModal = modalElement.cloneNode(true) as HTMLElement;
-      pipBody.appendChild(clonedModal);
-      // Remove the modal from the main DOM
-      // this.renderer.setStyle(this.pipModal.nativeElement, 'display', 'none');
-      // Attach event listeners for modal buttons
-      const allowButton = clonedModal.querySelector('#allowButton'); // Replace with the ID or selector of your allow button
-      const cancelButton = clonedModal.querySelector('#cancelButton'); // Replace with the ID or selector of your cancel button
+  //   // Clone the current state of the main container into the PiP window
+  //   const clonedContainer = mainContainer.cloneNode(true) as HTMLElement;
+  //   // Clone the modal (if present) into the PiP window
+  //   // const modalElement = document.querySelector('#pipModal') as HTMLElement; // Update with your modal's ID or class
+  //   const modalElement = this.pipModal.nativeElement;
+  //   if (modalElement) {
+  //     modalElement.remove();
+  //     const clonedModal = modalElement.cloneNode(true) as HTMLElement;
+  //     pipBody.appendChild(clonedModal);
+  //     // Remove the modal from the main DOM
+  //     // this.renderer.setStyle(this.pipModal.nativeElement, 'display', 'none');
+  //     // Attach event listeners for modal buttons
+  //     const allowButton = clonedModal.querySelector('#allowButton'); // Replace with the ID or selector of your allow button
+  //     const cancelButton = clonedModal.querySelector('#cancelButton'); // Replace with the ID or selector of your cancel button
 
-      if (allowButton) {
-        // Attach the click event
-        this.renderer.listen(allowButton, 'click', () => {
-          console.log('Allow button clicked in PiP modal!');
-          this.allowPiP(); // Call the allowPiP function
-        });
-      }
+  //     if (allowButton) {
+  //       // Attach the click event
+  //       this.renderer.listen(allowButton, 'click', () => {
+  //         console.log('Allow button clicked in PiP modal!');
+  //         this.allowPiP(); // Call the allowPiP function
+  //       });
+  //     }
 
-      if (cancelButton) {
-        // Attach the click event
-        this.renderer.listen(cancelButton, 'click', () => {
-          console.log('Cancel button clicked in PiP modal!');
-          this.cancelPiP(); // Call the cancelPiP function
-        });
-      }
-    }
-    // Clone the header from the main document (ng-container with pip header buttons)
-    const pipContainer = this.pipContainer.nativeElement;
-    const clonedHeader = pipContainer?.cloneNode(true) as HTMLElement;
+  //     if (cancelButton) {
+  //       // Attach the click event
+  //       this.renderer.listen(cancelButton, 'click', () => {
+  //         console.log('Cancel button clicked in PiP modal!');
+  //         this.cancelPiP(); // Call the cancelPiP function
+  //       });
+  //     }
+  //   }
+  //   // Clone the header from the main document (ng-container with pip header buttons)
+  //   const pipContainer = this.pipContainer.nativeElement;
+  //   const clonedHeader = pipContainer?.cloneNode(true) as HTMLElement;
 
-    const isScreenSharingActive =
-      this.livekitService.isScreenSharingEnabled ||
-      this.livekitService.remoteScreenShare;
-    // Check if screen sharing is active and clone #screensharePiP if so
-    if (isScreenSharingActive) {
-      const screenSharePiPElment = this.screensharePiP?.nativeElement;
-      if (screenSharePiPElment && this.pipWindow) {
-        this.renderer.setAttribute(
-          screenSharePiPElment,
-          'style',
-          `
-        --lk-control-bar-height: 380px;
-        padding: 10px;
-        width: 93%;
-        height: calc(100% - var(--lk-control-bar-height));
-      `
-        );
-      }
-      const clonedScreenShare = screenSharePiPElment?.cloneNode(
-        true
-      ) as HTMLElement;
+  //   const isScreenSharingActive =
+  //     this.livekitService.isScreenSharingEnabled ||
+  //     this.livekitService.remoteScreenShare;
+  //   // Check if screen sharing is active and clone #screensharePiP if so
+  //   if (isScreenSharingActive) {
+  //     const screenSharePiPElment = this.screensharePiP?.nativeElement;
+  //     if (screenSharePiPElment && this.pipWindow) {
+  //       this.renderer.setAttribute(
+  //         screenSharePiPElment,
+  //         'style',
+  //         `
+  //       --lk-control-bar-height: 380px;
+  //       padding: 10px;
+  //       width: 93%;
+  //       height: calc(100% - var(--lk-control-bar-height));
+  //     `
+  //       );
+  //     }
+  //     const clonedScreenShare = screenSharePiPElment?.cloneNode(
+  //       true
+  //     ) as HTMLElement;
 
-      pipBody.appendChild(clonedScreenShare);
-    }
-    // Append the cloned player container to the PiP window body
-    pipBody.appendChild(clonedContainer);
-    // Append the cloned header to the PiP window body
-    if (clonedHeader) {
-      pipBody.appendChild(clonedHeader);
-    }
+  //     pipBody.appendChild(clonedScreenShare);
+  //   }
+  //   // Append the cloned player container to the PiP window body
+  //   pipBody.appendChild(clonedContainer);
+  //   // Append the cloned header to the PiP window body
+  //   if (clonedHeader) {
+  //     pipBody.appendChild(clonedHeader);
+  //   }
 
-    const pipVideoContainer = pipBody?.querySelector(
-      '.screen-share-layout-wrapper'
-    ) as HTMLDivElement;
-    if (pipVideoContainer) {
-      this.renderer.setStyle(pipVideoContainer, 'height', '53vh');
-      this.renderer.setStyle(pipVideoContainer, 'margin-left', '0');
-    }
-    // pipVideoContainer.style.height = '53vh';
-    const pipVideoLayout = pipBody?.querySelector(
-      '.lk-grid-layout'
-    ) as HTMLDivElement;
-    if (pipVideoLayout) {
-      this.renderer.setStyle(pipVideoLayout, 'overflow', 'hidden');
-    }
+  //   const pipVideoContainer = pipBody?.querySelector(
+  //     '.screen-share-layout-wrapper'
+  //   ) as HTMLDivElement;
+  //   if (pipVideoContainer) {
+  //     this.renderer.setStyle(pipVideoContainer, 'height', '53vh');
+  //     this.renderer.setStyle(pipVideoContainer, 'margin-left', '0');
+  //   }
+  //   // pipVideoContainer.style.height = '53vh';
+  //   const pipVideoLayout = pipBody?.querySelector(
+  //     '.lk-grid-layout'
+  //   ) as HTMLDivElement;
+  //   if (pipVideoLayout) {
+  //     this.renderer.setStyle(pipVideoLayout, 'overflow', 'hidden');
+  //   }
 
-    // Get all screenshare elements with class '.pip-video' inside the PiP window
-    const pipScreenShareElements = pipBody?.querySelectorAll(
-      '.pip-screenShare'
-    ) as NodeListOf<HTMLVideoElement>;
+  //   // Get all screenshare elements with class '.pip-video' inside the PiP window
+  //   const pipScreenShareElements = pipBody?.querySelectorAll(
+  //     '.pip-screenShare'
+  //   ) as NodeListOf<HTMLVideoElement>;
 
-    const originalScreenShareElements =
-      mainScreenShareContainer?.querySelectorAll(
-        '.pip-screenShare'
-      ) as NodeListOf<HTMLVideoElement>;
-    // Ensure there are corresponding screen share elements in both the PiP window and the main container
-    if (
-      pipScreenShareElements.length > 0 &&
-      originalScreenShareElements.length > 0
-    ) {
-      pipScreenShareElements.forEach((pipScreenShareElement, index) => {
-        const originalScreenShareElement = originalScreenShareElements[index];
-        if (originalScreenShareElement) {
-          pipScreenShareElement.srcObject =
-            originalScreenShareElement.srcObject;
-          pipScreenShareElement.play().catch((error) => {
-            console.error('Error playing PiP video:', error);
-          });
-        }
-      });
-    } else {
-      console.warn('Screen share elements not found in PiP or main container.');
-    }
+  //   const originalScreenShareElements =
+  //     mainScreenShareContainer?.querySelectorAll(
+  //       '.pip-screenShare'
+  //     ) as NodeListOf<HTMLVideoElement>;
+  //   // Ensure there are corresponding screen share elements in both the PiP window and the main container
+  //   if (
+  //     pipScreenShareElements.length > 0 &&
+  //     originalScreenShareElements.length > 0
+  //   ) {
+  //     pipScreenShareElements.forEach((pipScreenShareElement, index) => {
+  //       const originalScreenShareElement = originalScreenShareElements[index];
+  //       if (originalScreenShareElement) {
+  //         pipScreenShareElement.srcObject =
+  //           originalScreenShareElement.srcObject;
+  //         pipScreenShareElement.play().catch((error) => {
+  //           console.error('Error playing PiP video:', error);
+  //         });
+  //       }
+  //     });
+  //   } else {
+  //     console.warn('Screen share elements not found in PiP or main container.');
+  //   }
 
-    // Get all video elements with class '.pip-video' inside the PiP window
-    const pipVideoElements = pipBody.querySelectorAll(
-      '.pip-video'
-    ) as NodeListOf<HTMLVideoElement>;
+  //   // Get all video elements with class '.pip-video' inside the PiP window
+  //   const pipVideoElements = pipBody.querySelectorAll(
+  //     '.pip-video'
+  //   ) as NodeListOf<HTMLVideoElement>;
 
-    // Get all original video elements with class '.pip-video' from the main container
-    const originalVideoElements = mainContainer.querySelectorAll(
-      '.pip-video'
-    ) as NodeListOf<HTMLVideoElement>;
+  //   // Get all original video elements with class '.pip-video' from the main container
+  //   const originalVideoElements = mainContainer.querySelectorAll(
+  //     '.pip-video'
+  //   ) as NodeListOf<HTMLVideoElement>;
 
-    // If there are video elements in both PiP window and main container
-    if (pipVideoElements.length > 0 && originalVideoElements.length > 0) {
-      // Loop through each pip video element and assign the corresponding original video stream
-      pipVideoElements.forEach((pipVideoElement, index) => {
-        const originalVideoElement = originalVideoElements[index];
-        if (originalVideoElement) {
-          pipVideoElement.srcObject = originalVideoElement.srcObject;
-          pipVideoElement.play().catch((error) => {
-            console.error('Error playing PiP video:', error);
-          });
-        }
-      });
-    }
+  //   // If there are video elements in both PiP window and main container
+  //   if (pipVideoElements.length > 0 && originalVideoElements.length > 0) {
+  //     // Loop through each pip video element and assign the corresponding original video stream
+  //     pipVideoElements.forEach((pipVideoElement, index) => {
+  //       const originalVideoElement = originalVideoElements[index];
+  //       if (originalVideoElement) {
+  //         pipVideoElement.srcObject = originalVideoElement.srcObject;
+  //         pipVideoElement.play().catch((error) => {
+  //           console.error('Error playing PiP video:', error);
+  //         });
+  //       }
+  //     });
+  //   }
 
-    // Manually reattach event listeners to each button in the cloned header
-    const buttons = clonedHeader.querySelectorAll('button');
-    console.log('Buttons in PiP header:', buttons.length); // Debugging log
+  //   // Manually reattach event listeners to each button in the cloned header
+  //   const buttons = clonedHeader.querySelectorAll('button');
+  //   console.log('Buttons in PiP header:', buttons.length); // Debugging log
 
-    buttons.forEach((button: HTMLElement) => {
-      const tooltipText = button.getAttribute('matTooltip');
-      const iconElement = button.querySelector('i');
+  //   buttons.forEach((button: HTMLElement) => {
+  //     const tooltipText = button.getAttribute('matTooltip');
+  //     const iconElement = button.querySelector('i');
 
-      // Observable subscriptions to automatically update the icons in PiP
-      if (tooltipText === 'Video') {
-        this.liveKitViewState$.subscribe((viewState) => {
-          iconElement?.classList.toggle('fa-video', viewState.isVideoOn);
-          iconElement?.classList.toggle('fa-video-slash', !viewState.isVideoOn);
-        });
-        this.renderer.listen(button, 'click', () => {
-          console.log('Video button clicked!');
-          this.toggleVideo();
-        });
-      } else if (tooltipText === 'Mic') {
-        this.liveKitViewState$.subscribe((viewState) => {
-          iconElement?.classList.toggle('fa-microphone', viewState.isMicOn);
-          iconElement?.classList.toggle(
-            'fa-microphone-slash',
-            !viewState.isMicOn
-          );
-        });
-        this.renderer.listen(button, 'click', () => {
-          console.log('Mic button clicked!');
-          this.toggleMic();
-        });
-      } else if (tooltipText === 'Raise Hand') {
-        this.renderer.listen(button, 'click', () => {
-          console.log('Raise Hand button clicked!');
-          this.toggleRaiseHand();
-        });
-      } else if (tooltipText === 'Leave_Meeting') {
-        this.renderer.listen(button, 'click', () => {
-          console.log('Leave button clicked!');
-          this.leaveMeetingRoom();
-        });
-      }
-    });
-  }
+  //     // Observable subscriptions to automatically update the icons in PiP
+  //     if (tooltipText === 'Video') {
+  //       this.liveKitViewState$.subscribe((viewState) => {
+  //         iconElement?.classList.toggle('fa-video', viewState.isVideoOn);
+  //         iconElement?.classList.toggle('fa-video-slash', !viewState.isVideoOn);
+  //       });
+  //       this.renderer.listen(button, 'click', () => {
+  //         console.log('Video button clicked!');
+  //         this.toggleVideo();
+  //       });
+  //     } else if (tooltipText === 'Mic') {
+  //       this.liveKitViewState$.subscribe((viewState) => {
+  //         iconElement?.classList.toggle('fa-microphone', viewState.isMicOn);
+  //         iconElement?.classList.toggle(
+  //           'fa-microphone-slash',
+  //           !viewState.isMicOn
+  //         );
+  //       });
+  //       this.renderer.listen(button, 'click', () => {
+  //         console.log('Mic button clicked!');
+  //         this.toggleMic();
+  //       });
+  //     } else if (tooltipText === 'Raise Hand') {
+  //       this.renderer.listen(button, 'click', () => {
+  //         console.log('Raise Hand button clicked!');
+  //         this.toggleRaiseHand();
+  //       });
+  //     } else if (tooltipText === 'Leave_Meeting') {
+  //       this.renderer.listen(button, 'click', () => {
+  //         console.log('Leave button clicked!');
+  //         this.leaveMeetingRoom();
+  //       });
+  //     }
+  //   });
+  // }
 
-  /**
-   * Exits Picture-in-Picture (PiP) mode and restores the player container.
-   *
-   * This function cleans up the PiP mode by restoring the player container to its original position in
-   * the document. It also removes the PiP-specific styles and closes the PiP window.
-   *
-   * @function
-   * @returns {void}
-   */
-  onLeavePiP() {
-    if (!this.pipWindow) return;
+  // /**
+  //  * Exits Picture-in-Picture (PiP) mode and restores the player container.
+  //  *
+  //  * This function cleans up the PiP mode by restoring the player container to its original position in
+  //  * the document. It also removes the PiP-specific styles and closes the PiP window.
+  //  *
+  //  * @function
+  //  * @returns {void}
+  //  */
+  // onLeavePiP() {
+  //   if (!this.pipWindow) return;
 
-    const playerContainer = this.playerContainer.nativeElement;
+  //   const playerContainer = this.playerContainer.nativeElement;
 
-    // Re-append playerContainer back to its original parent and position
-    if (this.originalParent) {
-      if (this.originalNextSibling) {
-        this.originalParent.insertBefore(
-          playerContainer,
-          this.originalNextSibling
-        );
-      } else {
-        this.originalParent.appendChild(playerContainer);
-      }
-    }
+  //   // Re-append playerContainer back to its original parent and position
+  //   if (this.originalParent) {
+  //     if (this.originalNextSibling) {
+  //       this.originalParent.insertBefore(
+  //         playerContainer,
+  //         this.originalNextSibling
+  //       );
+  //     } else {
+  //       this.originalParent.appendChild(playerContainer);
+  //     }
+  //   }
 
-    playerContainer.classList.remove('pip-mode');
-    this.pipMode = false;
-    this.pipWindow.close();
-    this.pipWindow = null;
-  }
+  //   playerContainer.classList.remove('pip-mode');
+  //   this.pipMode = false;
+  //   this.pipWindow.close();
+  //   this.pipWindow = null;
+  // }
 
-  allowPiP() {
-    // if (this.pipWindow) {
-    //   this.showModal = false;
-    //   this.updatePiPWindow();
-    // }
-    this.showModal = false;
-    if (this.pipWindow) {
-      const pipBody = this.pipWindow.document.body;
+  // allowPiP() {
+  //   // if (this.pipWindow) {
+  //   //   this.showModal = false;
+  //   //   this.updatePiPWindow();
+  //   // }
+  //   this.showModal = false;
+  //   if (this.pipWindow) {
+  //     const pipBody = this.pipWindow.document.body;
 
-      // Hide the modal in PiP window
-      const modalElement = this.pipModal.nativeElement;
-      if (modalElement) {
-        modalElement.style.display = 'none';
-      }
+  //     // Hide the modal in PiP window
+  //     const modalElement = this.pipModal.nativeElement;
+  //     if (modalElement) {
+  //       modalElement.style.display = 'none';
+  //     }
 
-      // Proceed with interaction restrictions
-      this.updatePiPWindow(); // Update PiP content
-    }
-  }
+  //     // Proceed with interaction restrictions
+  //     this.updatePiPWindow(); // Update PiP content
+  //   }
+  // }
 
-  cancelPiP() {
-    this.showModal = false; // Hide the modal
-    if (this.pipWindow) {
-      this.pipWindow.close(); // Close PiP window
-      this.pipWindow = null;
-      this.pipMode = false;
-    }
-  }
+  // cancelPiP() {
+  //   this.showModal = false; // Hide the modal
+  //   if (this.pipWindow) {
+  //     this.pipWindow.close(); // Close PiP window
+  //     this.pipWindow = null;
+  //     this.pipMode = false;
+  //   }
+  // }
+  // ===================pip window styling end from here===================
 
   /**
    * Toggles between speaker mode and grid view layout in the LiveKit service.

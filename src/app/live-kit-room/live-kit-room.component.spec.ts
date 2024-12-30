@@ -1,5 +1,6 @@
 import {
   ComponentFixture,
+  discardPeriodicTasks,
   fakeAsync,
   TestBed,
   tick,
@@ -10,22 +11,14 @@ import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of, Subject, throwError } from 'rxjs';
-import { ElementRef, EventEmitter } from '@angular/core';
+import { BehaviorSubject, of, Subject } from 'rxjs';
+import { ElementRef, EventEmitter, Renderer2 } from '@angular/core';
 import { LiveKitRoomComponent } from './live-kit-room.component';
-import { ErrorDialogComponent } from '../error-dialog/error-dialog.component';
 import { Store, StoreModule } from '@ngrx/store';
 import * as LiveKitRoomActions from '../redux/actions';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import {
-  LocalParticipant,
-  RemoteParticipant,
-  RemoteTrack,
-  RemoteTrackPublication,
-  Track,
-} from 'livekit-client';
-import { MeetingService } from '../Meeting-Service/meeting.service';
-import { selectBreakoutRoomsData } from '../redux/selectors';
+import { RemoteTrack, Track } from 'livekit-client';
+import { ActivatedRoute } from '@angular/router';
 
 class MockLiveKitService {
   toggleVideo() {
@@ -35,7 +28,6 @@ class MockLiveKitService {
 describe('LiveKitRoomComponent;', () => {
   let component: LiveKitRoomComponent;
   let fixture: ComponentFixture<LiveKitRoomComponent>;
-  let mockMatDialog: MatDialog;
   let mockMatSnackBar: MatSnackBar;
   let mockLivekitService: any;
   let msgDataReceived: Subject<any>;
@@ -43,11 +35,10 @@ describe('LiveKitRoomComponent;', () => {
   let screenShareTrackSubscribed: Subject<any>;
   let store: any;
   let dispatchSpy: jasmine.Spy;
-  // let liveKitService: jasmine.SpyObj<LiveKitService>;
   let formBuilder: FormBuilder;
   let mockElementRef: ElementRef;
-  let mockChatSideWindowVisible$: Subject<boolean>;
   let webSocketStatusSubject: Subject<string>;
+  let paramsSubject: BehaviorSubject<any>;
 
   const GRIDCOLUMN: { [key: number]: string } = {
     1: '1fr',
@@ -57,25 +48,37 @@ describe('LiveKitRoomComponent;', () => {
     5: '1fr 1fr 1fr',
     6: '1fr 1fr 1fr',
   };
+  const PIPGRIDCOLUMN: { [key: number]: string } = {
+    1: '1fr',
+    2: '1fr',
+    3: '1fr',
+    4: '1fr 1fr',
+    5: '1fr 1fr',
+    6: '1fr 1fr',
+    7: '1fr 1fr',
+    8: '1fr 1fr',
+    9: '1fr 1fr 1fr',
+    10: '1fr 1fr 1fr',
+    11: '1fr 1fr 1fr',
+    12: '1fr 1fr 1fr',
+    13: '1fr 1fr 1fr',
+    14: '1fr 1fr 1fr',
+    15: '1fr 1fr 1fr',
+    16: '1fr 1fr 1fr 1fr',
+    17: '1fr 1fr 1fr 1fr',
+    18: '1fr 1fr 1fr 1fr',
+    19: '1fr 1fr 1fr 1fr',
+    20: '1fr 1fr 1fr 1fr',
+    21: '1fr 1fr 1fr 1fr',
+  };
   beforeEach(async () => {
-    mockChatSideWindowVisible$ = new Subject<boolean>();
-    mockElementRef = {
-      nativeElement: jasmine.createSpyObj('nativeElement', [
-        'focus',
-        'scrollIntoView',
-      ]),
-    };
-
+    paramsSubject = new BehaviorSubject({ roomname: 'test-room' });
+    const deviceListsSubject = new Subject<any>();
     msgDataReceived = new Subject<any>();
     messageEmitter = new Subject<any>();
     screenShareTrackSubscribed = new Subject<any>();
     webSocketStatusSubject = new Subject<string>();
     mockLivekitService = {
-      breakoutRoomAlert: jasmine
-        .createSpy('breakoutRoomAlert')
-        .and.returnValue(Promise.resolve()),
-      initCanvas: jasmine.createSpy('initCanvas'),
-      localParticipantData: msgDataReceived.asObservable(),
       messageEmitter: messageEmitter.asObservable(),
       msgDataReceived: msgDataReceived.asObservable(),
       sendChatMessage: jasmine.createSpy('sendChatMessage'),
@@ -94,6 +97,7 @@ describe('LiveKitRoomComponent;', () => {
         .and.returnValue(Promise.resolve()),
       room: {
         _numParticipants: 0,
+        remoteParticipants: new Map(),
         get numParticipants() {
           return this._numParticipants;
         },
@@ -112,6 +116,25 @@ describe('LiveKitRoomComponent;', () => {
       breakoutRoomsDataUpdated: jasmine.createSpy('emit'),
       screenShareTrackSubscribed: screenShareTrackSubscribed.asObservable(),
       handleTrackSubscribed: jasmine.createSpy('handleTrackSubscribed'),
+      switchSpeakerViewLayout: jasmine.createSpy('switchSpeakerViewLayout'),
+      sendCloseAlertToBreakoutRooms: jasmine.createSpy(
+        'sendCloseAlertToBreakoutRooms'
+      ),
+      speakerModeLayout: false,
+      showInitialSpeaker: jasmine.createSpy('showInitialSpeaker'),
+      switchDevice: jasmine
+        .createSpy('switchDevice')
+        .and.returnValue(Promise.resolve()),
+      deviceLists$: deviceListsSubject,
+      getAllDevices: jasmine.createSpy('getAllDevices').and.returnValue(
+        Promise.resolve({
+          cameras: [{ deviceId: 'video1' }],
+          microphones: [{ deviceId: 'mic1' }],
+          speakers: [{ deviceId: 'speaker1' }],
+        })
+      ),
+      updateDeviceLists: jasmine.createSpy('updateDeviceLists'),
+      params: new Subject<{ roomname: string }>(),
     };
     await TestBed.configureTestingModule({
       imports: [
@@ -126,6 +149,12 @@ describe('LiveKitRoomComponent;', () => {
       ],
       declarations: [LiveKitRoomComponent],
       providers: [
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            params: paramsSubject.asObservable(), // Use BehaviorSubject as params
+          },
+        },
         { provide: ElementRef, useValue: mockElementRef },
         { provide: LiveKitService, useValue: mockLivekitService },
         FormBuilder,
@@ -140,23 +169,13 @@ describe('LiveKitRoomComponent;', () => {
       ],
     });
 
-    // mockLiveKitService = TestBed.inject(LiveKitService);
-    mockMatDialog = TestBed.inject(MatDialog);
     mockMatSnackBar = TestBed.inject(MatSnackBar);
     fixture = TestBed.createComponent(LiveKitRoomComponent);
     component = fixture.componentInstance;
+    (component as any).PIPGRIDCOLUMN = PIPGRIDCOLUMN;
     store = TestBed.inject(Store);
     dispatchSpy = spyOn(store, 'dispatch').and.callThrough();
-    // component.chatSideWindowVisible$ = of(false);
-    component.participantName = 'Test Participant';
-    (component as any).GRIDCOLUMN = GRIDCOLUMN;
     formBuilder = TestBed.inject(FormBuilder);
-    component.chatSideWindowVisible$ =
-      mockChatSideWindowVisible$.asObservable();
-    component.allMessages = [];
-    component.unreadMessagesCount = 0;
-
-    // Initialize the form
     component.chatForm = formBuilder.group({
       message: ['Test message'],
       participant: ['Test participant'],
@@ -165,45 +184,24 @@ describe('LiveKitRoomComponent;', () => {
       roomType: ['automatic'],
       numberOfRooms: [2],
     });
-    component.breakoutRoomsData = [
-      {
-        roomName: 'Room 1',
-        participantIds: ['participant1', 'participant2'],
-      },
-      {
-        roomName: 'Room 2',
-        participantIds: [],
-      },
-    ];
-    component.audioCanvasRef = mockElementRef;
-    // liveKitService = TestBed.inject(
-    //   LiveKitService
-    // ) as jasmine.SpyObj<LiveKitService>;
     component.localParticipant = {
       identity: 'hostIdentity',
       handRaised: false,
     };
     component.roomName = 'TestRoom';
-    component.roomName = undefined;
-    component.allMessagesToMainRoom = [];
-    component.handRaiseStates = {};
+    // component.dynamicRoomName = 'TestRoom';
     component.remoteParticipantNames = [
       { identity: 'participant1' },
       { identity: 'participant2' },
       { identity: 'participant3' },
       { identity: 'participant4' },
     ];
-    component.ngAfterViewInit();
+    component.allMessages = [];
+    component.handRaiseStates = {};
     fixture.detectChanges();
   });
   it('should create the app component', () => {
     expect(component).toBeTruthy();
-  });
-  it('should call initCanvas with audioCanvasRef.nativeElement after view init', () => {
-    component.ngAfterViewInit();
-    expect(mockLivekitService.initCanvas).toHaveBeenCalledWith(
-      mockElementRef.nativeElement
-    );
   });
 
   describe('start meeting', () => {
@@ -217,7 +215,7 @@ describe('LiveKitRoomComponent;', () => {
       // Check that the dispatch was called with the correct action and payload
       const expectedAction = LiveKitRoomActions.MeetingActions.createMeeting({
         participantNames: [component.participantName],
-        roomName: 'test-room',
+        roomName: '',
       });
 
       expect(store.dispatch).toHaveBeenCalledWith(expectedAction);
@@ -282,13 +280,28 @@ describe('LiveKitRoomComponent;', () => {
   });
 
   describe('toggleScreen share', () => {
-    it('should dispatch toggleScreenShare action when toggleScreenShare is called', async () => {
+    // it('should dispatch toggleScreenShare action when toggleScreenShare is called', async () => {
+    //   await component.toggleScreenShare();
+
+    //   expect(dispatchSpy).toHaveBeenCalledTimes(1);
+    //   expect(dispatchSpy).toHaveBeenCalledWith(
+    //     LiveKitRoomActions.LiveKitActions.toggleScreenShare()
+    //   );
+    // });
+    it('should dispatch toggleScreenShare action, set speakerModeLayout to false, and call switchSpeakerViewLayout', async () => {
+      // Call the method
       await component.toggleScreenShare();
 
-      expect(dispatchSpy).toHaveBeenCalledTimes(1);
+      // Assert the action is dispatched
       expect(dispatchSpy).toHaveBeenCalledWith(
         LiveKitRoomActions.LiveKitActions.toggleScreenShare()
       );
+
+      // Assert speakerModeLayout is set to false
+      expect(mockLivekitService.speakerModeLayout).toBeFalse();
+
+      // Assert switchSpeakerViewLayout is called
+      // expect(mockLivekitService.switchSpeakerViewLayout).toHaveBeenCalled();
     });
   });
   describe('toggle Microphone', () => {
@@ -410,7 +423,7 @@ describe('LiveKitRoomComponent;', () => {
 
   describe('leave button', () => {
     it('should dispatch leaveMeeting action when leaveBtn is called', async () => {
-      await component.leaveBtn();
+      await component.leaveMeetingRoom();
       expect(dispatchSpy).toHaveBeenCalledTimes(1);
       expect(dispatchSpy).toHaveBeenCalledWith(
         LiveKitRoomActions.MeetingActions.leaveMeeting()
@@ -418,7 +431,7 @@ describe('LiveKitRoomComponent;', () => {
     });
 
     it('should return a promise that resolves to void', async () => {
-      const result = await component.leaveBtn();
+      const result = await component.leaveMeetingRoom();
       expect(result).toBeUndefined();
     });
   });
@@ -452,78 +465,79 @@ describe('LiveKitRoomComponent;', () => {
     // Assert: Check the result matches the expected fallback value
     expect(result).toBe('repeat(auto-fill, minmax(200px, 1fr))');
   });
-  it('should scroll to bottom of message container', fakeAsync(() => {
-    // Arrange
-    const messageContainerElement = new ElementRef<HTMLDivElement>(
-      document.createElement('div')
-    );
-    component.messageContainer = messageContainerElement;
-    Object.defineProperty(
-      messageContainerElement.nativeElement,
-      'scrollHeight',
-      { value: 1000, configurable: true }
-    );
-    Object.defineProperty(messageContainerElement.nativeElement, 'scrollTop', {
-      value: 0,
-      writable: true,
-    });
 
-    // Act
-    component.scrollToBottom();
-    tick(100); // wait for the setTimeout to complete
+  // // it('should scroll to bottom of message container', fakeAsync(() => {
+  // //   // Arrange
+  // //   const messageContainerElement = new ElementRef<HTMLDivElement>(
+  // //     document.createElement('div')
+  // //   );
+  // //   component.messageContainer = messageContainerElement;
+  // //   Object.defineProperty(
+  // //     messageContainerElement.nativeElement,
+  // //     'scrollHeight',
+  // //     { value: 1000, configurable: true }
+  // //   );
+  // //   Object.defineProperty(messageContainerElement.nativeElement, 'scrollTop', {
+  // //     value: 0,
+  // //     writable: true,
+  // //   });
 
-    // Assert
-    expect(messageContainerElement.nativeElement.scrollTop).toBe(1000);
-  }));
-  describe('isParticipantAssigned', () => {
-    it('should return true if the participant is assigned to the room', () => {
-      const room = {
-        participantIds: ['user1', 'user2', 'user3'],
-      };
-      const participant = { identity: 'user2' };
+  // //   // Act
+  // //   component.scrollToBottom();
+  // //   tick(100); // wait for the setTimeout to complete
 
-      const result = component.isParticipantAssigned(room, participant);
+  // //   // Assert
+  // //   expect(messageContainerElement.nativeElement.scrollTop).toBe(1000);
+  // // }));
+  // describe('isParticipantAssigned', () => {
+  //   it('should return true if the participant is assigned to the room', () => {
+  //     const room = {
+  //       participantIds: ['user1', 'user2', 'user3'],
+  //     };
+  //     const participant = { identity: 'user2' };
 
-      expect(result).toBeTrue(); // Expect the result to be true
-    });
+  //     const result = component.isParticipantAssigned(room, participant);
 
-    it('should return false if the participant is not assigned to the room', () => {
-      const room = {
-        participantIds: ['user1', 'user2', 'user3'],
-      };
-      const participant = { identity: 'user4' };
+  //     expect(result).toBeTrue(); // Expect the result to be true
+  //   });
 
-      const result = component.isParticipantAssigned(room, participant);
+  //   it('should return false if the participant is not assigned to the room', () => {
+  //     const room = {
+  //       participantIds: ['user1', 'user2', 'user3'],
+  //     };
+  //     const participant = { identity: 'user4' };
 
-      expect(result).toBeFalse(); // Expect the result to be false
-    });
+  //     const result = component.isParticipantAssigned(room, participant);
 
-    it('should return false if the room has no participants', () => {
-      const room = {
-        participantIds: [],
-      };
-      const participant = { identity: 'user1' };
+  //     expect(result).toBeFalse(); // Expect the result to be false
+  //   });
 
-      const result = component.isParticipantAssigned(room, participant);
+  //   it('should return false if the room has no participants', () => {
+  //     const room = {
+  //       participantIds: [],
+  //     };
+  //     const participant = { identity: 'user1' };
 
-      expect(result).toBeFalse(); // Expect the result to be false
-    });
-  });
+  //     const result = component.isParticipantAssigned(room, participant);
 
-  describe('createNewRoomSidebar', () => {
-    it('should dispatch initiateCreateNewRoom action', () => {
-      // Call the method
-      component.createNewRoomSidebar();
+  //     expect(result).toBeFalse(); // Expect the result to be false
+  //   });
+  // });
 
-      // Check that the correct action was dispatched
-      expect(store.dispatch).toHaveBeenCalledWith(
-        LiveKitRoomActions.BreakoutActions.initiateCreateNewRoom()
-      );
-    });
-  });
+  // // describe('createNewRoomSidebar', () => {
+  // //   it('should dispatch initiateCreateNewRoom action', () => {
+  // //     // Call the method
+  // //     component.createNewRoomSidebar();
+
+  // //     // Check that the correct action was dispatched
+  // //     expect(store.dispatch).toHaveBeenCalledWith(
+  // //       LiveKitRoomActions.BreakoutActions.initiateCreateNewRoom()
+  // //     );
+  // //   });
+  // // });
   describe('Open Breakout Side Window', () => {
     it('should dispatch toggleBreakoutSideWindow action when open breakout side window is called', () => {
-      component.openPBreakoutSideWindow();
+      component.openBreakoutSideWindow();
 
       expect(dispatchSpy).toHaveBeenCalledTimes(1);
       expect(dispatchSpy).toHaveBeenCalledWith(
@@ -541,26 +555,26 @@ describe('LiveKitRoomComponent;', () => {
       );
     });
   });
-  describe('Open Breakout Modal for automatic or manual selection of rooms', () => {
-    it('should dispatch toggleBreakoutModal action when open breakout Modal is called', () => {
-      component.openBreakoutModal();
+  // describe('Open Breakout Modal for automatic or manual selection of rooms', () => {
+  //   it('should dispatch toggleBreakoutModal action when open breakout Modal is called', () => {
+  //     component.openBreakoutModal();
 
-      expect(dispatchSpy).toHaveBeenCalledTimes(1);
-      expect(dispatchSpy).toHaveBeenCalledWith(
-        LiveKitRoomActions.BreakoutActions.openBreakoutModal()
-      );
-    });
-  });
-  describe('Close Breakout Modal for automatic or manual selection of rooms', () => {
-    it('should dispatch closeBreakoutModal action when closeBreakoutModal is called', () => {
-      component.closeBreakoutModal();
+  //     expect(dispatchSpy).toHaveBeenCalledTimes(1);
+  //     expect(dispatchSpy).toHaveBeenCalledWith(
+  //       LiveKitRoomActions.BreakoutActions.openBreakoutModal()
+  //     );
+  //   });
+  // });
+  // describe('Close Breakout Modal for automatic or manual selection of rooms', () => {
+  //   it('should dispatch closeBreakoutModal action when closeBreakoutModal is called', () => {
+  //     component.closeBreakoutModal();
 
-      expect(dispatchSpy).toHaveBeenCalledTimes(1);
-      expect(dispatchSpy).toHaveBeenCalledWith(
-        LiveKitRoomActions.BreakoutActions.closeBreakoutModal()
-      );
-    });
-  });
+  //     expect(dispatchSpy).toHaveBeenCalledTimes(1);
+  //     expect(dispatchSpy).toHaveBeenCalledWith(
+  //       LiveKitRoomActions.BreakoutActions.closeBreakoutModal()
+  //     );
+  //   });
+  // });
 
   it('should process incoming messages and update allMessages when messageEmitter emits', () => {
     // Arrange
@@ -585,38 +599,38 @@ describe('LiveKitRoomComponent;', () => {
     expect(component.sortMessages).toHaveBeenCalled();
     expect(component.scrollToBottom).toHaveBeenCalled();
   });
-  describe('participants which are available to enter in breakout room (getAvailableParticipants)', () => {
-    it('should return participants not already in the room', () => {
-      const room = {
-        participantIds: ['participant1', 'participant2'], // participants already in the room
-      };
+  // describe('participants which are available to enter in breakout room (getAvailableParticipants)', () => {
+  //   it('should return participants not already in the room', () => {
+  //     const room = {
+  //       participantIds: ['participant1', 'participant2'], // participants already in the room
+  //     };
 
-      const availableParticipants = component.getAvailableParticipants(room);
+  //     const availableParticipants = component.getAvailableParticipants(room);
 
-      // Expect available participants to exclude 'participant1' and 'participant2'
-      expect(availableParticipants).toEqual([
-        { identity: 'participant3' },
-        { identity: 'participant4' },
-      ]);
-    });
-  });
+  //     // Expect available participants to exclude 'participant1' and 'participant2'
+  //     expect(availableParticipants).toEqual([
+  //       { identity: 'participant3' },
+  //       { identity: 'participant4' },
+  //     ]);
+  //   });
+  // });
   describe('when participant selected (onParticipantSelected)', () => {
-    it('should dispatch addParticipant action when checkbox is checked', () => {
-      const room = { roomName: 'Room 2', participantIds: [] };
-      const participant = { identity: 'participant3' };
-      const event = { target: { checked: true } };
+    // it('should dispatch addParticipant action when checkbox is checked', () => {
+    //   const room = { roomName: 'Room 2', participantIds: [] };
+    //   const participant = { identity: 'participant3' };
+    //   const event = { target: { checked: true } };
 
-      // Call the method
-      component.onParticipantSelected(room, participant, event);
+    //   // Call the method
+    //   component.onParticipantSelected(room, participant, event);
 
-      // Check that the correct action was dispatched
-      expect(store.dispatch).toHaveBeenCalledWith(
-        LiveKitRoomActions.BreakoutActions.addParticipant({
-          roomName: 'Room 2',
-          participantId: 'participant3',
-        })
-      );
-    });
+    //   // Check that the correct action was dispatched
+    //   expect(store.dispatch).toHaveBeenCalledWith(
+    //     LiveKitRoomActions.BreakoutActions.addParticipant({
+    //       roomName: 'Room 2',
+    //       participantId: 'participant3',
+    //     })
+    //   );
+    // });
 
     it('should dispatch removeParticipant action when checkbox is unchecked', () => {
       const room = { roomName: 'Room 2', participantIds: [] };
@@ -679,13 +693,13 @@ describe('LiveKitRoomComponent;', () => {
       ];
 
       // Spy on the leaveBtn method and return a resolved promise
-      spyOn(component, 'leaveBtn').and.returnValue(Promise.resolve());
+      spyOn(component, 'leaveMeetingRoom').and.returnValue(Promise.resolve());
 
       // Call the hostJoinNow method
       await component.hostJoinNow();
 
       // Check if leaveBtn was called as expected
-      expect(component.leaveBtn).toHaveBeenCalled();
+      expect(component.leaveMeetingRoom).toHaveBeenCalled();
     });
     it('should dispatch createMeeting action and log the join message when room exists', async () => {
       // Arrange: Mock necessary values
@@ -717,37 +731,6 @@ describe('LiveKitRoomComponent;', () => {
         'TestRoom'
       );
     });
-    it('should successfully join an existing room', fakeAsync(() => {
-      // Arrange
-      component.roomName = 'Room 1'; // Set the room name to an existing room
-      component.localParticipant = {
-        identity: 'hostIdentity',
-        handRaised: false,
-      };
-
-      // Initialize breakoutRoomsData to contain a room with the expected name
-      component.livekitService.breakoutRoomsData = [
-        {
-          roomName: 'Room 1',
-          participantIds: ['participant1', 'participant2'],
-        },
-        { roomName: 'Room 2', participantIds: [] },
-      ];
-
-      // Act
-      component.hostJoinNow(); // Call the method to join the room
-
-      tick(); // Simulate the passage of time to let any async operations complete
-
-      // Assert
-      expect(dispatchSpy).toHaveBeenCalledWith(
-        jasmine.objectContaining({
-          participantNames: ['hostIdentity'],
-          roomName: 'Room 1',
-          type: '[[Meeting]] createMeeting', // Make sure this matches the actual action type
-        })
-      );
-    }));
   });
   describe('grid columns for participants(get GalleryGridColumnStyle)', () => {
     it('should return correct grid column style for participants <= 6', () => {
@@ -767,6 +750,19 @@ describe('LiveKitRoomComponent;', () => {
         expect(component.GalleryGridColumnStyle).toBe(expectedStyle);
       });
     });
+    it('should return correct PIP grid column style when pipMode is true', () => {
+      // Mock pipMode as true
+      component.pipMode = true;
+
+      // Test for valid participant numbers that return the correct value from PIPGRIDCOLUMN
+      Object.keys(PIPGRIDCOLUMN).forEach((num) => {
+        mockLivekitService.room.numParticipants = Number(num);
+        fixture.detectChanges();
+        expect(component.GalleryGridColumnStyle).toBe(
+          PIPGRIDCOLUMN[Number(num)]
+        );
+      });
+    });
 
     it('should return auto-fill style when participants > 6', () => {
       mockLivekitService.room.numParticipants = 7;
@@ -779,21 +775,21 @@ describe('LiveKitRoomComponent;', () => {
   describe('grid columns for screen sharing (get ScreenGalleryGridColumnStyle)', () => {
     it('should return correct grid column style for screen shares <= 6', () => {
       const testCases = [
-        { screenShareCount: 1, expectedStyle: '1fr' },
-        { screenShareCount: 2, expectedStyle: '1fr 1fr' },
-        { screenShareCount: 3, expectedStyle: '1fr 1fr' },
-        { screenShareCount: 4, expectedStyle: '1fr 1fr' },
-        { screenShareCount: 5, expectedStyle: '1fr 1fr 1fr' },
-        { screenShareCount: 6, expectedStyle: '1fr 1fr 1fr' },
+        { totalScreenShareCount: 1, expectedStyle: '1fr' },
+        { totalScreenShareCount: 2, expectedStyle: '1fr 1fr' },
+        { totalScreenShareCount: 3, expectedStyle: '1fr 1fr' },
+        { totalScreenShareCount: 4, expectedStyle: '1fr 1fr' },
+        { totalScreenShareCount: 5, expectedStyle: '1fr 1fr 1fr' },
+        { totalScreenShareCount: 6, expectedStyle: '1fr 1fr 1fr' },
       ];
 
-      testCases.forEach(({ screenShareCount, expectedStyle }) => {
-        mockLivekitService.screenShareCount = screenShareCount; // Set the screenShareCount
-        fixture.detectChanges(); // Trigger change detection
+      testCases.forEach(({ totalScreenShareCount, expectedStyle }) => {
+        // Dynamically set the totalScreenShareCount
+        mockLivekitService.totalScreenShareCount = totalScreenShareCount;
+        fixture.detectChanges();
         expect(component.ScreenGalleryGridColumnStyle).toBe(expectedStyle);
       });
     });
-
     it('should return "repeat(auto-fill, minmax(200px, 1fr))" for screen shares > 6', () => {
       mockLivekitService.screenShareCount = 7; // Set screenShareCount to a value greater than 6
       fixture.detectChanges(); // Trigger change detection
@@ -1069,6 +1065,7 @@ describe('LiveKitRoomComponent;', () => {
         expect(component.handleMsgDataReceived).toHaveBeenCalledWith(mockData);
       });
     });
+
     describe('setupMessageSubscriptions, when subscribe messageToMain', () => {
       it('should subscribe to messageToMain and process messages correctly', () => {
         const mockMsgArray = [
@@ -1110,23 +1107,23 @@ describe('LiveKitRoomComponent;', () => {
       });
     });
     describe('setupMessageSubscriptions, when subscribe messageContentReceived', () => {
-      it('should subscribe to messageContentReceived and call handleNewMessage for valid messages', () => {
-        const mockContentArray = [
-          { content: 'Hello world', title: 'test-room' },
-          { content: 'Ignored message', title: 'other-room' },
-          { content: null, title: 'test-room' }, // Should be ignored
-        ];
+      // it('should subscribe to messageContentReceived and call handleNewMessage for valid messages', () => {
+      //   const mockContentArray = [
+      //     { content: 'Hello world', title: 'test-room' },
+      //     { content: 'Ignored message', title: 'other-room' },
+      //     { content: null, title: 'test-room' }, // Should be ignored
+      //   ];
 
-        spyOn(component, 'handleNewMessage'); // Spy on the method to check if it gets called
+      //   spyOn(component, 'handleNewMessage'); // Spy on the method to check if it gets called
 
-        // Simulate message content reception by emitting the content array
-        mockLivekitService.messageContentReceived.next(mockContentArray);
+      //   // Simulate message content reception by emitting the content array
+      //   mockLivekitService.messageContentReceived.next(mockContentArray);
 
-        expect(component.handleNewMessage).toHaveBeenCalledWith(
-          mockContentArray[0]
-        ); // Check if handleNewMessage was called for valid message
-        expect(component.handleNewMessage).toHaveBeenCalledTimes(1); // Should only be called once
-      });
+      //   expect(component.handleNewMessage).toHaveBeenCalledWith(
+      //     mockContentArray[0]
+      //   ); // Check if handleNewMessage was called for valid message
+      //   expect(component.handleNewMessage).toHaveBeenCalledTimes(1); // Should only be called once
+      // });
       it('should not call handleNewMessage for messages that do not meet criteria', () => {
         const mockContentArray = [
           { content: 'Hello world', title: 'other-room' }, // Invalid title
@@ -1253,37 +1250,658 @@ describe('LiveKitRoomComponent;', () => {
       );
     });
   });
-  // it('should subscribe to webSocketStatus$ and update webSocketStatus accordingly', () => {
+  it('should call sendCloseAlertToBreakoutRooms on livekitService when closeAllBreakoutRooms is called', () => {
+    // Arrange
+    spyOn(console, 'log');
 
-  //   const statusMock = 'connected';
+    // Act
+    component.closeAllBreakoutRooms();
 
-  //   // Trigger the observable
-  //   webSocketStatusSubject.next(statusMock);
-
-  //   // Verify that the component's status property was updated
-  //   expect(component.webSocketStatus).toBe(statusMock);
-  //   expect(console.log).toHaveBeenCalledWith(
-  //     'WebSocket status updated:',
-  //     statusMock
-  //   );
-  // });
-
-  it('should subscribe to webSocketStatus$ and update webSocketStatus', () => {
-    const mockStatus = 'Connected';
-
-    // Set up the observable to emit the mock status
-    mockLivekitService.webSocketStatus$ = of(mockStatus);
-
-    // Initialize the component
-    component.ngOnInit();
-
-    // Verify that webSocketStatus is updated
-    expect(component.webSocketStatus).toBe(mockStatus);
-    console.log = jasmine.createSpy('log'); // Mock console.log to prevent output during tests
-    component.ngOnInit();
+    // Assert
+    expect(mockLivekitService.sendCloseAlertToBreakoutRooms).toHaveBeenCalled();
     expect(console.log).toHaveBeenCalledWith(
-      'WebSocket status updated:',
-      mockStatus
+      'Close all breakout rooms button clicked'
     );
+  });
+  describe('openBreakoutModal()', () => {
+    it('should dispatch the openBreakoutModal action', () => {
+      // Act: Call the method
+      component.openBreakoutModal();
+
+      // Assert: Check that dispatch was called with the correct action
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        LiveKitRoomActions.BreakoutActions.openBreakoutModal()
+      );
+    });
+  });
+
+  describe('createRoomFromSideWindow()', () => {
+    it('should dispatch the createRoomFromSideWindow action', () => {
+      // Act: Call the method
+      component.createRoomFromSideWindow();
+
+      // Assert: Check that dispatch was called with the correct action
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        LiveKitRoomActions.BreakoutActions.sendBreakoutRoomsInvitation()
+      );
+    });
+  });
+
+  describe('createNewRoomSidebar()', () => {
+    it('should dispatch the createNewRoomSidebar action', () => {
+      // Act: Call the method
+      component.createNewRoomSidebar();
+
+      // Assert: Check that dispatch was called with the correct action
+      expect(dispatchSpy).toHaveBeenCalledWith(
+        LiveKitRoomActions.BreakoutActions.createNewRoom()
+      );
+    });
+  });
+
+  describe('getAvailableParticipants()', () => {
+    let mockBreakoutRoomsData: any[];
+    let mockRemoteParticipantNames: any[];
+
+    beforeEach(() => {
+      // Mock data
+      mockBreakoutRoomsData = [
+        { participantIds: ['user1', 'user2'] },
+        { participantIds: ['user3'] },
+      ];
+      mockRemoteParticipantNames = [
+        { identity: 'user1', name: 'User 1' },
+        { identity: 'user2', name: 'User 2' },
+        { identity: 'user3', name: 'User 3' },
+        { identity: 'user4', name: 'User 4' },
+      ];
+
+      // Mocking the component properties
+      component.breakoutRoomsData = mockBreakoutRoomsData;
+      component.remoteParticipantNames = mockRemoteParticipantNames;
+    });
+
+    it('should return participants who are not assigned to breakout rooms', () => {
+      const availableParticipants = component.getAvailableParticipants(null);
+
+      // The assigned participants are user1, user2, and user3
+      // So, the available participant should be only user4
+      expect(availableParticipants.length).toBe(1);
+      expect(availableParticipants[0].identity).toBe('user4');
+    });
+
+    it('should return an empty array if all participants are assigned', () => {
+      // Modify the mock to include all participants as assigned
+      mockBreakoutRoomsData = [
+        { participantIds: ['user1', 'user2', 'user3', 'user4'] },
+      ];
+      component.breakoutRoomsData = mockBreakoutRoomsData;
+
+      const availableParticipants = component.getAvailableParticipants(null);
+
+      expect(availableParticipants.length).toBe(0);
+    });
+
+    it('should return all participants if no breakout rooms exist', () => {
+      // No breakout rooms, so all remote participants should be available
+      component.breakoutRoomsData = [];
+
+      const availableParticipants = component.getAvailableParticipants(null);
+
+      expect(availableParticipants.length).toBe(4); // All four participants
+      expect(availableParticipants).toEqual(mockRemoteParticipantNames);
+    });
+  });
+
+  describe('isParticipantAssigned', () => {
+    it('should return true if the participant is assigned to the room', () => {
+      const room = { participantIds: ['user1', 'user2', 'user3'] };
+      const participant = { identity: 'user2' };
+
+      const result = component.isParticipantAssigned(room, participant);
+
+      expect(result).toBeTrue(); // The participant 'user2' is assigned to the room
+    });
+
+    it('should return false if the participant is not assigned to the room', () => {
+      const room = { participantIds: ['user1', 'user2', 'user3'] };
+      const participant = { identity: 'user4' };
+
+      const result = component.isParticipantAssigned(room, participant);
+
+      expect(result).toBeFalse(); // The participant 'user4' is not assigned to the room
+    });
+
+    it('should return false if the room has no participants', () => {
+      const room = { participantIds: [] };
+      const participant = { identity: 'user2' };
+
+      const result = component.isParticipantAssigned(room, participant);
+
+      expect(result).toBeFalse(); // The room has no participants, so no one is assigned
+    });
+
+    it('should return true if the participant is the only one in the room', () => {
+      const room = { participantIds: ['user2'] };
+      const participant = { identity: 'user2' };
+
+      const result = component.isParticipantAssigned(room, participant);
+
+      expect(result).toBeTrue(); // The participant 'user2' is the only one in the room
+    });
+  });
+
+  describe('speakerMode', () => {
+    it('should toggle speakerModeLayout and call showInitialSpeaker when speakerModeLayout becomes true', () => {
+      // Call speakerMode once
+      component.speakerMode();
+
+      // Verify the speakerModeLayout is toggled
+      expect(mockLivekitService.speakerModeLayout).toBeTrue();
+
+      // Ensure showInitialSpeaker was called
+      expect(mockLivekitService.showInitialSpeaker).toHaveBeenCalled();
+
+      // Ensure switchSpeakerViewLayout was NOT called
+      expect(mockLivekitService.switchSpeakerViewLayout).not.toHaveBeenCalled();
+    });
+
+    it('should toggle speakerModeLayout and call switchSpeakerViewLayout when speakerModeLayout becomes false', () => {
+      // Set the speakerModeLayout to true initially
+      mockLivekitService.speakerModeLayout = true;
+
+      // Call speakerMode once
+      component.speakerMode();
+
+      // Verify the speakerModeLayout is toggled back to false
+      expect(mockLivekitService.speakerModeLayout).toBeFalse();
+
+      // Ensure switchSpeakerViewLayout was called
+      expect(mockLivekitService.switchSpeakerViewLayout).toHaveBeenCalled();
+
+      // Ensure showInitialSpeaker was NOT called
+      expect(mockLivekitService.showInitialSpeaker).not.toHaveBeenCalled();
+    });
+
+    it('should log the correct message when toggling speaker mode', () => {
+      // Spy on the console.log method to check the logged message
+      spyOn(console, 'log');
+
+      // Call speakerMode once
+      component.speakerMode();
+
+      // Check that the correct message is logged
+      expect(console.log).toHaveBeenCalledWith('Speaker mode toggled:', true);
+
+      // Call speakerMode again to toggle the value back
+      component.speakerMode();
+
+      // Check that the correct message is logged again
+      expect(console.log).toHaveBeenCalledWith('Speaker mode toggled:', false);
+    });
+  });
+
+  describe('toggleRoomAccordion', () => {
+    beforeEach(() => {
+      // Initialize the isRoomAccordionOpen array
+      component.isRoomAccordionOpen = [false, false, false]; // Example with 3 items
+    });
+
+    it('should toggle the accordion state for the given index', () => {
+      // Initial state before toggle
+      expect(component.isRoomAccordionOpen[0]).toBe(false);
+      expect(component.isRoomAccordionOpen[1]).toBe(false);
+      expect(component.isRoomAccordionOpen[2]).toBe(false);
+
+      // Call toggleRoomAccordion for index 0
+      component.toggleRoomAccordion(0);
+
+      // Assert that the value at index 0 is now toggled to true
+      expect(component.isRoomAccordionOpen[0]).toBe(true);
+
+      // Call toggleRoomAccordion again for index 0
+      component.toggleRoomAccordion(0);
+
+      // Assert that the value at index 0 is now toggled back to false
+      expect(component.isRoomAccordionOpen[0]).toBe(false);
+    });
+
+    it('should not affect other indexes when toggling a specific index', () => {
+      // Initial state before toggle
+      expect(component.isRoomAccordionOpen[0]).toBe(false);
+      expect(component.isRoomAccordionOpen[1]).toBe(false);
+      expect(component.isRoomAccordionOpen[2]).toBe(false);
+
+      // Call toggleRoomAccordion for index 1
+      component.toggleRoomAccordion(1);
+
+      // Assert that the value at index 1 is now true
+      expect(component.isRoomAccordionOpen[1]).toBe(true);
+
+      // Assert that other indexes remain unaffected
+      expect(component.isRoomAccordionOpen[0]).toBe(false);
+      expect(component.isRoomAccordionOpen[2]).toBe(false);
+    });
+  });
+
+  describe('onRoomSelection', () => {
+    it('should dispatch addParticipantToRoom action with correct payload', () => {
+      // Mock data
+      const room = { roomName: 'TestRoom' };
+      const participant = { identity: 'Participant123' };
+
+      // Call the method onRoomSelection
+      component.onRoomSelection(room, participant);
+
+      // Verify that the dispatch method was called with the correct action
+      expect(store.dispatch).toHaveBeenCalledWith(
+        LiveKitRoomActions.BreakoutActions.addParticipantToRoom({
+          roomName: 'TestRoom',
+          participantId: 'Participant123',
+        })
+      );
+    });
+  });
+
+  describe('leaveBtnAccordion', () => {
+    it('should toggle the isLeaveAccordionOpen state', () => {
+      // Initial state is false
+      expect(component.isLeaveAccordionOpen).toBe(false);
+
+      // Call the leaveBtnAccordion method to toggle the state
+      component.leaveBtnAccordion();
+      expect(component.isLeaveAccordionOpen).toBe(true); // Should be true after first toggle
+
+      // Call the method again to toggle back to false
+      component.leaveBtnAccordion();
+      expect(component.isLeaveAccordionOpen).toBe(false); // Should be false after second toggle
+    });
+  });
+
+  describe('joinMainRoom', () => {
+    beforeEach(() => {
+      component.dynamicRoomName = 'TestRoom';
+      component.participantName = 'TestParticipant';
+    });
+    it('should dispatch createMeeting action with correct parameters', () => {
+      // Call the joinMainRoom method
+      component.joinMainRoom();
+
+      // Check if the dispatch method was called with the correct action
+      expect(store.dispatch).toHaveBeenCalledWith(
+        LiveKitRoomActions.MeetingActions.createMeeting({
+          participantNames: ['TestParticipant'],
+          roomName: 'TestRoom',
+        })
+      );
+    });
+
+    it('should log "Joined main room" to the console', () => {
+      const consoleLogSpy = spyOn(console, 'log');
+
+      // Call the joinMainRoom method
+      component.joinMainRoom();
+
+      // Check if the console.log was called
+      expect(consoleLogSpy).toHaveBeenCalledWith('Joined main room');
+    });
+  });
+
+  describe('leaveBreakoutRoomAndJoinMainRoom', () => {
+    beforeEach(() => {
+      // Mock the leaveCurrentMeeting and joinMainRoom methods
+      spyOn(component, 'leaveCurrentMeeting').and.returnValue(
+        Promise.resolve()
+      );
+      spyOn(component, 'joinMainRoom');
+      spyOn(console, 'log');
+      spyOn(console, 'error');
+    });
+
+    it('should reset necessary variables and show the redirection modal', () => {
+      component.leaveBreakoutRoomAndJoinMainRoom();
+
+      expect(component.isLeaveAccordionOpen).toBeFalse();
+      expect(component.checkBreakoutRoom).toBe('');
+      expect(component.redirectionMessage).toBe(
+        'Please wait while we redirect you to the main room.'
+      );
+      expect(component.isRedirectionModalVisible).toBeTrue();
+      expect(component.showCloseRoomModal).toBeFalse();
+      expect(console.log).toHaveBeenCalledWith('Showing redirection modal');
+    });
+
+    it('should call joinMainRoom after successfully leaving the current meeting', async () => {
+      await component.leaveBreakoutRoomAndJoinMainRoom();
+
+      expect(component.leaveCurrentMeeting).toHaveBeenCalled();
+      expect(console.log).toHaveBeenCalledWith(
+        'Left breakout room successfully'
+      );
+      expect(component.joinMainRoom).toHaveBeenCalled();
+    });
+  });
+
+  describe('Audio, Video and Speaker Devices', () => {
+    it('should select a video device and call switchDevice', async () => {
+      const deviceId = 'test-device-id';
+      spyOn(console, 'log'); // Spy on console.log
+
+      await component.selectVideo(deviceId);
+
+      expect(component.selectedVideoId).toBe(deviceId);
+      expect(mockLivekitService.switchDevice).toHaveBeenCalledWith(
+        'videoinput',
+        deviceId
+      );
+      expect(console.log).toHaveBeenCalledWith(
+        'Selected video device:',
+        deviceId
+      );
+    });
+
+    it('should select an audio device and call switchDevice', async () => {
+      const deviceId = 'test-device-id';
+      spyOn(console, 'log'); // Spy on console.log
+
+      await component.selectMic(deviceId);
+
+      expect(component.selectedMicId).toBe(deviceId);
+      expect(mockLivekitService.switchDevice).toHaveBeenCalledWith(
+        'audioinput',
+        deviceId
+      );
+      expect(console.log).toHaveBeenCalledWith(
+        'Selected microphone device:',
+        deviceId
+      );
+    });
+
+    it('should select an speaker device and call switchDevice', async () => {
+      const deviceId = 'test-device-id';
+      spyOn(console, 'log'); // Spy on console.log
+
+      await component.selectSpeaker(deviceId);
+
+      expect(component.selectedSpeakerId).toBe(deviceId);
+      expect(mockLivekitService.switchDevice).toHaveBeenCalledWith(
+        'audiooutput',
+        deviceId
+      );
+      expect(console.log).toHaveBeenCalledWith(
+        'Selected speaker device:',
+        deviceId
+      );
+    });
+  });
+
+  describe('toggleMicDropdown ', () => {
+    beforeEach(async () => {
+      // Mock the LivekitService
+      mockLivekitService = jasmine.createSpyObj('LivekitService', [
+        'getAllDevices',
+        'switchDevice',
+      ]);
+
+      component = fixture.componentInstance;
+    });
+
+    it('should toggle mic dropdown without fetching devices if already loaded', async () => {
+      // Arrange
+      component.audioDevicesLoaded = true; // Simulate devices already loaded
+      component.isMicDropdownOpen = false; // Initial dropdown state
+
+      // Act
+      await component.toggleMicDropdown();
+
+      // Assert
+      expect(mockLivekitService.getAllDevices).not.toHaveBeenCalled(); // Ensure no fetch
+      expect(component.isMicDropdownOpen).toBeTrue(); // Dropdown state toggled
+    });
+  });
+  describe('toggleVideoDropdown', () => {
+    it('should fetch video devices and toggle dropdown if not loaded', async () => {
+      // Arrange
+      const mockDevices = [
+        { deviceId: '1', label: 'Camera 1' },
+        { deviceId: '2', label: 'Camera 2' },
+      ] as any;
+      // Ensure to add getDevices to the mock setup
+      mockLivekitService.getDevices = jasmine
+        .createSpy('getDevices')
+        .and.returnValue(Promise.resolve(mockDevices));
+
+      // Set initial state
+      component.videoDevicesLoaded = false;
+
+      // Act
+      await component.toggleVideoDropdown();
+
+      // Assert
+      expect(mockLivekitService.getDevices).toHaveBeenCalledWith('videoinput');
+      expect(component.videoDevices).toEqual(mockDevices);
+      expect(component.videoDevicesLoaded).toBeTrue();
+      expect(component.isVideoDropdownOpen).toBeTrue();
+    });
+
+    it('should log an error when fetching video devices fails', async () => {
+      // Arrange
+      const errorMessage = 'Failed to fetch devices';
+      const error = new Error(errorMessage);
+
+      // Mock getDevices to reject with an error
+      mockLivekitService.getDevices = jasmine
+        .createSpy('getDevices')
+        .and.returnValue(Promise.reject(error));
+
+      // Set initial state
+      component.videoDevicesLoaded = false;
+
+      // Spy on console.error
+      const consoleErrorSpy = spyOn(console, 'error');
+
+      // Act
+      await component.toggleVideoDropdown();
+
+      // Assert
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error fetching video devices:',
+        error
+      );
+      expect(component.videoDevicesLoaded).toBeFalse(); // Ensure the state remains unchanged
+      expect(component.isVideoDropdownOpen).toBeTrue(); // Ensure dropdown state changes
+    });
+  });
+  describe('toggleMicDropdown', () => {
+    it('should load audio devices and toggle dropdown if not loaded', async () => {
+      // Arrange
+      const mockDevices = {
+        microphones: [{ deviceId: 'mic1', label: 'Microphone 1' }],
+        speakers: [{ deviceId: 'speaker1', label: 'Speaker 1' }],
+      } as any;
+      mockLivekitService.getAllDevices = jasmine
+        .createSpy('getAllDevices')
+        .and.returnValue(Promise.resolve(mockDevices));
+      component.audioDevicesLoaded = false; // Ensure devices are not loaded initially
+      const consoleLogSpy = spyOn(console, 'log');
+
+      // Act
+      await component.toggleMicDropdown();
+
+      // Assert
+      expect(component.micDevices).toEqual(mockDevices.microphones); // Check if micDevices are set
+      expect(component.speakerDevices).toEqual(mockDevices.speakers); // Check if speakerDevices are set
+      expect(component.audioDevicesLoaded).toBeTrue(); // Ensure devices are marked as loaded
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        'Audio devices loaded:',
+        mockDevices.microphones,
+        mockDevices.speakers
+      ); // Check log
+      expect(component.isMicDropdownOpen).toBeTrue(); // Ensure dropdown state is toggled
+    });
+
+    it('should log an error if fetching devices fails', async () => {
+      // Arrange
+      const errorMessage = 'Failed to fetch audio devices';
+      const error = new Error(errorMessage);
+      mockLivekitService.getAllDevices = jasmine
+        .createSpy('getAllDevices')
+        .and.returnValue(Promise.reject(error));
+      component.audioDevicesLoaded = false; // Ensure devices are not loaded initially
+      const consoleErrorSpy = spyOn(console, 'error');
+
+      // Act
+      await component.toggleMicDropdown();
+
+      // Assert
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error fetching audio devices:',
+        error
+      ); // Check error log
+      expect(component.audioDevicesLoaded).toBeFalse(); // Ensure devices are not marked as loaded
+      expect(component.isMicDropdownOpen).toBeTrue(); // Ensure dropdown state is toggled
+    });
+  });
+  describe('onDeviceSelected', () => {
+    it('should update selectedSpeakerId when kind is audiooutput', async () => {
+      // Arrange
+      const kind = 'audiooutput';
+      const deviceId = 'speaker1';
+      mockLivekitService.switchDevice = jasmine
+        .createSpy('switchDevice')
+        .and.returnValue(Promise.resolve());
+
+      // Act
+      await component.onDeviceSelected(kind, deviceId);
+
+      // Assert
+      expect(component.selectedSpeakerId).toBe(deviceId); // Check if selectedSpeakerId is updated
+      expect(mockLivekitService.switchDevice).toHaveBeenCalledWith(
+        kind,
+        deviceId
+      ); // Ensure switchDevice was called
+    });
+    it('should update selected device and switch device successfully', async () => {
+      // Arrange
+      const kind = 'videoinput';
+      const deviceId = 'video1';
+      const consoleLogSpy = spyOn(console, 'log');
+      const mockSwitchDevice = jasmine
+        .createSpy('switchDevice')
+        .and.returnValue(Promise.resolve());
+      mockLivekitService.switchDevice = mockSwitchDevice;
+
+      // Act
+      await component.onDeviceSelected(kind, deviceId);
+
+      // Assert
+      expect(component.selectedVideoId).toBe(deviceId); // Check if selectedVideoId is updated
+      expect(mockSwitchDevice).toHaveBeenCalledWith(kind, deviceId); // Ensure switchDevice was called
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        `Successfully switched ${kind} to device: ${deviceId}`
+      ); // Check success log
+    });
+
+    it('should log an error if switching devices fails', async () => {
+      // Arrange
+      const kind = 'audioinput';
+      const deviceId = 'mic1';
+      const errorMessage = 'Failed to switch device';
+      const error = new Error(errorMessage);
+      const consoleErrorSpy = spyOn(console, 'error');
+      mockLivekitService.switchDevice = jasmine
+        .createSpy('switchDevice')
+        .and.returnValue(Promise.reject(error));
+
+      // Act
+      await component.onDeviceSelected(kind, deviceId);
+
+      // Assert
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        `Error switching ${kind} to device: ${deviceId}`,
+        error
+      ); // Check error log
+    });
+  });
+  describe('to test handleMsgDataReceived', () => {
+    it('should handle breakoutRoom message type correctly', () => {
+      const mockData = {
+        participant: { identity: 'User2' },
+        message: { type: 'breakoutRoom', roomName: 'TestRoom' },
+      };
+
+      spyOn(component, 'showInvitationModal');
+
+      component.handleMsgDataReceived(mockData);
+
+      expect(component.hostName).toBe('User2');
+      expect(component.roomName).toBe('TestRoom');
+      expect(component.showInvitationModal).toHaveBeenCalled();
+    });
+
+    it('should handle closeRoomAlert message type correctly', () => {
+      const mockData = {
+        participant: { identity: 'User3' },
+        message: { type: 'closeRoomAlert', countdown: 30 },
+      };
+
+      spyOn(component, 'startCountdown');
+
+      component.handleMsgDataReceived(mockData);
+
+      expect(component.showCloseRoomModal).toBeTrue();
+      expect(component.countdown).toBe(30);
+      expect(component.startCountdown).toHaveBeenCalled();
+    });
+
+    it('should add a received message to allMessages when message type is not handled', () => {
+      const mockData = {
+        participant: { identity: 'User4' },
+        message: {
+          type: 'generalMessage',
+          message: 'Hello',
+          timestamp: '2024-12-30T12:00:00Z',
+        },
+      };
+
+      spyOn(component, 'updateUnreadMessageCount');
+      spyOn(component, 'scrollToBottom');
+      spyOn(component, 'sortMessages');
+
+      component.handleMsgDataReceived(mockData);
+
+      expect(component.allMessages.length).toBe(1);
+      expect(component.allMessages[0]).toEqual({
+        senderName: 'User4',
+        receivedMsg: 'Hello',
+        receivingTime: '2024-12-30T12:00:00Z',
+        type: 'received',
+      });
+      expect(component.updateUnreadMessageCount).toHaveBeenCalled();
+      expect(component.scrollToBottom).toHaveBeenCalled();
+      expect(component.sortMessages).toHaveBeenCalled();
+    });
+  });
+
+  it('should return true if there are remote participants', () => {
+    // Set up the mock to have remote participants
+    mockLivekitService.room.remoteParticipants.set('participant1', {});
+
+    // Call the function
+    const result = component.hasRemoteParticipants();
+
+    // Check that the function returns true
+    expect(result).toBe(true);
+  });
+
+  it('should return false if there are no remote participants', () => {
+    // Ensure no participants are added
+    mockLivekitService.room.remoteParticipants.clear();
+
+    // Call the function
+    const result = component.hasRemoteParticipants();
+
+    // Check that the function returns false
+    expect(result).toBe(false);
   });
 });

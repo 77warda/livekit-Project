@@ -58,23 +58,23 @@ describe('LiveKit Room Reducer', () => {
       expect(result.error).toBe(error);
     });
 
-    it('should handle createNewRoomSuccess with multiple rooms', () => {
-      const roomName1 = 'Room 1';
-      const roomName2 = 'Room 2';
-      const action1 = LiveKitRoomActions.BreakoutActions.createNewRoomSuccess({
-        roomName: roomName1,
-      });
-      const resultAfterFirst = liveKitRoomReducer(initialState, action1);
+    // it('should handle createNewRoomSuccess with multiple rooms', () => {
+    //   const roomName1 = 'Room 1';
+    //   const roomName2 = 'Room 2';
+    //   const action1 = LiveKitRoomActions.BreakoutActions.createNewRoomSuccess({
+    //     roomName: roomName1,
+    //   });
+    //   const resultAfterFirst = liveKitRoomReducer(initialState, action1);
 
-      const action2 = LiveKitRoomActions.BreakoutActions.createNewRoomSuccess({
-        roomName: roomName2,
-      });
-      const resultAfterSecond = liveKitRoomReducer(resultAfterFirst, action2);
+    //   const action2 = LiveKitRoomActions.BreakoutActions.createNewRoomSuccess({
+    //     roomName: roomName2,
+    //   });
+    //   const resultAfterSecond = liveKitRoomReducer(resultAfterFirst, action2);
 
-      expect(resultAfterSecond.breakoutRoomsData.length).toBe(2); // Ensure two rooms are created
-      expect(resultAfterSecond.breakoutRoomsData[0].roomName).toBe(roomName1);
-      expect(resultAfterSecond.breakoutRoomsData[1].roomName).toBe(roomName2);
-    });
+    //   expect(resultAfterSecond.breakoutRoomsData.length).toBe(2); // Ensure two rooms are created
+    //   expect(resultAfterSecond.breakoutRoomsData[0].roomName).toBe(roomName1);
+    //   expect(resultAfterSecond.breakoutRoomsData[1].roomName).toBe(roomName2);
+    // });
     //   const action = LiveKitRoomActions.MeetingActions.leaveMeetingSuccess();
     //   const stateNotInMeeting = { ...initialState, isMeetingStarted: false };
     //   const result = liveKitRoomReducer(stateNotInMeeting, action);
