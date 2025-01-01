@@ -471,7 +471,7 @@ export class LiveKitService {
     );
   }
 
-  private async publishBreakoutRoom(message: any, recipientIds: string[]) {
+  async publishBreakoutRoom(message: any, recipientIds: string[]) {
     const strData = JSON.stringify(message);
     const data = new TextEncoder().encode(strData);
 
