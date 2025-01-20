@@ -5,6 +5,7 @@ import * as LiveKitRoomActions from './actions';
 import {
   catchError,
   concatMap,
+  filter,
   map,
   mergeMap,
   switchMap,
@@ -18,13 +19,18 @@ import {
   selectBreakoutRoomsData,
   selectGetRoomName,
   selectLiveKitRoomViewState,
+  selectParticipantIds,
+  selectPreviewMic,
+  selectPreviewVideo,
 } from './selectors';
 import { Store } from '@ngrx/store';
 import { BreakoutRoomService } from '../breakout-room-service/breakout-room.service';
 import { ActivatedRoute } from '@angular/router';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class LiveKitRoomEffects {
+  participanIds = [];
   constructor(
     private actions$: Actions,
     private livekitService: LiveKitService,
@@ -110,66 +116,6 @@ export class LiveKitRoomEffects {
     )
   );
 
-  toggleVideo$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(LiveKitRoomActions.LiveKitActions.toggleVideo),
-      switchMap(() =>
-        this.livekitService.toggleVideo().pipe(
-          map((isVideoOn: boolean) =>
-            LiveKitRoomActions.LiveKitActions.toggleVideoSuccess({ isVideoOn })
-          ),
-          catchError((error) =>
-            of(
-              LiveKitRoomActions.LiveKitActions.toggleVideoFailure({
-                error: error.message,
-              })
-            )
-          )
-        )
-      )
-    )
-  );
-
-  toggleMicrophone$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(LiveKitRoomActions.LiveKitActions.toggleMic),
-      mergeMap(() =>
-        from(this.livekitService.toggleMicrophone()).pipe(
-          tap((isMicOn) => console.log('microphone in effects', isMicOn)),
-          map((isMicOn: any) =>
-            LiveKitRoomActions.LiveKitActions.toggleMicSuccess({ isMicOn })
-          ),
-          catchError((error) =>
-            from([
-              LiveKitRoomActions.LiveKitActions.toggleMicFailure({ error }),
-            ])
-          )
-        )
-      )
-    )
-  );
-  enableCameraAndMicrophone$ = createEffect(() =>
-    this.actions$.pipe(
-      ofType(LiveKitRoomActions.LiveKitActions.enableCameraAndMicrophone),
-      mergeMap(() =>
-        from(this.livekitService.enableCameraAndMicrophone()).pipe(
-          map(() =>
-            LiveKitRoomActions.LiveKitActions.enableCameraAndMicrophoneSuccess()
-          ),
-          catchError((error) =>
-            of(
-              LiveKitRoomActions.LiveKitActions.enableCameraAndMicrophoneFailure(
-                {
-                  error: error.message,
-                }
-              )
-            )
-          )
-        )
-      )
-    )
-  );
-
   leaveMeeting$ = createEffect(() =>
     this.actions$.pipe(
       ofType(LiveKitRoomActions.MeetingActions.leaveMeeting),
@@ -242,34 +188,6 @@ export class LiveKitRoomEffects {
     )
   );
 
-  // manual
-  // initiateManualRoomSelection$ = createEffect(
-  //   () =>
-  //     this.actions$.pipe(
-  //       ofType(LiveKitRoomActions.BreakoutActions.initiateManualRoomSelection),
-  //       concatLatestFrom(() => this.store.select(selectBreakoutRoomsData)),
-  //       map(([action, viewState]) => {
-  //         console.log('Manual room selection initiated');
-  //         console.log('Rooms data:', viewState);
-
-  //         // Send invitations for each room with participants
-  //         viewState.forEach((room) => {
-  //           const { roomName, participantIds } = room;
-
-  //           if (participantIds && participantIds.length > 0) {
-  //             console.log(`Sending invitations to room: ${roomName}`);
-  //             this.livekitService.breakoutRoomAlert(participantIds, roomName);
-  //           } else {
-  //             console.log(`No participants in room: ${roomName}`);
-  //           }
-  //         });
-
-  //         // return EMPTY; // Return an empty observable since no further actions are dispatched
-  //       })
-  //     ),
-  //   { dispatch: false }
-  // );
-
   initiateManualRoomSelection$ = createEffect(() =>
     this.actions$.pipe(
       ofType(LiveKitRoomActions.BreakoutActions.sendBreakoutRoomsInvitation),
@@ -311,50 +229,6 @@ export class LiveKitRoomEffects {
       })
     )
   );
-
-  // createAutomaticRooms$ = createEffect(
-  //   () =>
-  //     this.actions$.pipe(
-  //       ofType(
-  //         LiveKitRoomActions.BreakoutActions.initiateAutomaticRoomCreation
-  //       ),
-  //       switchMap(({ participants, numberOfRooms }) => {
-  //         // Step 1: Split participants into rooms
-  //         const rooms = this.splitParticipantsIntoRooms(
-  //           participants,
-  //           numberOfRooms
-  //         );
-
-  //         // Step 2: Prepare breakout room data
-  //         const breakoutRoomsData = rooms.map((roomParticipants, index) => ({
-  //           participantIds: roomParticipants,
-  //           roomName: `Room ${index + 1}`,
-  //           type: 'automatic',
-  //         }));
-
-  //         // Step 3: Send breakout room alerts and add participants
-  //         const addParticipantActions = breakoutRoomsData.flatMap((room) =>
-  //           room.participantIds.map((participantId) => {
-  //             // Send invitation (side effect)
-  //             this.livekitService.breakoutRoomAlert(
-  //               [participantId],
-  //               room.roomName
-  //             );
-
-  //             // Dispatch action to add participant to the room
-  //             return LiveKitRoomActions.BreakoutActions.addParticipantToRoom({
-  //               roomName: room.roomName,
-  //               participantId,
-  //             });
-  //           })
-  //         );
-
-  //         // Step 4: Dispatch all `addParticipantToRoom` actions
-  //         return of(...addParticipantActions);
-  //       })
-  //     ),
-  //   { dispatch: true } // Allow dispatching actions
-  // );
 
   createAutomaticRooms$ = createEffect(() =>
     this.actions$.pipe(
@@ -398,6 +272,7 @@ export class LiveKitRoomEffects {
   );
 
   // Utility function to split participants into rooms
+
   splitParticipantsIntoRooms(participants: string[], numberOfRooms: number) {
     const rooms: string[][] = Array.from({ length: numberOfRooms }, () => []);
     participants.forEach((participant, index) => {
@@ -406,29 +281,6 @@ export class LiveKitRoomEffects {
     });
     return rooms;
   }
-  // loadBreakoutRooms$ = createEffect(() =>
-  //   this.actions$.pipe(
-  //     ofType(LiveKitRoomActions.BreakoutActions.loadBreakoutRooms), // Action to trigger breakout rooms loading
-  //     switchMap(() => {
-  //       const roomName = 'test-room';
-  //       return this.breakoutRoomService.getAllBreakoutRooms(roomName).pipe(
-  //         map(
-  //           (rooms) =>
-  //             LiveKitRoomActions.BreakoutActions.loadBreakoutRoomsSuccess({
-  //               breakoutRoomsData: rooms,
-  //             }) // Action to update state
-  //         ),
-  //         catchError((error) =>
-  //           of(
-  //             LiveKitRoomActions.BreakoutActions.loadBreakoutRoomsFailure({
-  //               error: error.message,
-  //             })
-  //           )
-  //         )
-  //       );
-  //     })
-  //   )
-  // );
 
   loadBreakoutRooms$ = createEffect(() =>
     this.actions$.pipe(
@@ -451,6 +303,248 @@ export class LiveKitRoomEffects {
             )
           )
         );
+      })
+    )
+  );
+
+  previewVideo$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.MeetingActions.setRoomName),
+      concatLatestFrom(() => [this.store.select(selectPreviewVideo)]),
+      filter(([action, previewVideo]) => previewVideo),
+      map(() => LiveKitRoomActions.LiveKitActions.toggleVideo())
+    )
+  );
+  toggleVideo$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.LiveKitActions.toggleVideo),
+      switchMap(() =>
+        this.livekitService.toggleVideo().pipe(
+          map((isVideoOn: boolean) =>
+            LiveKitRoomActions.LiveKitActions.toggleVideoSuccess({ isVideoOn })
+          ),
+          catchError((error) =>
+            of(
+              LiveKitRoomActions.LiveKitActions.toggleVideoFailure({
+                error: error.message,
+              })
+            )
+          )
+        )
+      )
+    )
+  );
+
+  previewMic$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.MeetingActions.setRoomName),
+      concatLatestFrom(() => [this.store.select(selectPreviewMic)]),
+      tap((previewMic) => console.log('mic prev', previewMic)),
+      filter(([action, isPreviewMic]) => isPreviewMic),
+      map(() => LiveKitRoomActions.LiveKitActions.toggleMic())
+    )
+  );
+
+  toggleMicrophone$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.LiveKitActions.toggleMic),
+      switchMap(() =>
+        from(this.livekitService.toggleMicrophone()).pipe(
+          tap((isMicOn) => console.log('microphone in effects', isMicOn)),
+          map((isMicOn: any) =>
+            LiveKitRoomActions.LiveKitActions.toggleMicSuccess({ isMicOn })
+          ),
+          catchError((error) =>
+            from([
+              LiveKitRoomActions.LiveKitActions.toggleMicFailure({ error }),
+            ])
+          )
+        )
+      )
+    )
+  );
+
+  // createNewRoom$ = createEffect(() =>
+  //   this.actions$.pipe(
+  //     ofType(LiveKitRoomActions.BreakoutActions.createNewRoom),
+  //     concatLatestFrom(() => [
+  //       this.store.select(selectGetRoomName),
+  //       this.store.select(selectBreakoutRoomsData),
+  //     ]),
+  //     switchMap(([_, roomName, breakoutRoomsData]) => {
+  //       const roomCount = breakoutRoomsData.length + 1;
+  //       const newRoomName = `${roomName} Room ${roomCount}`;
+
+  //       return this.breakoutRoomService
+  //         .createBreakoutRoom({
+  //           roomName: newRoomName,
+  //           participantIds: [],
+  //           showAvailableParticipants: true,
+  //         })
+  //         .pipe(
+  //           map((newRoom) =>
+  //             LiveKitRoomActions.BreakoutActions.createNewRoomSuccess({
+  //               newRoom, // Pass the newly created room data to success action
+  //             })
+  //           ),
+  //           catchError((error) =>
+  //             of(
+  //               LiveKitRoomActions.BreakoutActions.createNewRoomFailure({
+  //                 error, // Pass the error to failure action
+  //               })
+  //             )
+  //           )
+  //         );
+  //     })
+  //   )
+  // );
+
+  createNewRoom$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.BreakoutActions.createNewRoom),
+      concatLatestFrom(() => [
+        this.store.select(selectGetRoomName),
+        this.store.select(selectBreakoutRoomsData),
+      ]),
+      switchMap(([_, roomName, breakoutRoomsData]) => {
+        const roomCount = breakoutRoomsData.length + 1;
+        const newRoomName = `${roomName} Room ${roomCount}`;
+
+        // Dynamically extract participantIds for the new room
+        // const room = breakoutRoomsData.find((r) => r.roomName === roomName);
+
+        // console.log('Dynamically fetched room:', room);
+        breakoutRoomsData.forEach((room) => {
+          const { roomName, participantIds } = room;
+
+          console.log(`p -ids: ${participantIds}`);
+          this.participanIds = participantIds;
+        });
+        console.log('Dynamically fetched participant IDs:', breakoutRoomsData);
+
+        return this.breakoutRoomService
+          .createBreakoutRoom({
+            roomName: newRoomName,
+            participantIds: this.participanIds, // Dynamically fetched IDs
+            showAvailableParticipants: true, // Ensure this property is always included
+          })
+          .pipe(
+            map((newRoom) =>
+              LiveKitRoomActions.BreakoutActions.createNewRoomSuccess({
+                newRoom: {
+                  ...newRoom,
+                  roomName: newRoom.roomName, // Ensure roomName is set
+                  participantIds: newRoom.participantIds, // Ensure participantIds is set
+                  showAvailableParticipants:
+                    newRoom.showAvailableParticipants ?? true, // Default to `true` if undefined
+                },
+              })
+            ),
+            catchError((error) =>
+              of(
+                LiveKitRoomActions.BreakoutActions.createNewRoomFailure({
+                  error,
+                })
+              )
+            )
+          );
+      })
+    )
+  );
+
+  // recreateRoom$ = createEffect(() =>
+  //   this.actions$.pipe(
+  //     ofType(LiveKitRoomActions.BreakoutActions.recreateRoom),
+  //     concatLatestFrom(() => [
+  //       this.store.select(selectBreakoutRoomsData),
+  //       this.store.select(selectGetRoomName),
+  //     ]),
+  //     switchMap(([action, breakoutRoomsData, roomName]) => {
+  //       const { roomId } = action; // `roomId` to delete is passed with the action
+  //       const roomToRecreate = breakoutRoomsData.find(
+  //         (room) => room.id === roomId
+  //       );
+
+  //       if (!roomToRecreate) {
+  //         return of(
+  //           LiveKitRoomActions.BreakoutActions.recreateRoomFailure({
+  //             error: `Room with ID ${roomId} not found`,
+  //           })
+  //         );
+  //       }
+
+  //       const updatedRoomName = `${roomName} Room ${
+  //         breakoutRoomsData.length + 1
+  //       }`;
+
+  //       return this.breakoutRoomService
+  //         .deleteBreakoutRoom(roomId, roomName)
+  //         .pipe(
+  //           switchMap(() =>
+  //             this.breakoutRoomService.createBreakoutRoom({
+  //               roomName: updatedRoomName,
+  //               participantIds: roomToRecreate.participantIds,
+  //               showAvailableParticipants: true,
+  //             })
+  //           ),
+  //           map((newRoom) =>
+  //             LiveKitRoomActions.BreakoutActions.recreateRoomSuccess({
+  //               newRoom,
+  //             })
+  //           ),
+  //           catchError((error) =>
+  //             of(
+  //               LiveKitRoomActions.BreakoutActions.recreateRoomFailure({
+  //                 error,
+  //               })
+  //             )
+  //           )
+  //         );
+  //     })
+  //   )
+  // );
+
+  recreateRoom$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(LiveKitRoomActions.BreakoutActions.recreateRoom), // Triggered by `recreateRoom` action
+      concatLatestFrom(() => [
+        this.store.select(selectBreakoutRoomsData),
+        this.store.select(selectGetRoomName), // Get roomName from store
+      ]),
+      switchMap(([action, breakoutRoomsData, roomName]) => {
+        const { roomId } = action; // Extract room ID from the action
+
+        const roomToDelete = breakoutRoomsData.find(
+          (room) => room.id === roomId
+        );
+
+        if (!roomToDelete) {
+          // If the room is not found, dispatch a failure action
+          return of(
+            LiveKitRoomActions.BreakoutActions.recreateRoomFailure({
+              error: `Room with ID ${roomId} not found`,
+            })
+          );
+        }
+
+        // Call the service to delete the room, passing both `roomId` and `roomName`
+        return this.breakoutRoomService
+          .deleteBreakoutRoom(roomId, roomName)
+          .pipe(
+            map(() =>
+              // Use `recreateRoomSuccess` to indicate the room was successfully deleted
+              LiveKitRoomActions.BreakoutActions.recreateRoomSuccess({
+                newRoom: roomToDelete, // Optionally, return the deleted room details
+              })
+            ),
+            catchError((error) =>
+              of(
+                LiveKitRoomActions.BreakoutActions.recreateRoomFailure({
+                  error,
+                })
+              )
+            )
+          );
       })
     )
   );

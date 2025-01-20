@@ -1,5 +1,5 @@
 import { createSelector, createFeatureSelector } from '@ngrx/store';
-import { LiveKitRoomState } from './reducer';
+import { BreakoutRoom, LiveKitRoomState } from './reducer';
 
 // Feature selector
 export const selectLiveKitRoomState =
@@ -123,6 +123,45 @@ export const selectGetRoomName = createSelector(
   selectLiveKitRoomState,
   (state: LiveKitRoomState) => state.roomName
 );
+
+export const selectIsVideoLoading = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => state.isVideoLoading
+);
+
+export const selectIsMicLoading = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => state.isMicLoading
+);
+
+export const selectPreviewVideo = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => state.isPreviewVideoOn
+);
+
+export const selectPreviewMic = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => state.isPreviewMicOn
+);
+
+export const selectParticipantIds = createSelector(
+  selectBreakoutRoomsData,
+  (breakoutRooms: BreakoutRoom[]) => {
+    if (!breakoutRooms) {
+      return [];
+    }
+    console.log(
+      'selector p-Ids',
+      breakoutRooms.reduce((ids, room) => [...ids, ...room.participantIds], [])
+    );
+    // Flatten the participantIds arrays from all rooms into a single array
+    return breakoutRooms.reduce(
+      (ids, room) => [...ids, ...room.participantIds],
+      []
+    );
+  }
+);
+
 export const selectLiveKitRoomViewState = createSelector(
   selectIsMeetingStarted,
   selectIsVideoOn,
@@ -143,6 +182,11 @@ export const selectLiveKitRoomViewState = createSelector(
   selectHelpMessageModal,
   selectBreakoutRoomsLoading,
   selectGetRoomName,
+  selectIsVideoLoading,
+  selectIsMicLoading,
+  selectParticipantIds,
+  selectPreviewVideo,
+  selectPreviewMic,
   (
     isMeetingStarted,
     isVideoOn,
@@ -162,7 +206,12 @@ export const selectLiveKitRoomViewState = createSelector(
     nextRoomIndex,
     helpMessageModal,
     breakoutRoomsLoading,
-    getRoomName
+    getRoomName,
+    isVideoLoading,
+    isMicLoading,
+    participantIds,
+    isPreviewVideoOn,
+    isPreviewMicOn
   ) => ({
     isMeetingStarted,
     isVideoOn,
@@ -183,5 +232,10 @@ export const selectLiveKitRoomViewState = createSelector(
     helpMessageModal,
     breakoutRoomsLoading,
     getRoomName,
+    isVideoLoading,
+    isMicLoading,
+    participantIds,
+    isPreviewVideoOn,
+    isPreviewMicOn,
   })
 );

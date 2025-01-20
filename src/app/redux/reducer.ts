@@ -2,9 +2,10 @@ import { createReducer, on } from '@ngrx/store';
 import * as LiveKitRoomActions from './actions';
 
 export interface BreakoutRoom {
+  id?: string;
   roomName: string;
   participantIds: string[];
-  showAvailableParticipants: boolean;
+  showAvailableParticipants?: boolean;
 }
 export interface LiveKitRoomState {
   isMeetingStarted: boolean;
@@ -31,6 +32,10 @@ export interface LiveKitRoomState {
   helpMessageModal: boolean;
   loading: boolean;
   roomName: string;
+  isVideoLoading: boolean;
+  isMicLoading: boolean;
+  isPreviewVideoOn: boolean;
+  isPreviewMicOn: boolean;
 }
 
 export const initialState: LiveKitRoomState = {
@@ -57,6 +62,10 @@ export const initialState: LiveKitRoomState = {
   helpMessageModal: false,
   loading: false,
   roomName: '',
+  isVideoLoading: false,
+  isMicLoading: false,
+  isPreviewVideoOn: false,
+  isPreviewMicOn: false,
 };
 
 export const liveKitRoomReducer = createReducer(
@@ -94,19 +103,6 @@ export const liveKitRoomReducer = createReducer(
     })
   ),
   on(
-    LiveKitRoomActions.LiveKitActions.enableCameraAndMicrophoneSuccess,
-    (state) => ({
-      ...state,
-    })
-  ),
-  on(
-    LiveKitRoomActions.LiveKitActions.enableCameraAndMicrophoneFailure,
-    (state, { error }) => ({
-      ...state,
-      error,
-    })
-  ),
-  on(
     LiveKitRoomActions.LiveKitActions.toggleScreenShareSuccess,
     (state, { isScreenSharing }) => {
       console.log('Reducer: Screen Sharing Success', isScreenSharing);
@@ -124,12 +120,17 @@ export const liveKitRoomReducer = createReducer(
       error,
     })
   ),
+  on(LiveKitRoomActions.LiveKitActions.toggleVideo, (state) => ({
+    ...state,
+    isVideoLoading: true,
+  })),
   on(
     LiveKitRoomActions.LiveKitActions.toggleVideoSuccess,
     (state, { isVideoOn }) => ({
       ...state,
 
       isVideoOn,
+      isVideoLoading: false,
     })
   ),
   on(
@@ -137,6 +138,7 @@ export const liveKitRoomReducer = createReducer(
     (state, { error }) => ({
       ...state,
       error,
+      isVideoLoading: false,
     })
   ),
   on(
@@ -146,14 +148,22 @@ export const liveKitRoomReducer = createReducer(
       return {
         ...state,
         isMicOn,
+        isMicLoading: false,
       };
     }
   ),
+  on(LiveKitRoomActions.LiveKitActions.toggleMic, (state) => {
+    return {
+      ...state,
+      isMicLoading: true,
+    };
+  }),
   on(
     LiveKitRoomActions.LiveKitActions.toggleMicFailure,
     (state, { error }) => ({
       ...state,
       error,
+      isMicLoading: false,
     })
   ),
 
@@ -352,20 +362,47 @@ export const liveKitRoomReducer = createReducer(
     })
   ),
   //creating new rooms
-  on(LiveKitRoomActions.BreakoutActions.createNewRoom, (state) => ({
-    ...state,
+  // on(LiveKitRoomActions.BreakoutActions.createNewRoom, (state) => ({
+  //   ...state,
 
-    breakoutRoomsData: [
-      ...state.breakoutRoomsData,
-      {
-        roomName: `${state.roomName} Room ${
-          state.breakoutRoomsData.length + 1
-        }`,
-        participantIds: [],
-        showAvailableParticipants: false,
-      },
-    ],
-  })),
+  // breakoutRoomsData: [
+  //   ...state.breakoutRoomsData,
+  //   {
+  //     roomName: `${state.roomName} Room ${
+  //       state.breakoutRoomsData.length + 1
+  //     }`,
+  //     participantIds: [],
+  //     showAvailableParticipants: false,
+  //   },
+  // ],
+  // })),
+  on(
+    LiveKitRoomActions.BreakoutActions.createNewRoomSuccess,
+    (state, { newRoom }) => ({
+      ...state,
+      breakoutRoomsData: [
+        ...state.breakoutRoomsData,
+        {
+          ...newRoom, // Include properties from the newRoom payload
+          roomName: `${state.roomName} Room ${
+            state.breakoutRoomsData.length + 1
+          }`, // Dynamically set the roomName
+          participantIds: newRoom.participantIds || [], // Use participantIds from newRoom or default to an empty array
+          showAvailableParticipants: newRoom.showAvailableParticipants ?? false, // Use existing or default value
+        },
+      ],
+    })
+  ),
+  on(
+    LiveKitRoomActions.BreakoutActions.recreateRoomSuccess,
+    (state, { newRoom }) => ({
+      ...state,
+      breakoutRoomsData: [
+        ...state.breakoutRoomsData.filter((room) => room.id !== newRoom.id), // Remove the old room
+        newRoom, // Add the new room
+      ],
+    })
+  ),
   on(
     LiveKitRoomActions.BreakoutActions.toggleParticipantsList,
     (state, { index }) => {
@@ -431,6 +468,35 @@ export const liveKitRoomReducer = createReducer(
       ...state,
       error,
       loading: false,
+    })
+  ),
+  // video and mic loader
+  // on(
+  //   LiveKitRoomActions.LiveKitActions.setVideoLoading,
+  //   (state, { isLoading }) => ({
+  //     ...state,
+  //     isVideoLoading: isLoading,
+  //   })
+  // ),
+  // on(
+  //   LiveKitRoomActions.LiveKitActions.setMicLoading,
+  //   (state, { isLoading }) => ({
+  //     ...state,
+  //     isMicLoading: isLoading,
+  //   })
+  // ),
+  on(
+    LiveKitRoomActions.LiveKitActions.previewCameraEnable,
+    (state, { isPreviewVideo }) => ({
+      ...state,
+      isPreviewVideoOn: isPreviewVideo,
+    })
+  ),
+  on(
+    LiveKitRoomActions.LiveKitActions.previewMicEnable,
+    (state, { isPreviewMic }) => ({
+      ...state,
+      isPreviewMicOn: isPreviewMic,
     })
   )
 );

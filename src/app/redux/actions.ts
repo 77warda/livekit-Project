@@ -1,4 +1,5 @@
 import { createActionGroup, emptyProps, props } from '@ngrx/store';
+import { BreakoutRoom } from './reducer';
 
 // Grouping Meeting-related actions
 export const MeetingActions = createActionGroup({
@@ -21,10 +22,9 @@ export const LiveKitActions = createActionGroup({
   events: {
     startMeeting: props<{ wsURL: string; token: string }>(),
     startMeetingSuccess: emptyProps(),
+    // startMeetingSuccess: props<{ isVideoOn: boolean }>(),
+
     startMeetingFailure: props<{ error: string }>(),
-    enableCameraAndMicrophone: emptyProps(),
-    enableCameraAndMicrophoneSuccess: emptyProps(),
-    enableCameraAndMicrophoneFailure: props<{ error: string }>(),
     toggleRaiseHand: emptyProps(),
     toggleScreenShare: emptyProps(),
     toggleScreenShareSuccess: props<{ isScreenSharing: boolean }>(),
@@ -43,6 +43,12 @@ export const LiveKitActions = createActionGroup({
     resetUnreadMessagesCount: emptyProps(),
     updateMessages: props<{ allMessages: any[] }>(),
     scrollToBottom: emptyProps(),
+
+    // setVideoLoading: props<{ isLoading: boolean }>(),
+    // setMicLoading: props<{ isLoading: boolean }>(),
+
+    previewCameraEnable: props<{ isPreviewVideo: boolean }>(),
+    previewMicEnable: props<{ isPreviewMic: boolean }>(),
   },
 });
 
@@ -91,10 +97,14 @@ export const BreakoutActions = createActionGroup({
     //creating new rooms
     // initiateCreateNewRoom: emptyProps(),
     CreateNewRoom: emptyProps(),
-    // CreateNewRoomSuccess: props<{
-    //   roomName: string;
-    //   participantIds?: string[];
-    // }>(),
+    CreateNewRoomSuccess: props<{
+      newRoom: {
+        roomName: string;
+        participantIds: string[];
+        showAvailableParticipants: boolean;
+      };
+    }>(),
+    CreateNewRoomFailure: props<{ error: any }>(),
     ToggleParticipantsList: props<{ index: number }>(),
     AddParticipant: props<{ roomName: string; participantId: string }>(),
     RemoveParticipant: props<{ roomName: string; participantId: string }>(),
@@ -115,5 +125,9 @@ export const BreakoutActions = createActionGroup({
       message: string;
     }>(),
     breakoutRoomsInvitationFailure: props<{ error: any }>(),
+    // reacreate actions
+    recreateRoom: props<{ roomId: string }>(),
+    recreateRoomSuccess: props<{ newRoom: BreakoutRoom }>(),
+    recreateRoomFailure: props<{ error: any }>(),
   },
 });

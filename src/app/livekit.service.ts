@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import {
+  AudioTrack,
   DataPacket_Kind,
+  LocalAudioTrack,
   LocalParticipant,
   LocalTrackPublication,
   Participant,
@@ -16,22 +17,17 @@ import {
   VideoQuality,
 } from 'livekit-client';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import {
-  BehaviorSubject,
-  Observable,
-  RetryConfig,
-  Subject,
-  catchError,
-  from,
-  of,
-  tap,
-  throwError,
-} from 'rxjs';
+import { BehaviorSubject, Observable, Subject, from, of } from 'rxjs';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { MeetingService } from './Meeting-Service/meeting.service';
 import { ActivatedRoute } from '@angular/router';
 import { Store } from '@ngrx/store';
 import * as LiveKitRoomActions from './redux/actions';
+// import {
+//   BackgroundBlur,
+//   BackgroundTransformer,
+//   ProcessorWrapper,
+// } from '@livekit/track-processors';
 
 @Injectable({
   providedIn: 'root',
@@ -292,6 +288,7 @@ export class LiveKitService {
       })
     );
   }
+
   getRoomName() {
     this.roomNameFromUrl = this.room.name;
     console.log('roomname from service', this.roomNameFromUrl);
@@ -686,6 +683,63 @@ export class LiveKitService {
       console.warn('No breakout rooms available to send close alert.');
     }
   }
+
+  private async startMicVisualization(
+    canvas: HTMLCanvasElement,
+    track: AudioTrack
+  ): Promise<void> {
+    const audioCtx = new AudioContext();
+    const micAnalyzer = audioCtx.createAnalyser();
+    micAnalyzer.fftSize = 1024;
+
+    const micBufferLength = micAnalyzer.frequencyBinCount;
+    const micDataArray = new Uint8Array(micBufferLength);
+
+    const mediaStream = new MediaStream([track.mediaStreamTrack]);
+    const source = audioCtx.createMediaStreamSource(mediaStream);
+    source.connect(micAnalyzer);
+
+    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
+    const WIDTH = canvas.width;
+    const HEIGHT = canvas.height;
+
+    const drawAudioData = () => {
+      requestAnimationFrame(drawAudioData);
+
+      ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+      const numBars = 3;
+      const barWidth = WIDTH / (numBars * 1.5);
+      const spacing = WIDTH / numBars - barWidth;
+
+      micAnalyzer.getByteFrequencyData(micDataArray);
+
+      const leftBarValue = micDataArray[0] / 255;
+      const centerBarValue = micDataArray[1] / 255;
+      const rightBarValue = micDataArray[2] / 255;
+
+      const barHeights = [
+        Math.max(leftBarValue, rightBarValue) * HEIGHT * 0.5,
+        centerBarValue * HEIGHT * 1.5,
+        Math.max(leftBarValue, rightBarValue) * HEIGHT * 0.5,
+      ];
+
+      for (let i = 0; i < numBars; i++) {
+        const barHeight = barHeights[i];
+
+        ctx.fillStyle = '#fff'; // White color for the bars
+        ctx.beginPath();
+        ctx.moveTo(i * (barWidth + spacing), HEIGHT / 2 - barHeight);
+        ctx.lineTo(i * (barWidth + spacing) + barWidth, HEIGHT / 2 - barHeight);
+        ctx.lineTo(i * (barWidth + spacing) + barWidth, HEIGHT / 2 + barHeight);
+        ctx.lineTo(i * (barWidth + spacing), HEIGHT / 2 + barHeight);
+        ctx.closePath();
+        ctx.fill();
+      }
+    };
+
+    drawAudioData();
+  }
   audioVideoHandler() {
     this.room = new Room();
     this.participants = this.room.numParticipants;
@@ -755,63 +809,6 @@ export class LiveKitService {
      * @param {RemoteParticipant} [participant] - The participant who sent the data.
      * @param {DataPacket_Kind} [kind] - The kind of data packet.
      */
-    // this.room.on(
-    //   RoomEvent.DataReceived,
-    //   (
-    //     payload: Uint8Array,
-    //     participant: RemoteParticipant | undefined,
-    //     kind: DataPacket_Kind | undefined
-    //   ) => {
-    //     const strData = this.decoder.decode(payload);
-    //     const message = JSON.parse(strData);
-    //     console.log('mesg', JSON.parse(strData));
-    //     console.log('participant', participant);
-    //     this.msgDataReceived.next({ message, participant });
-    //     if (message.type === 'handRaise') {
-    //       this.handRaised.next({
-    //         participant: participant,
-    //         handRaised: message.handRaised,
-    //       });
-    //     }
-    //     if (message.type === 'breakoutRoom') {
-    //       console.log(
-    //         `Breakout room assigned: ${message.roomName} from host "${participant?.identity}"`
-    //       );
-
-    //       // Ensure the message is only sent to the intended participant
-    //       if (participant) {
-    //         this.breakoutRoom.next({
-    //           participant: participant,
-    //           roomName: message.roomName, // Use the room name from the message
-    //         });
-    //       }
-    //     }
-    //     if (message.title === this.roomNameFromUrl) {
-    //       console.log(`Received message in breakout room: ${message}`);
-
-    //       // Add the new message content to the array
-    //       this.messageArray.push(message);
-
-    //       // Emit the updated message array
-    //       this.messageContentReceived.next(this.messageArray);
-    //     } else {
-    //       console.log(`Message not for this breakout room`);
-    //     }
-
-    //     //======
-    //     if (message.title.includes(`${this.roomNameFromUrl} Room`)) {
-    //       console.log(`Received message in main room: ${message}`);
-
-    //       // Add the new message content to the array
-    //       this.messageArrayToMain.push(message);
-
-    //       // Emit the updated message array
-    //       this.messageToMain.next(this.messageArrayToMain);
-    //     } else {
-    //       console.log(`Message not for this main room`);
-    //     }
-    //   }
-    // );
     this.room.on(
       RoomEvent.DataReceived,
       (
@@ -1032,7 +1029,10 @@ export class LiveKitService {
      */
     this.room.on(
       RoomEvent.LocalTrackPublished,
-      (publication: LocalTrackPublication, participant: LocalParticipant) => {
+      async (
+        publication: LocalTrackPublication,
+        participant: LocalParticipant
+      ) => {
         if (publication.track?.source === Track.Source.Camera) {
           const participantTile = document.getElementById(`${participant.sid}`);
           console.log('testing avatar', participantTile);
@@ -1044,7 +1044,7 @@ export class LiveKitService {
             }
 
             // Attach the video track to the participant tile
-            const element = publication.track.attach();
+            const element = publication.track.attach() as HTMLVideoElement;
             element.setAttribute('class', 'pip-video');
             participantTile.appendChild(element);
             element.setAttribute(
@@ -1079,7 +1079,6 @@ export class LiveKitService {
                   line-height: 1;
                 `
               );
-
               const el4 = document.createElement('div');
               el4.setAttribute('class', 'lk-participant-metadata-item');
               el4.setAttribute(
@@ -1107,6 +1106,8 @@ export class LiveKitService {
               el4.appendChild(el5);
               el3.appendChild(el4);
               participantTile.appendChild(el3);
+
+              // await element.requestPictureInPicture();
             }
 
             console.log('local track published', publication.track);
@@ -1115,15 +1116,61 @@ export class LiveKitService {
             this.openSnackBar(`Video could not open. Try again later`);
           }
         }
+        if (publication.track && publication.track.kind === 'audio') {
+          const participantTile = document.getElementById(`${participant.sid}`);
+          if (participantTile) {
+            // Remove any existing microphone visualizations
+            let micVisualization =
+              participantTile.querySelector('.mic-visualization');
+            if (micVisualization) {
+              participantTile.removeChild(micVisualization);
+            }
+
+            // Create and append the mic visualization container
+            micVisualization = document.createElement('div');
+            micVisualization.classList.add('mic-visualization');
+            micVisualization.setAttribute(
+              'style',
+              `
+              height: 10vh;
+              width: 10vh;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: rgb(20, 112, 233);
+              border-radius: 100%;
+            `
+            );
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 150; // Set desired canvas size
+            canvas.height = 150;
+            canvas.style.borderRadius = '5px';
+            canvas.style.width = '3rem';
+            canvas.style.height = '70%';
+
+            micVisualization.appendChild(canvas);
+            participantTile.appendChild(micVisualization);
+
+            // Start microphone visualization
+            const audioTrack = publication.track as LocalAudioTrack; // Type assertion
+            this.startMicVisualization(canvas, audioTrack);
+          } else {
+            console.error(
+              `Participant tile for ${participant.identity} not found`
+            );
+          }
+        }
 
         this.screenShareTrackSubscribed.next(publication.track);
         if (publication.source === Track.Source.ScreenShare) {
           this.localScreenShareCount++;
-          // this.speakerModeLayout = false;
+          this.speakerModeLayout = false;
           console.error('Local Screen Share count', this.localScreenShareCount);
           setTimeout(() => {
             const el2 = document.createElement('div');
             el2.setAttribute('class', 'lk-participant-tile');
+
             el2.setAttribute('id', `screenshare-${participant.sid}`);
             el2.setAttribute(
               'style',
@@ -1137,7 +1184,7 @@ export class LiveKitService {
             border-radius: 0.5rem;`
             );
             const screenShareTrack = publication.track?.attach();
-            screenShareTrack?.setAttribute('class', 'pip-screenShare');
+            screenShareTrack.setAttribute('class', 'pip-screenShare');
             if (screenShareTrack) {
               const container = document.querySelector('.lk-focus-layout');
               console.log('screenshare container', container);
@@ -1353,8 +1400,11 @@ export class LiveKitService {
     publication: RemoteTrackPublication,
     participant: RemoteParticipant
   ) {
+    console.log('testing', publication);
     if (track.kind === 'video' && track.source === Track.Source.Camera) {
+      // ===================================
       const existingElement = document.getElementById(`${participant.sid}`);
+      console.log('testing avatar below', existingElement);
 
       if (existingElement) {
         // Remove the avatar image if it exists
@@ -1362,6 +1412,8 @@ export class LiveKitService {
         if (avatarImg) {
           existingElement.removeChild(avatarImg);
         }
+
+        // Attach the video track
         const element = track.attach();
         element.setAttribute('class', 'pip-video');
         element.setAttribute(
@@ -1378,15 +1430,15 @@ export class LiveKitService {
           el3.setAttribute(
             'style',
             `position: absolute;
-            right: 0.25rem;
-            bottom: 0.25rem;
-            left: 0.25rem;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.5rem;
-            line-height: 1;`
+     right: 0.25rem;
+     bottom: 0.25rem;
+     left: 0.25rem;
+     display: flex;
+     flex-direction: row;
+     align-items: center;
+     justify-content: space-between;
+     gap: 0.5rem;
+     line-height: 1;`
           );
 
           const el4 = document.createElement('div');
@@ -1394,10 +1446,10 @@ export class LiveKitService {
           el4.setAttribute(
             'style',
             `display: flex;
-      align-items: center;
-      padding: 0.25rem;
-      background-color: rgba(0, 0, 0, 0.5);
-      border-radius: calc(var(--lk-border-radius) / 2);`
+     align-items: center;
+     padding: 0.25rem;
+     background-color: rgba(0, 0, 0, 0.5);
+     border-radius: calc(var(--lk-border-radius) / 2);`
           );
 
           const el5 = document.createElement('span');
@@ -1405,7 +1457,7 @@ export class LiveKitService {
           el5.setAttribute(
             'style',
             `font-size: 0.875rem;
-      color: white;`
+     color: white;`
           );
           el5.innerText = participant.identity;
 
@@ -1436,7 +1488,6 @@ export class LiveKitService {
               retryElement.removeChild(avatarImg);
             }
             const element = track.attach();
-            element.setAttribute('class', 'pip-video');
             element.setAttribute(
               'style',
               'border-radius: 0.5rem; width: 100%; height: 100%; object-fit: cover; object-position: center; background-color: #000;'
@@ -1449,19 +1500,61 @@ export class LiveKitService {
       }
     }
     if (track.kind === 'audio') {
-      const container = document.getElementById('remoteAudioContainer');
-      if (container) {
+      // const container = document.getElementById('remoteAudioContainer');
+      // if (container) {
+      const participantTile = document.getElementById(`${participant.sid}`);
+      if (participantTile) {
         const element = track.attach();
-        container.appendChild(element);
-      } else {
-        console.error('Remote audio container not found');
+        participantTile.appendChild(element);
+        // Remove any existing microphone visualizations
+        let micVisualization =
+          participantTile.querySelector('.mic-visualization');
+        if (micVisualization) {
+          participantTile.removeChild(micVisualization);
+        }
+
+        // Create and append the mic visualization container
+        micVisualization = document.createElement('div');
+        micVisualization.classList.add('mic-visualization');
+        micVisualization.setAttribute(
+          'style',
+          `
+            height: 10vh;
+            width: 10vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(20, 112, 233, 0.8);
+            border-radius: 50%;
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+          `
+        );
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 150; // Set desired canvas size
+        canvas.height = 150;
+        canvas.style.borderRadius = '50%';
+        canvas.style.width = '80%';
+        canvas.style.height = '80%';
+
+        micVisualization.appendChild(canvas);
+        participantTile.appendChild(micVisualization);
+
+        // Start microphone visualization
+        const audioTrack = publication.track as AudioTrack; // Type assertion for generic audio tracks
+        this.startMicVisualization(canvas, audioTrack);
       }
+      // } else {
+      //   console.error('Remote audio container not found');
+      // }
     }
     this.screenShareTrackSubscribed.next(track);
     if (track.source === Track.Source.ScreenShare && track.kind === 'video') {
       this.remoteScreenShare = true;
       this.remoteScreenShareCount++;
-      // this.speakerModeLayout = false;
+      this.speakerModeLayout = false;
       console.error('Remote Screen Share count', this.remoteScreenShareCount);
       setTimeout(() => {
         const el2 = document.createElement('div');
@@ -1479,7 +1572,7 @@ export class LiveKitService {
        border-radius: 0.5rem;`
         );
         const screenShareTrack = publication.track?.attach();
-        screenShareTrack?.setAttribute('class', 'pip-screenShare');
+        screenShareTrack.setAttribute('class', 'pip-screenShare');
         if (screenShareTrack) {
           const container = document.querySelector('.lk-focus-layout');
           console.log('screenshare container', container);
@@ -1544,21 +1637,6 @@ export class LiveKitService {
     }
   }
 
-  /**
-   * Enables the camera and microphone for the local participant in the room.
-   *
-   * This method throws an error if the room is not enabled. Otherwise, it enables the camera and microphone
-   * for the local participant in the room.
-   *
-   * @returns {Promise<void>} A promise that resolves when the camera and microphone are enabled.
-   * @throws {Error} Throws an error if the room is not enabled.
-   */
-  async enableCameraAndMicrophone(): Promise<void> {
-    if (!this.room) {
-      throw new Error('Room not Enabled.');
-    }
-    await this.room.localParticipant.enableCameraAndMicrophone();
-  }
   /**
    * Toggles the microphone status (enabled/disabled) for the local participant in the room.
    *
@@ -1654,22 +1732,6 @@ export class LiveKitService {
    * @throws {Error} Throws an error if there is an issue toggling the screen share.
    */
 
-  // async toggleScreenShare(): Promise<boolean> {
-  //   if (this.isScreenSharingEnabled) {
-  //     await this.room.localParticipant.setScreenShareEnabled(false);
-  //     this.isScreenSharingEnabled = false;
-  //     const container = document.querySelector('.lk-focus-layout');
-  //     if (container) {
-  //       container.remove();
-  //     } else {
-  //       console.error('Local screen share container not found');
-  //     }
-  //   } else {
-  //     await this.room.localParticipant.setScreenShareEnabled(true);
-  //     this.isScreenSharingEnabled = true;
-  //   }
-  //   return this.isScreenSharingEnabled; // Return the updated screen sharing status
-  // }
   async toggleScreenShare(): Promise<boolean> {
     if (this.isScreenSharingEnabled) {
       // document.querySelector(`.lk-participant-tile[data-participant-id="${this.room.localParticipant.sid}-screenshare"]`);
@@ -1815,102 +1877,6 @@ export class LiveKitService {
    *
    * @returns {void}
    */
-
-  createAvatar(participant: Participant) {
-    const el2 = document.createElement('div');
-    el2.setAttribute('class', 'lk-participant-tile');
-    el2.setAttribute('id', `${participant.sid}`);
-    el2.setAttribute(
-      'style',
-      `position: relative;
-       display: flex;
-       flex-direction: column;
-       gap: 0.375rem;
-       border-radius: 0.5rem;
-       width: 100%;
-       min-height :60%;
-       background-color: #000;
-     `
-    );
-    setTimeout(() => {
-      const container = document.querySelector('.lk-grid-layout');
-      if (container) {
-        // Create metadata container
-        const el3 = document.createElement('div');
-        el3.setAttribute('class', 'lk-participant-metadata');
-        el3.setAttribute(
-          'style',
-          `
-           position: absolute;
-           right: 0.25rem;
-           bottom: 0.25rem;
-           left: 0.25rem;
-           display: flex;
-           flex-direction: row;
-           align-items: center;
-           justify-content: space-between;
-           gap: 0.5rem;
-           line-height: 1;
-         `
-        );
-        // Create metadata item
-        const el4 = document.createElement('div');
-        el4.setAttribute('class', 'lk-participant-metadata-item');
-        el4.setAttribute(
-          'style',
-          `
-           display: flex;
-           align-items: center;
-           padding: 0.25rem;
-           background-color: rgba(0, 0, 0, 0.5);
-           border-radius: calc(var(--lk-border-radius) / 2);
-         `
-        );
-        // Create participant name element
-        const el5 = document.createElement('span');
-        el5.setAttribute('class', 'lk-participant-name');
-        el5.setAttribute(
-          'style',
-          `
-            font-size: 0.875rem;
-            color: white;
-          `
-        );
-        el5.innerText = participant.identity;
-        // Append elements
-        el4.appendChild(el5);
-        el3.appendChild(el4);
-        el2.appendChild(el3);
-        // Create avatar image
-        const imgElement = document.createElement('img');
-        imgElement.setAttribute('src', '../assets/avatar.png');
-        imgElement.style.cssText = `
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 60px;
-          height: 60px;
-          border-radius: 50%;
-          object-fit: cover;
-          object-position: center;
-        `;
-        const audioElement = document.createElement('span');
-        audioElement.setAttribute('class', 'lk-participant-name');
-        audioElement.setAttribute(
-          'style',
-          `
-            font-size: 0.875rem;
-            color: white;
-          `
-        );
-        audioElement.innerText = participant.identity;
-        el2.appendChild(imgElement);
-        // Append participant tile to container
-        container.appendChild(el2);
-      }
-    }, 100);
-  }
   toggleExpand(element: any, participantId: any) {
     const originalTileElStyle = `--lk-speaking-indicator-width: 2.5px;
         position: relative;
@@ -2018,8 +1984,103 @@ export class LiveKitService {
       }
     });
   }
+  createAvatar(participant: Participant) {
+    const el2 = document.createElement('div');
+    el2.setAttribute('class', 'lk-participant-tile');
+    el2.setAttribute('id', `${participant.sid}`);
+    el2.setAttribute(
+      'style',
+      `position: relative;
+       display: flex;
+       flex-direction: column;
+       gap: 0.375rem;
+       border-radius: 0.5rem;
+       width: 100%;
+       min-height :60%;
+       background-color: #000;
+     `
+    );
+    setTimeout(() => {
+      const container = document.querySelector('.lk-grid-layout');
+      if (container) {
+        // Create metadata container
+        const el3 = document.createElement('div');
+        el3.setAttribute('class', 'lk-participant-metadata');
+        el3.setAttribute(
+          'style',
+          `
+           position: absolute;
+           right: 0.25rem;
+           bottom: 0.25rem;
+           left: 0.25rem;
+           display: flex;
+           flex-direction: row;
+           align-items: center;
+           justify-content: space-between;
+           gap: 0.5rem;
+           line-height: 1;
+         `
+        );
+        // Create metadata item
+        const el4 = document.createElement('div');
+        el4.setAttribute('class', 'lk-participant-metadata-item');
+        el4.setAttribute(
+          'style',
+          `
+           display: flex;
+           align-items: center;
+           padding: 0.25rem;
+           background-color: rgba(0, 0, 0, 0.5);
+           border-radius: calc(var(--lk-border-radius) / 2);
+         `
+        );
+        // Create participant name element
+        const el5 = document.createElement('span');
+        el5.setAttribute('class', 'lk-participant-name');
+        el5.setAttribute(
+          'style',
+          `
+            font-size: 0.875rem;
+            color: white;
+          `
+        );
+        el5.innerText = participant.identity;
+        // Append elements
+        el4.appendChild(el5);
+        el3.appendChild(el4);
+        el2.appendChild(el3);
+        // Create avatar image
+        const imgElement = document.createElement('img');
+        imgElement.setAttribute('src', '../assets/avatar.png');
+        imgElement.style.cssText = `
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          object-fit: cover;
+          object-position: center;
+        `;
+        const audioElement = document.createElement('span');
+        audioElement.setAttribute('class', 'lk-participant-name');
+        audioElement.setAttribute(
+          'style',
+          `
+            font-size: 0.875rem;
+            color: white;
+          `
+        );
+        audioElement.innerText = participant.identity;
+        el2.appendChild(imgElement);
+        // Append participant tile to container
+        container.appendChild(el2);
+      }
+    }, 100);
+  }
 
-  // old audio vusalize
+  //================================================================================= old audio vusalize
   // createAvatar(participant: Participant) {
   //   const el2 = document.createElement('div');
   //   el2.setAttribute('class', 'lk-participant-tile');
