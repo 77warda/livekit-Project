@@ -66,6 +66,24 @@ const PIPGRIDCOLUMN: { [key: number]: string } = {
   styleUrls: ['./live-kit-room.component.scss'],
 })
 export class LiveKitRoomComponent {
+  isMobileMenuOpen = false;
+  isUsersSidebarOpen = false;
+
+  // ====================
+
+  @ViewChild('annotationCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+
+  isAnnotationEnabled: boolean = false;
+  selectedMode: 'text' | 'erase' | 'draw' = 'draw'; // Default mode is 'text'
+  private ctx: CanvasRenderingContext2D | null = null;
+  private isDrawing: boolean = false;
+  private paths: Path2D[] = [];
+  private redoStack: Path2D[] = [];
+  private currentPath!: Path2D;
+  private isErasing: boolean = false; // To toggle erase mode
+  private textInput = ''; // For text input
+  // ====================
+
   @ViewChild('videoElement', { static: false })
   videoElement!: ElementRef<HTMLVideoElement>;
 
@@ -622,6 +640,12 @@ export class LiveKitRoomComponent {
           participant
         );
       });
+    // if (this.drawingCanvas) {
+    //   this.ctx = this.drawingCanvas.nativeElement.getContext('2d')!;
+    // } else {
+    //   console.error('Drawing canvas is not initialized.');
+    // }
+
     // this.livekitService.initCanvas(this.audioCanvasRef.nativeElement);
   }
   /**
@@ -2017,5 +2041,171 @@ export class LiveKitRoomComponent {
     } catch (error) {
       console.error('Error toggling Mic:', error);
     }
+  }
+
+  // Responsiveness;
+  openMobileMenu() {
+    this.isMobileMenuOpen = true;
+  }
+
+  closeMobileMenu() {
+    this.isMobileMenuOpen = false;
+  }
+  openUsersSidebar() {
+    this.isUsersSidebarOpen = true;
+  }
+  closeUsersSidebar() {
+    this.isUsersSidebarOpen = false;
+  }
+
+  // ============== Annotations work ==========
+  toggleAnnotation() {
+    this.isAnnotationEnabled = !this.isAnnotationEnabled;
+
+    if (this.isAnnotationEnabled) {
+      setTimeout(() => this.initializeCanvas(), 0);
+    }
+  }
+
+  initializeCanvas() {
+    const canvas = this.canvasRef.nativeElement;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    this.ctx = canvas.getContext('2d');
+    if (!this.ctx) return;
+
+    this.ctx.strokeStyle = 'red';
+    this.ctx.lineWidth = 2;
+    this.ctx.lineCap = 'round';
+
+    canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
+    canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+    canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
+  }
+
+  handleMouseDown(event: MouseEvent) {
+    if (!this.ctx) return;
+
+    if (this.selectedMode === 'draw') {
+      // Start drawing
+      this.isDrawing = true;
+      this.currentPath = new Path2D();
+      this.currentPath.moveTo(event.clientX, event.clientY);
+    } else if (this.selectedMode === 'erase') {
+      // Start erasing
+      this.isDrawing = true;
+      this.ctx.globalCompositeOperation = 'destination-out';
+      this.ctx.lineWidth = 10;
+      this.ctx.beginPath();
+      this.ctx.moveTo(event.clientX, event.clientY);
+    } else if (this.selectedMode === 'text') {
+      // Add text at the clicked position
+      const text = prompt('Enter text:') || '';
+      this.ctx.font = '16px Arial';
+      this.ctx.fillStyle = 'black';
+      this.ctx.fillText(text, event.clientX, event.clientY);
+    }
+  }
+
+  handleMouseMove(event: MouseEvent) {
+    if (!this.ctx || !this.isDrawing || this.selectedMode === 'text') return;
+
+    if (this.selectedMode === 'draw') {
+      this.currentPath.lineTo(event.clientX, event.clientY);
+      this.redrawCanvas();
+      this.ctx.stroke(this.currentPath);
+    } else if (this.selectedMode === 'erase') {
+      this.ctx.lineTo(event.clientX, event.clientY);
+      this.ctx.stroke();
+    }
+  }
+
+  handleMouseUp() {
+    if (!this.isDrawing || !this.ctx) return;
+
+    this.isDrawing = false;
+    if (this.selectedMode === 'draw') {
+      this.paths.push(this.currentPath);
+      this.redoStack = [];
+    }
+
+    this.ctx.globalCompositeOperation = 'source-over'; // Reset to default
+  }
+
+  redrawCanvas() {
+    if (!this.ctx) return;
+
+    this.ctx.clearRect(
+      0,
+      0,
+      this.canvasRef.nativeElement.width,
+      this.canvasRef.nativeElement.height
+    );
+    this.paths.forEach((path) => this.ctx!.stroke(path));
+  }
+
+  undoLastPath() {
+    if (!this.paths.length || !this.ctx) return;
+
+    const lastPath = this.paths.pop();
+    if (lastPath) {
+      this.redoStack.push(lastPath);
+    }
+
+    this.redrawCanvas();
+  }
+
+  redoLastPath() {
+    if (!this.redoStack.length || !this.ctx) return;
+
+    const pathToRedo = this.redoStack.pop();
+    if (pathToRedo) {
+      this.paths.push(pathToRedo);
+    }
+
+    this.redrawCanvas();
+  }
+
+  clearCanvas() {
+    if (!this.ctx) return;
+
+    this.paths = [];
+    this.redoStack = [];
+    this.ctx.clearRect(
+      0,
+      0,
+      this.canvasRef.nativeElement.width,
+      this.canvasRef.nativeElement.height
+    );
+  }
+
+  closeAnnotation() {
+    this.isAnnotationEnabled = false;
+    this.paths = [];
+    this.redoStack = [];
+    if (this.ctx) {
+      this.ctx.clearRect(
+        0,
+        0,
+        this.canvasRef.nativeElement.width,
+        this.canvasRef.nativeElement.height
+      );
+    }
+  }
+
+  toggleEraseMode() {
+    this.selectedMode = 'erase';
+  }
+
+  selectDrawMode() {
+    this.selectedMode = 'draw';
+  }
+
+  selectTextMode() {
+    this.selectedMode = 'text';
+  }
+  selectColor() {
+    console.log('select color');
   }
 }

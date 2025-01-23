@@ -470,21 +470,6 @@ export const liveKitRoomReducer = createReducer(
       loading: false,
     })
   ),
-  // video and mic loader
-  // on(
-  //   LiveKitRoomActions.LiveKitActions.setVideoLoading,
-  //   (state, { isLoading }) => ({
-  //     ...state,
-  //     isVideoLoading: isLoading,
-  //   })
-  // ),
-  // on(
-  //   LiveKitRoomActions.LiveKitActions.setMicLoading,
-  //   (state, { isLoading }) => ({
-  //     ...state,
-  //     isMicLoading: isLoading,
-  //   })
-  // ),
   on(
     LiveKitRoomActions.LiveKitActions.previewCameraEnable,
     (state, { isPreviewVideo }) => ({

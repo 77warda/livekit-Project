@@ -21,6 +21,7 @@
     "@angular/platform-browser": "^16.2.0",
     "@angular/platform-browser-dynamic": "^16.2.0",
     "@angular/router": "^16.2.0",
+    "@livekit/krisp-noise-filter": "^0.2.15",
     "@livekit/track-processors": "^0.3.3",
     "@ngrx/effects": "^16.3.0",
     "@ngrx/entity": "^16.3.0",

@@ -44,9 +44,6 @@ export const LiveKitActions = createActionGroup({
     updateMessages: props<{ allMessages: any[] }>(),
     scrollToBottom: emptyProps(),
 
-    // setVideoLoading: props<{ isLoading: boolean }>(),
-    // setMicLoading: props<{ isLoading: boolean }>(),
-
     previewCameraEnable: props<{ isPreviewVideo: boolean }>(),
     previewMicEnable: props<{ isPreviewMic: boolean }>(),
   },

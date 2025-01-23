@@ -218,6 +218,298 @@
     <div class="os-main-content" data-test="meetingStarted">
       <!-- header showing when meeting get started  -->
       <header class="header">
+        <div class="mobile-header-dropdown">
+          <button class="users-sidebar-toggle" (click)="openUsersSidebar()">
+            <i class="fas fa-users"></i>
+          </button>
+          <button class="dropdown-toggle" (click)="openMobileMenu()">
+            <i class="fa fa-bars"></i>
+          </button>
+        </div>
+
+        <div class="mobile-menu" *ngIf="isMobileMenuOpen">
+          <button class="close-menu" (click)="closeMobileMenu()">
+            &times;
+          </button>
+          <div class="mobile-content">
+            <div class="left-header-menu">
+              <h3>Left Header</h3>
+              <button
+                class=""
+                matTooltip="toggle speaker view"
+                (click)="speakerMode()"
+                [disabled]="
+                  !hasRemoteParticipants() ||
+                  livekitService.isScreenSharingEnabled === true ||
+                  livekitService.remoteScreenShare === true
+                "
+              >
+                <i class="far fa-speaker"></i>
+                Open Speaker Mode
+              </button>
+
+              <button
+                class="grid-view"
+                matTooltip="Open breakout modal"
+                (click)="openBreakoutModal()"
+                *ngIf="
+                  (!liveKitViewState.breakoutRoomsData ||
+                    liveKitViewState.breakoutRoomsData.length === 0) &&
+                  checkBreakoutRoom !== 'breakoutRoom'
+                "
+              >
+                <i class="far fa-th-large"></i>
+                Open Breakout Modal
+              </button>
+              <button
+                class="grid-view disabled-msg-btn"
+                matTooltip="Send Message to Breakout room"
+                (click)="openHostToBrMsgModal()"
+                [disabled]="liveKitViewState.breakoutRoomsData?.length === 0"
+                *ngIf="checkBreakoutRoom !== 'breakoutRoom'"
+              >
+                <i class="far fa-comments"></i>
+                Send Message to Breakout room
+              </button>
+              <button
+                data-cy="raise-hand"
+                *ngIf="localParticipant.isLocal"
+                (click)="toggleRaiseHand()"
+                [matTooltip]="
+                  localParticipant.handRaised ? 'Lower Hand' : 'Raise Hand'
+                "
+              >
+                <i
+                  class="fas fa-hand-paper"
+                  [ngClass]="{ 'hand-raised': localParticipant.handRaised }"
+                ></i>
+                {{ localParticipant.handRaised ? "Lower Hand" : "Raise Hand" }}
+              </button>
+            </div>
+            <hr />
+            <div class="right-header-menu">
+              <h3>Right Header</h3>
+              <button
+                matTooltip="Ask for Help To Main Room"
+                (click)="sendHelpRequest()"
+                *ngIf="checkBreakoutRoom === 'breakoutRoom'"
+              >
+                <i class="fas fa-user-headset"></i>
+                Ask for Help To Main Room
+              </button>
+              <button
+                class="people"
+                matTooltip="Breakout Rooms"
+                (click)="openBreakoutSideWindow()"
+                *ngIf="
+                  liveKitViewState.breakoutRoomsData &&
+                  liveKitViewState.breakoutRoomsData.length > 0
+                "
+              >
+                <i class="fas fa-th-large"></i>
+                All Breakout Rooms
+                <span
+                  *ngIf="getAvailableParticipants(room).length > 0"
+                  class="badge"
+                  >{{ liveKitViewState.breakoutRoomsData.length }}</span
+                >
+              </button>
+              <button
+                class="people"
+                matTooltip="Participants"
+                (click)="openParticipantSideWindow()"
+              >
+                <i class="fal fa-user-friends"></i>
+                All Participants
+              </button>
+
+              <button
+                class="chat"
+                matTooltip="Chat"
+                (click)="openChatSideWindow()"
+              >
+                <i class="far fa-comment-lines"></i>
+                <span
+                  *ngIf="
+                    !liveKitViewState.chatSideWindowVisible &&
+                    liveKitViewState.unreadMessagesCount > 0
+                  "
+                  class="badge"
+                  >0{{ liveKitViewState.unreadMessagesCount }}</span
+                >
+                Chat Messages
+              </button>
+
+              <div class="video-dropdown">
+                <button
+                  data-test="video-test"
+                  class="video"
+                  (click)="toggleVideo()"
+                  [disabled]="liveKitViewState.isVideoLoading"
+                  [matTooltip]="
+                    (liveKitViewState$ | async)?.isVideoOn
+                      ? 'Camera Off'
+                      : 'Camera On'
+                  "
+                >
+                  <ng-container
+                    *ngIf="liveKitViewState.isVideoLoading; else videoIcon"
+                  >
+                    <span class="loader"></span>
+                  </ng-container>
+                  <ng-template #videoIcon>
+                    <i
+                      class="fas"
+                      [ngClass]="{
+                        'fa-video': liveKitViewState.isVideoOn,
+                        'fa-video-slash': !liveKitViewState.isVideoOn
+                      }"
+                    ></i>
+                  </ng-template>
+                </button>
+
+                <select name="cars" id="cars">
+                  <option disabled value="volvo">Select Video</option>
+                  <option
+                    *ngFor="let video of videoDevices"
+                    (click)="selectVideo(video.deviceId)"
+                    [ngClass]="{
+                      selected: video.deviceId === selectedVideoId
+                    }"
+                    value="volvo"
+                  >
+                    {{ video.label || "Unnamed Device" }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="mic-dropdown">
+                <button
+                  class="mic"
+                  (click)="toggleMic()"
+                  [disabled]="liveKitViewState.isMicLoading"
+                  [matTooltip]="
+                    (liveKitViewState$ | async)?.isMicOn ? 'Mic Off' : 'Mic On'
+                  "
+                >
+                  <ng-container
+                    *ngIf="liveKitViewState.isMicLoading; else micIcon"
+                  >
+                    <span class="loader"></span>
+                  </ng-container>
+                  <ng-template #micIcon>
+                    <i
+                      class="fas"
+                      [ngClass]="{
+                        'fa-microphone': liveKitViewState.isMicOn,
+                        'fa-microphone-slash': !liveKitViewState.isMicOn
+                      }"
+                    ></i>
+                  </ng-template>
+                </button>
+                <div>
+                  <select>
+                    <option disabled value="Select a Microphone">
+                      Select a Microphone
+                    </option>
+                    <option
+                      value="mic"
+                      *ngFor="let mic of micDevices"
+                      (click)="selectMic(mic.deviceId)"
+                      [ngClass]="{
+                        selected: mic.deviceId === selectedMicId
+                      }"
+                    >
+                      {{ mic.label || "Unnamed Mic Device" }}
+                    </option>
+
+                    <!-- <option value="Select a Speaker">
+                        Select a Microphone
+                      </option>
+                      <option
+                        value="Speaker"
+                        *ngFor="let speaker of speakerDevices"
+                        (click)="selectSpeaker(speaker.deviceId)"
+                        [ngClass]="{
+                          selected: speaker.deviceId === selectedSpeakerId
+                        }"
+                      >
+                        {{ speaker.label || "Unnamed Speaker Device" }}
+                      </option> -->
+                  </select>
+                  <select>
+                    <option disabled value="Select a Speaker">
+                      Select a Microphone
+                    </option>
+                    <option
+                      value="Speaker"
+                      *ngFor="let speaker of speakerDevices"
+                      (click)="selectSpeaker(speaker.deviceId)"
+                      [ngClass]="{
+                        selected: speaker.deviceId === selectedSpeakerId
+                      }"
+                    >
+                      {{ speaker.label || "Unnamed Speaker Device" }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                class="share"
+                matTooltip="Share_Screen"
+                (click)="toggleScreenShare()"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  *ngIf="!livekitService.isScreenSharingEnabled"
+                >
+                  screen_share
+                </span>
+                <span
+                  class="material-symbols-outlined"
+                  *ngIf="livekitService.isScreenSharingEnabled"
+                  [ngStyle]="{ color: liveKitViewState.iconColor }"
+                >
+                  stop_screen_share
+                </span>
+                Share Your Screen
+              </button>
+              <div class="leave-container">
+                <button
+                  class="leave-btn"
+                  matTooltip="Leave Meeting"
+                  (click)="leaveBtnAccordion()"
+                >
+                  <h2>Leave</h2>
+                  <div class="chevron-icon">
+                    <i class="fas fa-chevron-down"></i>
+                  </div>
+                </button>
+                <div class="accordion" *ngIf="isLeaveAccordionOpen">
+                  <button class="accordion-option" (click)="leaveMeetingRoom()">
+                    Leave Meeting
+                  </button>
+                  <button
+                    *ngIf="liveKitViewState.breakoutRoomsData?.length > 0"
+                    class="accordion-option"
+                    (click)="closeAllBreakoutRooms()"
+                  >
+                    Close All breakout Rooms
+                  </button>
+                  <button
+                    *ngIf="checkBreakoutRoom === 'breakoutRoom'"
+                    class="accordion-option"
+                    (click)="leaveBreakoutRoomAndJoinMainRoom()"
+                  >
+                    Leave Breakout Room
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="left-header" data-test="left-header">
           <!-- <button
             class="grid-view"
@@ -274,6 +566,18 @@
               [ngClass]="{ 'hand-raised': localParticipant.handRaised }"
             ></i>
           </button>
+
+          <!-- <button
+            *ngIf="livekitService.isScreenSharingEnabled"
+            (click)="toggleAnnotation()"
+            matTooltip="Start Annotation"
+          >
+            <i class="fa fa-pencil"></i>
+          </button> -->
+          <button (click)="toggleAnnotation()" matTooltip="Start Annotation">
+            <i class="fa fa-pencil"></i>
+          </button>
+
           <!-- <div
             class="websocket-status"
             [ngClass]="{
@@ -485,6 +789,16 @@
           </div>
         </div>
       </header>
+      <!-- Sidebar for users while sharing screen in mobile view  -->
+      <div class="users-sidebar" *ngIf="isUsersSidebarOpen">
+        <button class="close-sidebar" (click)="closeUsersSidebar()">
+          &times;
+        </button>
+        <div class="mobile-content">
+          <h1>Hello</h1>
+          <hr />
+        </div>
+      </div>
       <!-- for screen sharing container  -->
       <ng-container
         *ngIf="
@@ -1193,9 +1507,6 @@
           [ngClass]="{ 'hand-raised': localParticipant.handRaised }"
         ></i>
       </button>
-      <button class="more" matTooltip="More">
-        <i class="fas fa-ellipsis-h"></i>
-      </button>
       <button
         class="leave-btn"
         matTooltip="Leave_Meeting"
@@ -1243,6 +1554,52 @@
       <div class="modal-actions">
         <button (click)="leaveBreakoutRoomAndJoinMainRoom()">
           Leave Room Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="annotation-container" *ngIf="isAnnotationEnabled">
+    <!-- Full-screen transparent canvas -->
+    <canvas #annotationCanvas id="annotationCanvas"></canvas>
+
+    <!-- Buttons for controlling annotation -->
+    <div class="annotation-buttons">
+      <div>
+        <button (click)="toggleEraseMode()" matTooltip="Erase Path">
+          <i class="fa fa-eraser"></i>
+          <p>Erase</p>
+        </button>
+        <button (click)="selectTextMode()" matTooltip="Text">
+          <i class="fa fa-font"></i>
+          <p>Text</p>
+        </button>
+        <button (click)="selectDrawMode()" matTooltip="Draw">
+          <i class="fas fa-paint-brush"></i>
+          <p>Draw</p>
+        </button>
+        <button (click)="selectColor()" matTooltip="Select color">
+          <i class="fa fa-circle"></i>
+          <p>Format</p>
+        </button>
+      </div>
+
+      <div>
+        <button (click)="undoLastPath()" matTooltip="Undo Last Path">
+          <i class="fa fa-undo"></i>
+          <p>Undo</p>
+        </button>
+        <button (click)="redoLastPath()" matTooltip="Redo Last Path">
+          <i class="fa fa-redo"></i>
+          <p>Redo</p>
+        </button>
+        <button (click)="clearCanvas()" matTooltip="Clear All Drawings">
+          <i class="fa fa-trash"></i>
+          <p>Clear</p>
+        </button>
+        <button (click)="closeAnnotation()" matTooltip="Close Annotation">
+          <i class="fa fa-times"></i>
+          <p>close</p>
         </button>
       </div>
     </div>

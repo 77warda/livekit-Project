@@ -28,7 +28,10 @@ import * as LiveKitRoomActions from './redux/actions';
 //   BackgroundTransformer,
 //   ProcessorWrapper,
 // } from '@livekit/track-processors';
-
+import {
+  isKrispNoiseFilterSupported,
+  KrispNoiseFilter,
+} from '@livekit/krisp-noise-filter';
 @Injectable({
   providedIn: 'root',
 })
@@ -1115,6 +1118,34 @@ export class LiveKitService {
             console.error('Participant tile not found');
             this.openSnackBar(`Video could not open. Try again later`);
           }
+        }
+        if (
+          publication.source === Track.Source.Microphone &&
+          publication.track instanceof LocalAudioTrack
+        ) {
+          if (!isKrispNoiseFilterSupported()) {
+            console.warn(
+              'Krisp noise filter is currently not supported on this browser'
+            );
+            return;
+          }
+          // Once instantiated, the filter will begin initializing and will download additional resources
+          const krispProcessor = KrispNoiseFilter();
+          console.log('Enabling LiveKit Krisp noise filter');
+          await publication.track.setProcessor(krispProcessor);
+
+          // To enable/disable the noise filter, use setEnabled()
+          await krispProcessor.setEnabled(true);
+          console.log(
+            `Krisp noise filter status: ${
+              krispProcessor.isEnabled() ? 'Enabled' : 'Disabled'
+            }`
+          );
+          // To check the current status use:
+          // krispProcessor.isEnabled()
+
+          // To stop and dispose of the Krisp processor, simply call:
+          // await trackPublication.track.stopProcessor()
         }
         if (publication.track && publication.track.kind === 'audio') {
           const participantTile = document.getElementById(`${participant.sid}`);
