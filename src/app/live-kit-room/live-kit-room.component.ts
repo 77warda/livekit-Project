@@ -69,6 +69,12 @@ export class LiveKitRoomComponent {
   isMobileMenuOpen = false;
   isUsersSidebarOpen = false;
 
+  isSpeaking: boolean = false;
+  recognition: any;
+
+  // To periodically check if the user is speaking
+  audioContext: AudioContext | null = null;
+  analyserNode: AnalyserNode | null = null;
   // ====================
 
   @ViewChild('annotationCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
@@ -271,6 +277,41 @@ export class LiveKitRoomComponent {
         })
       );
     });
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      this.recognition = new SpeechRecognition();
+      this.recognition.continuous = true;
+      this.recognition.interimResults = true;
+
+      // Detect when speech starts and results are coming in
+      this.recognition.onresult = (event: any) => {
+        console.log('Speech detected.');
+        this.isSpeaking = true; // Show the span while speaking
+
+        // Reset isSpeaking to false after a delay if speech stops
+        clearTimeout((this as any).speechTimeout); // Clear previous timeout
+        (this as any).speechTimeout = setTimeout(() => {
+          this.isSpeaking = false; // Hide span after no speech detected
+        }, 1000); // Adjust the timeout as needed
+      };
+
+      // Handle speech recognition errors
+      this.recognition.onerror = (event: any) => {
+        console.error('Speech Recognition Error:', event.error);
+        this.isSpeaking = false; // Ensure span is hidden on errors
+      };
+
+      // Handle the end of recognition session
+      this.recognition.onend = () => {
+        console.log('Speech recognition stopped.');
+        this.isSpeaking = false; // Hide span when recognition stops
+      };
+    } else {
+      console.error('Speech Recognition API is not supported in this browser.');
+    }
   }
 
   ngOnDestroy() {
@@ -673,16 +714,35 @@ export class LiveKitRoomComponent {
     );
     console.log('participant name ', this.participantName);
   }
-  async startMeeting() {
-    console.log('room name is ', this.dynamicRoomName);
+  // async startMeeting() {
+  //   console.log('room name is ', this.dynamicRoomName);
 
-    this.store.dispatch(
-      LiveKitRoomActions.MeetingActions.createMeeting({
-        participantNames: [this.participantName],
-        roomName: this.dynamicRoomName,
-      })
-    );
-    this.store.dispatch(LiveKitRoomActions.BreakoutActions.loadBreakoutRooms());
+  //   this.store.dispatch(
+  //     LiveKitRoomActions.MeetingActions.createMeeting({
+  //       participantNames: [this.participantName],
+  //       roomName: this.dynamicRoomName,
+  //     })
+  //   );
+  //   this.store.dispatch(LiveKitRoomActions.BreakoutActions.loadBreakoutRooms());
+  // }
+  async startMeeting() {
+    console.log(`Current roomName: ${this.dynamicRoomName}`);
+    if (this.dynamicRoomName) {
+      console.log(`Current roomName: ${this.dynamicRoomName}`);
+      this.store.dispatch(
+        LiveKitRoomActions.MeetingActions.createMeeting({
+          participantNames: [this.participantName],
+          roomName: this.dynamicRoomName, // Use the roomName dynamically
+        })
+      );
+      console.log(`Starting meeting in room: ${this.dynamicRoomName}`);
+      this.store.dispatch(
+        LiveKitRoomActions.BreakoutActions.loadBreakoutRooms()
+      );
+      await this.livekitService.applySelectedDevices();
+    } else {
+      console.error('Cannot start meeting: Room name is undefined!');
+    }
   }
 
   /**
@@ -2018,7 +2078,7 @@ export class LiveKitRoomComponent {
     }
   }
 
-  async togglePreviewMic() {
+  togglePreviewMic(): void {
     try {
       this.livekitService.toggleMicrophone().subscribe(
         (isMicOn) => {
@@ -2029,6 +2089,17 @@ export class LiveKitRoomComponent {
           console.error('Error enabling video by default:', error);
         }
       );
+      if (!this.isMicOn) {
+        // Start speech recognition
+        this.recognition.start();
+        console.log('Microphone turned on.');
+      } else {
+        // Stop speech recognition
+        this.recognition.stop();
+        console.log('Microphone turned off.');
+        this.isSpeaking = false; // Ensure span is hidden when mic is turned off
+      }
+
       this.isMicOn = !this.isMicOn;
       this.store.dispatch(
         LiveKitRoomActions.LiveKitActions.previewMicEnable({

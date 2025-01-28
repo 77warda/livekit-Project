@@ -112,7 +112,10 @@
                     'fa-microphone': liveKitViewState.isMicOn,
                     'fa-microphone-slash': !liveKitViewState.isMicOn
                   }"
-                ></i>
+                >
+                  <!-- <span *ngIf="liveKitViewState.isMicOn"></span> -->
+                  <span *ngIf="isSpeaking"></span>
+                </i>
               </ng-template>
               Microphone
             </button>

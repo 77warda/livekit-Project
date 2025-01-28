@@ -36,6 +36,8 @@ import {
   providedIn: 'root',
 })
 export class LiveKitService {
+  audioElementPool: HTMLAudioElement[] = [];
+  private enableAudioBtn: HTMLButtonElement | null = null;
   // Subjects to broadcast device changes
   private deviceListsSubject = new BehaviorSubject({
     videoDevices: [],
@@ -280,6 +282,9 @@ export class LiveKitService {
 
   async connectToRoom(wsURL: string, token: string): Promise<void> {
     // this.audioVideoHandler();
+    const roomOptions = {
+      expWebAudioMix: true, // Enable experimental Web Audio Mix
+    };
     await this.room.connect(wsURL, token);
     console.log('Connected to room', this.room.name);
     // this.connectWebSocket();
@@ -743,11 +748,64 @@ export class LiveKitService {
 
     drawAudioData();
   }
+
+  private showEnableAudioButton(): void {
+    // Check if the button already exists
+    if (this.enableAudioBtn) return;
+
+    // Create the button
+    this.enableAudioBtn = document.createElement('button');
+    this.enableAudioBtn.innerText = 'Enable Audio';
+    this.enableAudioBtn.style.position = 'absolute';
+    this.enableAudioBtn.style.top = '10px';
+    this.enableAudioBtn.style.left = '10px';
+
+    // Attach the click handler
+    this.enableAudioBtn.onclick = async () => {
+      try {
+        await this.room.startAudio();
+        console.log('Audio playback enabled.');
+        this.enableAudioBtn?.remove();
+        this.enableAudioBtn = null; // Clean up
+      } catch (error) {
+        console.error('Failed to start audio:', error);
+      }
+    };
+
+    // Add the button to the DOM
+    document.body.appendChild(this.enableAudioBtn);
+  }
+
+  createSilentAudio(durationInSeconds: number, sampleRate: number): string {
+    const audioContext = new (window.AudioContext ||
+      (window as any).webkitAudioContext)();
+    const buffer = audioContext.createBuffer(
+      1,
+      durationInSeconds * sampleRate,
+      sampleRate
+    );
+    const channelData = buffer.getChannelData(0);
+    channelData.fill(0); // Fill the buffer with silence
+    const audioUrl = URL.createObjectURL(
+      new Blob([buffer], { type: 'audio/wav' })
+    );
+    return audioUrl;
+  }
+
   audioVideoHandler() {
     this.room = new Room();
     this.participants = this.room.numParticipants;
     console.log('total participants', this.participants);
 
+    // Listen for audio playback status changes
+    this.room.on(RoomEvent.AudioPlaybackStatusChanged, () => {
+      if (!this.room.canPlaybackAudio) {
+        console.warn(
+          'Audio playback is not allowed. Waiting for user interaction.'
+        );
+        this.showEnableAudioButton();
+      }
+    });
     /**
      * Handles the `ActiveSpeakersChanged` event triggered by the room to update the active speakers list and UI.
      *
@@ -1119,10 +1177,69 @@ export class LiveKitService {
             this.openSnackBar(`Video could not open. Try again later`);
           }
         }
+        // if (
+        //   publication.source === Track.Source.Microphone &&
+        //   publication.track instanceof LocalAudioTrack
+        // ) {
+        //   if (!isKrispNoiseFilterSupported()) {
+        //     console.warn(
+        //       'Krisp noise filter is currently not supported on this browser'
+        //     );
+        //     return;
+        //   }
+        //   // Once instantiated, the filter will begin initializing and will download additional resources
+        //   const krispProcessor = KrispNoiseFilter();
+        //   console.log('Enabling LiveKit Krisp noise filter');
+        //   await publication.track.setProcessor(krispProcessor);
+
+        //   // To enable/disable the noise filter, use setEnabled()
+        //   await krispProcessor.setEnabled(true);
+        //   console.log(
+        //     `Krisp noise filter status: ${
+        //       krispProcessor.isEnabled() ? 'Enabled' : 'Disabled'
+        //     }`
+        //   );
+        //   // To check the current status use:
+        //   // krispProcessor.isEnabled()
+
+        //   // To stop and dispose of the Krisp processor, simply call:
+        //   // await trackPublication.track.stopProcessor()
+        // }
         if (
           publication.source === Track.Source.Microphone &&
           publication.track instanceof LocalAudioTrack
         ) {
+          const isSafari = /^((?!chrome|android).)*safari/i.test(
+            navigator.userAgent
+          );
+          if (isSafari) {
+            // Ensure audio pool is initialized for Safari
+            if (this.audioElementPool || this.audioElementPool.length === 0) {
+              this.audioElementPool = Array.from({ length: 8 }, () => {
+                const audio = new Audio();
+                audio.autoplay = true;
+                audio.src = this.createSilentAudio(10, 44100); // Generates silent audio
+                audio
+                  .play()
+                  .catch((e) => console.warn('Audio playback failed:', e));
+                return audio;
+              });
+              console.log('Audio element pool initialized for Safari');
+            }
+
+            // Attach the audio track to an audio element from the pool
+            const audioElement = this.audioElementPool.pop();
+            if (audioElement) {
+              publication.track.attach(audioElement);
+              console.log(
+                'Audio track attached to an audio element from the pool'
+              );
+            } else {
+              console.warn(
+                'No available audio elements in the pool for Safari playback'
+              );
+            }
+          }
           if (!isKrispNoiseFilterSupported()) {
             console.warn(
               'Krisp noise filter is currently not supported on this browser'
@@ -2583,6 +2700,10 @@ export class LiveKitService {
 
   async setSpeakerDevice(deviceId: string): Promise<void> {
     try {
+      if (!('setSinkId' in HTMLAudioElement.prototype)) {
+        console.warn('setSinkId is not supported on this browser.');
+        // Provide alternative handling here if needed
+      }
       const audioElements = Array.from(
         document.querySelectorAll<HTMLAudioElement>('audio') // Select all audio elements
       );
@@ -2612,6 +2733,25 @@ export class LiveKitService {
   // ===========================
   async getDevices(kind: MediaDeviceKind): Promise<MediaDeviceInfo[]> {
     try {
+      const isSafari = /^((?!chrome|android).)*safari/i.test(
+        navigator.userAgent
+      );
+
+      if (isSafari) {
+        if (kind === 'audiooutput') {
+          console.warn(
+            'Safari does not allow programmatic control of audiooutput devices. Users must change it via system settings.'
+          );
+          // You can still list audio output devices:
+          // await navigator.mediaDevices.getUserMedia({ audio: true });
+          navigator.mediaDevices.enumerateDevices().then((deviceList) => {
+            const audioOutputDevices = deviceList.filter(
+              (device) => device.kind === 'audiooutput'
+            );
+            console.log('output', deviceList);
+          });
+        }
+      }
       // Call LiveKit's getLocalDevices method
       const devices = await Room.getLocalDevices(kind, true); // Request permissions by default
       console.log(`Available device ${kind}s`, devices);
@@ -2675,11 +2815,41 @@ export class LiveKitService {
       const success = await this.room.switchActiveDevice(kind, deviceId);
       if (success) {
         console.log(`Switched ${kind} to device: ${deviceId}`);
+        console.log(`Switched ${kind} to device: ${deviceId}`);
+        if (kind === 'videoinput') {
+          this.selectedVideoId = deviceId;
+        } else if (kind === 'audioinput') {
+          this.selectedMicId = deviceId;
+        } else if (kind === 'audiooutput') {
+          this.selectedSpeakerId = deviceId;
+        }
       } else {
         console.warn(`Failed to switch ${kind} to device: ${deviceId}`);
       }
     } catch (error) {
       console.error(`Error switching ${kind} to device: ${deviceId}`, error);
+    }
+  }
+
+  async applySelectedDevices(): Promise<void> {
+    try {
+      if (this.selectedVideoId) {
+        await this.room.switchActiveDevice('videoinput', this.selectedVideoId);
+        console.log(`Applied video device: ${this.selectedVideoId}`);
+      }
+      if (this.selectedMicId) {
+        await this.room.switchActiveDevice('audioinput', this.selectedMicId);
+        console.log(`Applied microphone device: ${this.selectedMicId}`);
+      }
+      if (this.selectedSpeakerId) {
+        await this.room.switchActiveDevice(
+          'audiooutput',
+          this.selectedSpeakerId
+        );
+        console.log(`Applied speaker device: ${this.selectedSpeakerId}`);
+      }
+    } catch (error) {
+      console.error('Error applying selected devices:', error);
     }
   }
   speakerLayoutChange() {
