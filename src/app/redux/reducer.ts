@@ -36,6 +36,7 @@ export interface LiveKitRoomState {
   isMicLoading: boolean;
   isPreviewVideoOn: boolean;
   isPreviewMicOn: boolean;
+  notesWindowVisible: boolean;
 }
 
 export const initialState: LiveKitRoomState = {
@@ -66,6 +67,7 @@ export const initialState: LiveKitRoomState = {
   isMicLoading: false,
   isPreviewVideoOn: false,
   isPreviewMicOn: false,
+  notesWindowVisible: false,
 };
 
 export const liveKitRoomReducer = createReducer(
@@ -175,6 +177,27 @@ export const liveKitRoomReducer = createReducer(
   on(LiveKitRoomActions.LiveKitActions.closeParticipantSideWindow, (state) => ({
     ...state,
     participantSideWindowVisible: false,
+  })),
+  on(LiveKitRoomActions.LiveKitActions.closeNotesWindow, (state) => ({
+    ...state,
+    notesWindowVisible: false,
+  })),
+
+  on(LiveKitRoomActions.LiveKitActions.toggleNotesWindow, (state) => ({
+    ...state,
+    notesWindowVisible: !state.notesWindowVisible,
+    participantSideWindowVisible:
+      state.participantSideWindowVisible && !state.notesWindowVisible
+        ? false
+        : state.participantSideWindowVisible,
+    chatSideWindowVisible:
+      state.chatSideWindowVisible && !state.participantSideWindowVisible
+        ? false
+        : state.chatSideWindowVisible,
+    breakoutSideWindowVisible:
+      state.breakoutSideWindowVisible && !state.participantSideWindowVisible
+        ? false
+        : state.breakoutSideWindowVisible,
   })),
 
   on(

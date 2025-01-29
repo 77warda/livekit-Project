@@ -161,6 +161,10 @@ export const selectParticipantIds = createSelector(
     );
   }
 );
+export const selectNotesWindowVisible = createSelector(
+  selectLiveKitRoomState,
+  (state: LiveKitRoomState) => state.notesWindowVisible
+);
 
 export const selectLiveKitRoomViewState = createSelector(
   selectIsMeetingStarted,
@@ -187,6 +191,7 @@ export const selectLiveKitRoomViewState = createSelector(
   selectParticipantIds,
   selectPreviewVideo,
   selectPreviewMic,
+  selectNotesWindowVisible,
   (
     isMeetingStarted,
     isVideoOn,
@@ -211,7 +216,8 @@ export const selectLiveKitRoomViewState = createSelector(
     isMicLoading,
     participantIds,
     isPreviewVideoOn,
-    isPreviewMicOn
+    isPreviewMicOn,
+    notesWindowVisible
   ) => ({
     isMeetingStarted,
     isVideoOn,
@@ -237,5 +243,6 @@ export const selectLiveKitRoomViewState = createSelector(
     participantIds,
     isPreviewVideoOn,
     isPreviewMicOn,
+    notesWindowVisible,
   })
 );

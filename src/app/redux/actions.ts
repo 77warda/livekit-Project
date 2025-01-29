@@ -46,6 +46,9 @@ export const LiveKitActions = createActionGroup({
 
     previewCameraEnable: props<{ isPreviewVideo: boolean }>(),
     previewMicEnable: props<{ isPreviewMic: boolean }>(),
+
+    toggleNotesWindow: emptyProps(),
+    closeNotesWindow: emptyProps(),
   },
 });
 

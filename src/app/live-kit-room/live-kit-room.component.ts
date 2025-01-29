@@ -181,6 +181,54 @@ export class LiveKitRoomComponent {
   private subscription!: Subscription;
   private remoteVideoSubscription!: Subscription;
   private screenShareSubscription!: Subscription;
+
+  // notes array
+  items = [
+    {
+      id: 101,
+      type: 'text',
+      content:
+        'Welcome to the LMS! This guide will help you get started. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. ',
+      file: null,
+    },
+    {
+      id: 102,
+      type: 'img',
+      content: '',
+      file: {
+        id: 201,
+        url: 'https://images.pexels.com/photos/707915/pexels-photo-707915.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+        title: 'Welcome Screen',
+      },
+    },
+    {
+      id: 103,
+      type: 'text',
+      content:
+        'Welcome to the LMS! This guide will help you get started. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. ',
+      file: null,
+    },
+    {
+      id: 104,
+      type: 'video',
+      content: '',
+      file: {
+        id: 202,
+        url: '../../assets/car3.mp4',
+        title: 'Getting Started Video',
+      },
+    },
+    {
+      id: 105,
+      type: 'audio',
+      content: '',
+      file: {
+        id: 203,
+        url: '../../assets/prism-of-darkness-funny-hip-hop-background-music-for-video-full-ver-291300.mp3',
+        title: 'Audio Guide',
+      },
+    },
+  ];
   constructor(
     private formBuilder: FormBuilder,
     public livekitService: LiveKitService,
@@ -958,6 +1006,15 @@ export class LiveKitRoomComponent {
     );
   }
   /**
+   * Dispatches an action to toggle the participant side window.
+   *
+   * @function
+   * @returns {void}
+   */
+  openNotes(): void {
+    this.store.dispatch(LiveKitRoomActions.LiveKitActions.toggleNotesWindow());
+  }
+  /**
    * Dispatches an action to toggle the breakout side window.
    *
    * @function
@@ -1021,6 +1078,16 @@ export class LiveKitRoomComponent {
     this.store.dispatch(
       LiveKitRoomActions.BreakoutActions.closeBreakoutSideWindow()
     );
+  }
+
+  /**
+   * Dispatches an action to close the Notes.
+   *
+   * @function
+   * @returns {void}
+   */
+  closeNotes(): void {
+    this.store.dispatch(LiveKitRoomActions.LiveKitActions.closeNotesWindow());
   }
   /**
    * Returns the CSS grid column style based on the number of participants in the LiveKit room.

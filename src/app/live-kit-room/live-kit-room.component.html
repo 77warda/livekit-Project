@@ -18,6 +18,7 @@
       </div>
     </div>
   </div>
+  <!-- Preview Screen started here  -->
   <div
     class="join-meeting-container"
     *ngIf="!liveKitViewState.isMeetingStarted && isInitialMeetingStarted"
@@ -171,7 +172,7 @@
       </div>
     </div>
   </div>
-
+  <!-- Meeting UI started here  -->
   <ng-container *ngIf="liveKitViewState.isMeetingStarted">
     <!-- container for audio  -->
     <div id="remoteAudioContainer"></div>
@@ -569,7 +570,6 @@
               [ngClass]="{ 'hand-raised': localParticipant.handRaised }"
             ></i>
           </button>
-
           <button
             *ngIf="livekitService.isScreenSharingEnabled"
             (click)="toggleAnnotation()"
@@ -611,6 +611,9 @@
               class="badge"
               >{{ liveKitViewState.breakoutRoomsData.length }}</span
             >
+          </button>
+          <button class="people" matTooltip="Notes" (click)="openNotes()">
+            <i class="far fa-file-alt"></i>
           </button>
           <button
             class="people"
@@ -1120,6 +1123,44 @@
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Notes Window open  -->
+    <div class="closeNotes" (click)="closeNotes()">
+      <div
+        *ngIf="liveKitViewState.notesWindowVisible"
+        class="notes-window-container"
+      >
+        <div class="notes-side-window" (click)="$event.stopPropagation()">
+          <h2>Notes</h2>
+          <div class="notes-container" *ngFor="let item of items">
+            <!-- Text Content -->
+            <p *ngIf="item.type === 'text'">{{ item.content }}</p>
+
+            <div class="notes-img-video">
+              <!-- Image Content -->
+              <div class="notes-img" *ngIf="item.type === 'img'">
+                <h3>{{ item.file?.title }}</h3>
+                <img [src]="item.file?.url" [alt]="item.file?.title" />
+              </div>
+
+              <!-- Video Content -->
+              <div class="notes-video" *ngIf="item.type === 'video'">
+                <h3>{{ item.file?.title }}</h3>
+                <video controls>
+                  <source [src]="item.file?.url" type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            </div>
+
+            <!-- Audio Content -->
+            <audio *ngIf="item.type === 'audio'" controls>
+              <source [src]="item.file?.url" type="audio/mpeg" />
+              Your browser does not support the audio tag.
+            </audio>
           </div>
         </div>
       </div>

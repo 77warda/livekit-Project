@@ -1463,6 +1463,115 @@
     }
 }
 
+//////////////////////////////////////////
+// Notes Side window container
+.notes-window-container {
+    position: fixed;
+    right: 0;
+    top: 9%;
+    height: 100%;
+    width: 100%;
+    z-index: 2;
+
+    .notes-side-window {
+        position: fixed;
+        right: 0;
+        top: 5.5%;
+        height: 94%;
+        width: 40rem;
+        background-color: #ffffff;
+        transition: left 0.2s ease-in-out;
+        overflow-y: auto;
+        animation: slideIn 0.2s linear;
+
+        &::-webkit-scrollbar {
+            width: 10px;
+            background: #e3e3e3;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background-color: #56585c4c;
+            border-radius: 20px;
+            border: 3px solid #e3e3e3;
+
+            &:hover {
+                background-color: #56585c93;
+            }
+
+            &:active {
+                background-color: #56585cc8;
+            }
+        }
+
+        h2 {
+            color: black;
+            font-weight: 550;
+            font-size: 1.5rem;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid #9e9e9e;
+        }
+
+        .notes-container {
+            padding: 0.5rem 1.4rem;
+
+            p {
+                font-size: 1.1rem;
+                background-color: #eee;
+                padding: 1rem;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+
+            }
+
+            .notes-img-video {
+                text-align: center;
+
+                img,
+                video {
+                    width: 25rem;
+                    height: 25vh;
+                    margin: 0.3rem;
+                }
+
+                .notes-img {
+                    background-color: #eee;
+                    border-radius: 10px;
+                    padding: 1rem 0.5rem;
+
+                    h3 {
+                        color: black;
+                        font-weight: 550;
+                        font-size: 1.5rem;
+                        padding: 5px;
+                        text-align: left;
+                    }
+                }
+
+                .notes-video {
+                    background-color: #eee;
+                    border-radius: 10px;
+                    padding: 1rem 0.5rem;
+
+                    h3 {
+                        color: black;
+                        font-weight: 550;
+                        font-size: 1.5rem;
+                        padding: 5px;
+                        text-align: left;
+                    }
+                }
+
+            }
+
+
+            audio {
+                width: 100% !important;
+            }
+        }
+    }
+}
+
 @keyframes slideIn {
     0% {
         transform: translateX(100%);
