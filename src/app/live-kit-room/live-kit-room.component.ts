@@ -28,6 +28,7 @@ import * as LiveKitRoomActions from '../redux/actions';
 import { BreakoutRoomService } from '../breakout-room-service/breakout-room.service';
 import { BreakoutRoom } from '../redux/reducer';
 import { ActivatedRoute, Router } from '@angular/router';
+import { VideoBookMark } from '../models/video-player.model';
 
 const GRIDCOLUMN: { [key: number]: string } = {
   1: '1fr',
@@ -183,6 +184,49 @@ export class LiveKitRoomComponent {
   private screenShareSubscription!: Subscription;
 
   // notes array
+  currentTime = 0;
+  activeBookmark: VideoBookMark | undefined;
+  isModalOpen = false; // Tracks if the modal is open or closed
+  video: {
+    id: string;
+    title: string;
+    url: string;
+    bookMarks: VideoBookMark[];
+  } = {
+    id: '1',
+    title: 'Math',
+    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    bookMarks: [
+      {
+        from: 0,
+        to: 120,
+        description: 'Intro',
+      },
+      {
+        from: 120,
+        to: 190,
+        description: 'SI Units',
+      },
+      {
+        from: 190,
+        to: 320,
+        description: 'Kinematics',
+      },
+      {
+        from: 320,
+        to: 450,
+        description: 'Magnetism',
+      },
+      {
+        from: 450,
+        to: 600,
+        description: 'Electricity',
+      },
+    ],
+  };
+
+  // Reactive Form Group
+  bookmarkForm: FormGroup;
   items = [
     {
       id: 101,
@@ -214,10 +258,39 @@ export class LiveKitRoomComponent {
       content: '',
       file: {
         id: 202,
-        url: '../../assets/car3.mp4',
+        url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
         title: 'Getting Started Video',
       },
+      enforceBookmarks: [true, false, false, true, true],
+      bookmarks: [
+        {
+          from: 0,
+          to: 120,
+          description: 'Intro',
+        },
+        {
+          from: 120,
+          to: 190,
+          description: 'SI Units',
+        },
+        {
+          from: 190,
+          to: 320,
+          description: 'Kinematics',
+        },
+        {
+          from: 320,
+          to: 450,
+          description: 'Magnetism',
+        },
+        {
+          from: 450,
+          to: 600,
+          description: 'Electricity',
+        },
+      ],
     },
+
     {
       id: 105,
       type: 'audio',
@@ -229,6 +302,8 @@ export class LiveKitRoomComponent {
       },
     },
   ];
+  enforceBookmarks =
+    this.items.find((item) => item.type === 'video')?.enforceBookmarks || [];
   constructor(
     private formBuilder: FormBuilder,
     public livekitService: LiveKitService,
@@ -238,7 +313,13 @@ export class LiveKitRoomComponent {
     private breakoutRoomService: BreakoutRoomService,
     private route: ActivatedRoute,
     private router: Router
-  ) {}
+  ) {
+    this.bookmarkForm = this.formBuilder.group({
+      description: ['', [Validators.required]],
+      from: [0, [Validators.required, Validators.min(0)]],
+      to: [0, [Validators.required, Validators.min(0)]],
+    });
+  }
 
   async ngOnInit() {
     console.log('Initializing LiveKitRoomComponent');
@@ -2345,5 +2426,94 @@ export class LiveKitRoomComponent {
   }
   selectColor() {
     console.log('select color');
+  }
+
+  // notes funtions
+  // selectBookmark(bookmark: VideoBookMark): void {
+  //   if (this.activeBookmark === bookmark) {
+  //     this.activeBookmark = undefined;
+  //   } else {
+  //     this.activeBookmark = bookmark;
+  //   }
+  // }
+  // updateCurrentTime(time: number): void {
+  //   this.currentTime = time;
+  //   console.log('time', time);
+  // }
+  // formatBookmarkDescription(bookmark: {
+  //   from: number;
+  //   to: number;
+  //   description: string;
+  // }): string {
+  //   const fromTime = this.formatTime(bookmark.from);
+  //   const toTime = this.formatTime(bookmark.to);
+  //   return `${bookmark.description} (${fromTime} - ${toTime})`;
+  // }
+  // formatTime(seconds: number): string {
+  //   const minutes = Math.floor(seconds / 60);
+  //   const remainingSeconds = seconds % 60;
+  //   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  // }
+  // Open the Add Bookmark modal
+  openAddBookmarkModal() {
+    this.isModalOpen = true;
+  }
+
+  // Close the modal
+  closeModal() {
+    this.isModalOpen = false;
+    this.bookmarkForm.reset();
+  }
+
+  // Add bookmark to the video.bookMarks array
+  addBookmark(item: any) {
+    if (this.bookmarkForm.valid && item.type === 'video') {
+      const newBookmark: VideoBookMark = this.bookmarkForm.value;
+
+      // Ensure bookmarks array exists
+      if (!item.bookmarks) {
+        item.bookmarks = [];
+      }
+
+      // Ensure enforceBookmarks array exists
+      if (!item.enforceBookmarks) {
+        item.enforceBookmarks = [];
+      }
+
+      // Add new bookmark
+      item.bookmarks.push(newBookmark);
+      item.enforceBookmarks.push(false); // or `true` if you want it enabled by default
+
+      // Close the modal and reset the form
+      this.closeModal();
+    }
+  }
+
+  selectBookmark(bookmark: VideoBookMark): void {
+    if (this.activeBookmark === bookmark) {
+      this.activeBookmark = undefined;
+    } else {
+      this.activeBookmark = bookmark;
+    }
+  }
+  formatBookmarkDescription(bookmark: {
+    from: number;
+    to: number;
+    description: string;
+  }): string {
+    const fromTime = this.formatTime(bookmark.from);
+    const toTime = this.formatTime(bookmark.to);
+    return `${bookmark.description} (${fromTime} - ${toTime})`;
+  }
+
+  formatTime(seconds: number): string {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+
+  updateCurrentTime(time: number): void {
+    this.currentTime = time;
+    console.log('time', time);
   }
 }

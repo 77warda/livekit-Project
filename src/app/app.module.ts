@@ -18,9 +18,17 @@ import { LiveKitRoomEffects } from './redux/effect';
 import { liveKitRoomReducer } from './redux/reducer';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { VideoPlayerComponent } from './video-player/video-player.component';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatIconModule } from '@angular/material/icon';
 
 @NgModule({
-  declarations: [AppComponent, LiveKitRoomComponent, ErrorDialogComponent],
+  declarations: [
+    AppComponent,
+    LiveKitRoomComponent,
+    ErrorDialogComponent,
+    VideoPlayerComponent,
+  ],
   imports: [
     BrowserModule,
     FormsModule,
@@ -36,6 +44,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
     StoreDevtoolsModule.instrument({ maxAge: 25 }),
     MatTooltipModule,
     MatProgressSpinnerModule,
+    MatMenuModule,
+    MatIconModule,
   ],
   providers: [],
   bootstrap: [AppComponent],
