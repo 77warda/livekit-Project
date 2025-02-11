@@ -27,6 +27,19 @@
     <div>
       <div class="video-preview">
         <div class="user-icon">
+          <p class="your-name">You</p>
+          <p class="preview-screen-mic">
+            <i
+              class="fas"
+              [ngClass]="{
+                'fa-microphone': liveKitViewState.isMicOn,
+                'fa-microphone-slash': !liveKitViewState.isMicOn
+              }"
+            >
+              <!-- <span *ngIf="liveKitViewState.isMicOn"></span> -->
+              <span *ngIf="isSpeaking"></span>
+            </i>
+          </p>
           <ng-container *ngIf="!isVideoOn">
             <span class="icon-placeholder">
               <img src="../assets/avatar.png" />
@@ -70,7 +83,6 @@
                   }"
                 ></i>
               </ng-template>
-              Camera
             </button>
 
             <!-- Dropdown for selecting video devices -->
@@ -79,7 +91,7 @@
               [disabled]="liveKitViewState.isVideoLoading"
               (click)="toggleVideoDropdown()"
             >
-              <i class="fas fa-caret-down"></i>
+              <i class="fa fa-ellipsis-v"></i>
             </button>
             <ul class="mic-toggle-dropdown" *ngIf="isVideoDropdownOpen">
               <li
@@ -118,7 +130,6 @@
                   <span *ngIf="isSpeaking"></span>
                 </i>
               </ng-template>
-              Microphone
             </button>
 
             <button
@@ -126,7 +137,7 @@
               [disabled]="liveKitViewState.isMicLoading"
               (click)="toggleMicDropdown()"
             >
-              <i class="fas fa-caret-down"></i>
+              <i class="fa fa-ellipsis-v"></i>
             </button>
             <ul *ngIf="isMicDropdownOpen" class="mic-toggle-dropdown">
               <li class="dropdown-heading">Select a Microphone</li>
