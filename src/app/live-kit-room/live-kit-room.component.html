@@ -230,7 +230,13 @@
         </div>
       </div>
     </div>
-    <div class="os-main-content" data-test="meetingStarted">
+    <div
+      class="os-main-content"
+      [ngClass]="{
+        'os-main-speaker': livekitService.speakerModeLayout
+      }"
+      data-test="meetingStarted"
+    >
       <!-- header showing when meeting get started  -->
       <header class="header">
         <div class="mobile-header-dropdown">
@@ -1704,64 +1710,6 @@
     </div>
   </div>
 
-  <!-- Creating pip Header  -->
-  <ng-container *ngIf="pipMode === true && liveKitViewState.isMeetingStarted">
-    <div id="pipHeader" class="pip-container" #pipContainer>
-      <button
-        data-test="video-test"
-        matTooltip="Video"
-        class="video"
-        (click)="toggleVideo()"
-      >
-        <i
-          class="fas"
-          [ngClass]="{
-            'fa-video': liveKitViewState.isVideoOn,
-            'fa-video-slash': !liveKitViewState.isVideoOn
-          }"
-        ></i>
-      </button>
-      <button class="mic" matTooltip="Mic" (click)="toggleMic()">
-        <i
-          class="fas"
-          [ngClass]="{
-            'fa-microphone': liveKitViewState.isMicOn,
-            'fa-microphone-slash': !liveKitViewState.isMicOn
-          }"
-        ></i>
-      </button>
-      <button
-        data-cy="raise-hand"
-        *ngIf="localParticipant?.isLocal"
-        (click)="toggleRaiseHand()"
-        matTooltip="Raise Hand"
-      >
-        <i
-          class="fas fa-hand-paper"
-          [ngClass]="{ 'hand-raised': localParticipant.handRaised }"
-        ></i>
-      </button>
-      <button
-        class="leave-btn"
-        matTooltip="Leave_Meeting"
-        (click)="leaveMeetingRoom()"
-      >
-        <span class="material-symbols-outlined"> call_end </span>
-      </button>
-    </div>
-    <!-- <div #pipModal class="pip-modal" *ngIf="showModal">
-      <div class="pip-modal-content">
-        <h2>Picture-in-Picture Mode</h2>
-        <p>Allow video feeds to play in Picture-in-Picture mode?</p>
-        <button id="allowButton" class="allow-btn" (click)="allowPiP()">
-          Allow
-        </button>
-        <button id="cancelButton" class="cancel-btn" (click)="cancelPiP()">
-          Cancel
-        </button>
-      </div>
-    </div> -->
-  </ng-container>
   <ng-container *ngIf="isRedirectionModalVisible">
     <div class="redirection-modal-overlay">
       <div class="redirection-modal-content">
@@ -1838,4 +1786,66 @@
       </div>
     </div>
   </div>
+
+  <!-- Creating pip Header  -->
+  <ng-container *ngIf="pipMode === true">
+    <div class="pip-container" #pipContainer id="pipHeader">
+      <button
+        data-test="video-test"
+        matTooltip="Video"
+        class="video"
+        (click)="toggleVideo()"
+      >
+        <i
+          class="fas"
+          [ngClass]="{
+            'fa-video': liveKitViewState.isVideoOn,
+            'fa-video-slash': !liveKitViewState.isVideoOn
+          }"
+        ></i>
+      </button>
+      <button class="mic" matTooltip="Mic" (click)="toggleMic()">
+        <i
+          class="fas"
+          [ngClass]="{
+            'fa-microphone': liveKitViewState.isMicOn,
+            'fa-microphone-slash': !liveKitViewState.isMicOn
+          }"
+        ></i>
+      </button>
+      <button
+        data-cy="raise-hand"
+        *ngIf="localParticipant?.isLocal"
+        (click)="toggleRaiseHand()"
+        matTooltip="Raise Hand"
+      >
+        <i
+          class="fas fa-hand-paper"
+          [ngClass]="{ 'hand-raised': localParticipant.handRaised }"
+        ></i>
+      </button>
+      <button class="more" matTooltip="More">
+        <i class="fas fa-ellipsis-h"></i>
+      </button>
+      <button
+        class="leave-btn"
+        matTooltip="Leave_Meeting"
+        (click)="leaveMeetingRoom()"
+      >
+        <span class="material-symbols-outlined"> call_end </span>
+      </button>
+    </div>
+    <div #pipModal class="pip-modal" *ngIf="showModal">
+      <div class="pip-modal-content">
+        <h2>Picture-in-Picture Mode</h2>
+        <p>Allow video feeds to play in Picture-in-Picture mode?</p>
+        <button id="allowButton" class="allow-btn" (click)="allowPiP()">
+          Allow
+        </button>
+        <button id="cancelButton" class="cancel-btn" (click)="cancelPiP()">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </ng-container>
 </ng-container>

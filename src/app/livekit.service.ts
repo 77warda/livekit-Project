@@ -1980,19 +1980,16 @@ export class LiveKitService {
       return;
     }
 
-    // Check if the participant is an active speaker
     const isActiveSpeaker = this.activeSpeakers.some(
       (speaker) => speaker.sid === participant.sid
     );
 
     if (isActiveSpeaker) {
-      // Handle the existing tile in the speaker layout
       const currentSpeakerTile = speakerLayout.firstElementChild;
       if (currentSpeakerTile && currentSpeakerTile !== participantTile) {
-        gridLayout.appendChild(currentSpeakerTile); // Move the existing speaker back to the grid
+        gridLayout.appendChild(currentSpeakerTile);
       }
 
-      // Move the active speaker to the speaker layout
       if (!speakerLayout.contains(participantTile)) {
         if (gridLayout.contains(participantTile)) {
           gridLayout.removeChild(participantTile);
@@ -2000,18 +1997,15 @@ export class LiveKitService {
         speakerLayout.appendChild(participantTile);
       }
 
-      // Set height based on location
-      participantTile.style.height = '100%'; // Full height in the speaker layout
+      participantTile.style.height = '100%';
     } else {
-      // Reset height if moved back to grid
       if (gridLayout.contains(participantTile)) {
-        participantTile.style.height = '40%'; // Reduced height in the grid layout
+        participantTile.style.height = '100%';
       }
     }
 
-    // Add consistent styling for all tiles
     participantTile.style.transition = 'border 0.3s ease-in-out';
-    participantTile.style.border = isActiveSpeaker ? '4px solid #28a745' : ''; // Add or remove border based on speaker status
+    participantTile.style.border = isActiveSpeaker ? '4px solid #28a745' : '';
   }
   /**
    * Creates and appends a participant avatar element to the grid layout.
@@ -2138,14 +2132,16 @@ export class LiveKitService {
     el2.setAttribute('id', `${participant.sid}`);
     el2.setAttribute(
       'style',
-      `position: relative;
+      `
+       position: relative;
        display: flex;
        flex-direction: column;
        gap: 0.375rem;
        border-radius: 0.5rem;
-       width: 100%;
-       min-height :60%;
        background-color: #000;
+       min-width: 340px;
+       max-width:100%;
+           height: 100%;
      `
     );
     setTimeout(() => {
