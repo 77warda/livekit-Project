@@ -303,6 +303,7 @@ export class LiveKitRoomComponent {
       },
     },
   ];
+
   enforceBookmarks =
     this.items.find((item) => item.type === 'video')?.enforceBookmarks || [];
   constructor(

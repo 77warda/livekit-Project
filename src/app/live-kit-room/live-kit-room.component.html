@@ -1144,7 +1144,7 @@
         </div>
       </div>
     </div>
-    <!-- Notes Window open  -->
+    <!-- meeting Notes Window open  -->
     <div class="closeNotes" (click)="closeNotes()">
       <div
         *ngIf="liveKitViewState.notesWindowVisible"
@@ -1152,6 +1152,7 @@
       >
         <div class="notes-side-window" (click)="$event.stopPropagation()">
           <h2 class="notes-side-window-heading">Notes</h2>
+          <app-walkthrough></app-walkthrough>
           <div class="notes-container" *ngFor="let item of items">
             <!-- Text Content -->
             <p *ngIf="item.type === 'text'">{{ item.content }}</p>

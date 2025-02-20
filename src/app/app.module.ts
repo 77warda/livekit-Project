@@ -21,6 +21,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { VideoPlayerComponent } from './video-player/video-player.component';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
+import { WalkthroughComponent } from './live-kit-room/walkthrough/walkthrough.component';
 
 @NgModule({
   declarations: [
@@ -28,6 +29,7 @@ import { MatIconModule } from '@angular/material/icon';
     LiveKitRoomComponent,
     ErrorDialogComponent,
     VideoPlayerComponent,
+    WalkthroughComponent,
   ],
   imports: [
     BrowserModule,

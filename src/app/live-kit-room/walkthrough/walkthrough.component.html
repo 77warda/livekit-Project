@@ -1,0 +1,14 @@
+<div class="walkthrough-container">
+  <div *ngFor="let step of visibleSteps" [@fadeIn] class="walkthrough-step">
+    <p>{{ step.content || step.step }}</p>
+    <small>{{ step.annotation }}</small>
+  </div>
+
+  <button
+    *ngIf="currentIndex < walkthroughData.steps.length - 1"
+    (click)="showNextStep()"
+    class="next-button"
+  >
+    Next
+  </button>
+</div>
