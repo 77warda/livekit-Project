@@ -184,128 +184,6 @@ export class LiveKitRoomComponent {
   private remoteVideoSubscription!: Subscription;
   private screenShareSubscription!: Subscription;
 
-  // notes array
-  currentTime = 0;
-  activeBookmark: VideoBookMark | undefined;
-  isModalOpen = false; // Tracks if the modal is open or closed
-  video: {
-    id: string;
-    title: string;
-    url: string;
-    bookMarks: VideoBookMark[];
-  } = {
-    id: '1',
-    title: 'Math',
-    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-    bookMarks: [
-      {
-        from: 0,
-        to: 120,
-        description: 'Intro',
-      },
-      {
-        from: 120,
-        to: 190,
-        description: 'SI Units',
-      },
-      {
-        from: 190,
-        to: 320,
-        description: 'Kinematics',
-      },
-      {
-        from: 320,
-        to: 450,
-        description: 'Magnetism',
-      },
-      {
-        from: 450,
-        to: 600,
-        description: 'Electricity',
-      },
-    ],
-  };
-
-  // Reactive Form Group
-  bookmarkForm: FormGroup;
-  items = [
-    {
-      id: 101,
-      type: 'text',
-      content:
-        'Welcome to the LMS! This guide will help you get started. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. ',
-      file: null,
-    },
-    {
-      id: 102,
-      type: 'img',
-      content: '',
-      file: {
-        id: 201,
-        url: 'https://images.pexels.com/photos/707915/pexels-photo-707915.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
-        title: 'Welcome Screen',
-      },
-    },
-    {
-      id: 103,
-      type: 'text',
-      content:
-        'Welcome to the LMS! This guide will help you get started. Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. ',
-      file: null,
-    },
-    {
-      id: 104,
-      type: 'video',
-      content: '',
-      file: {
-        id: 202,
-        url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-        title: 'Getting Started Video',
-      },
-      enforceBookmarks: [true, false, false, true, true],
-      bookmarks: [
-        {
-          from: 0,
-          to: 120,
-          description: 'Intro',
-        },
-        {
-          from: 120,
-          to: 190,
-          description: 'SI Units',
-        },
-        {
-          from: 190,
-          to: 320,
-          description: 'Kinematics',
-        },
-        {
-          from: 320,
-          to: 450,
-          description: 'Magnetism',
-        },
-        {
-          from: 450,
-          to: 600,
-          description: 'Electricity',
-        },
-      ],
-    },
-
-    {
-      id: 105,
-      type: 'audio',
-      content: '',
-      file: {
-        id: 203,
-        url: '../../assets/prism-of-darkness-funny-hip-hop-background-music-for-video-full-ver-291300.mp3',
-        title: 'Audio Guide',
-      },
-    },
-  ];
-
-  enforceBookmarks =
-    this.items.find((item) => item.type === 'video')?.enforceBookmarks || [];
   constructor(
     private formBuilder: FormBuilder,
     public livekitService: LiveKitService,
@@ -315,13 +193,7 @@ export class LiveKitRoomComponent {
     private breakoutRoomService: BreakoutRoomService,
     private route: ActivatedRoute,
     private router: Router
-  ) {
-    this.bookmarkForm = this.formBuilder.group({
-      description: ['', [Validators.required]],
-      from: [0, [Validators.required, Validators.min(0)]],
-      to: [0, [Validators.required, Validators.min(0)]],
-    });
-  }
+  ) {}
 
   async ngOnInit() {
     console.log('Initializing LiveKitRoomComponent');
@@ -456,11 +328,15 @@ export class LiveKitRoomComponent {
       this.screenShareSubscription.unsubscribe();
     }
     // Clean up the event listener when the component is destroyed
-    document.removeEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        this.enterPiP();
-      } else {
-        this.onLeavePiP();
+    this.liveKitViewState$.subscribe((state) => {
+      if (state.isMeetingStarted) {
+        document.removeEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            this.enterPiP();
+          } else {
+            this.onLeavePiP();
+          }
+        });
       }
     });
   }
@@ -549,24 +425,24 @@ export class LiveKitRoomComponent {
       select(selectLiveKitRoomViewState)
     );
 
-    // this.liveKitViewState$.subscribe((state) => {
-    //   this.breakoutRoomsData = state.breakoutRoomsData;
-    //   this.chatSideWindowVisible = state.chatSideWindowVisible;
-    //   if (state.isMeetingStarted) {
-    //     document.addEventListener('visibilitychange', () => {
-    //       if (document.hidden) {
-    //         this.enterPiP();
-    //       } else {
-    //         this.onLeavePiP();
-    //       }
-    //     });
-    //   }
-    // });
+    this.liveKitViewState$.subscribe((state) => {
+      this.breakoutRoomsData = state.breakoutRoomsData;
+      this.chatSideWindowVisible = state.chatSideWindowVisible;
+      if (state.isMeetingStarted) {
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            this.enterPiP();
+          } else {
+            this.onLeavePiP();
+          }
+        });
+      }
+    });
     // this.setupVideoStream();
-    document.addEventListener(
-      'visibilitychange',
-      this.handleVisibilityChange.bind(this)
-    );
+    // document.addEventListener(
+    //   'visibilitychange',
+    //   this.handleVisibilityChange.bind(this)
+    // );
   }
   // async setupVideoStream() {
   //   try {
@@ -591,13 +467,13 @@ export class LiveKitRoomComponent {
   // }
 
   // Step 3: Handle tab switch and enter PiP
-  async handleVisibilityChange() {
-    if (document.hidden && !this.isPiPActive) {
-      await this.enterPiP();
-    } else if (!document.hidden) {
-      this.onLeavePiP();
-    }
-  }
+  // async handleVisibilityChange() {
+  //   if (document.hidden && !this.isPiPActive) {
+  //     await this.enterPiP();
+  //   } else if (!document.hidden) {
+  //     this.onLeavePiP();
+  //   }
+  // }
   private initializeForms() {
     this.startForm = this.formBuilder.group({
       token: [''],
@@ -1067,7 +943,7 @@ export class LiveKitRoomComponent {
   async leaveMeetingRoom(): Promise<void> {
     this.store.dispatch(LiveKitRoomActions.MeetingActions.leaveMeeting());
     this.isLeaveAccordionOpen = false;
-    // this.onLeavePiP();
+    this.onLeavePiP();
     this.isLeaveAccordionOpen = false;
   }
 
@@ -2491,65 +2367,65 @@ export class LiveKitRoomComponent {
   //   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   // }
   // Open the Add Bookmark modal
-  openAddBookmarkModal() {
-    this.isModalOpen = true;
-  }
+  // openAddBookmarkModal() {
+  //   this.isModalOpen = true;
+  // }
 
-  // Close the modal
-  closeModal() {
-    this.isModalOpen = false;
-    this.bookmarkForm.reset();
-  }
+  // // Close the modal
+  // closeModal() {
+  //   this.isModalOpen = false;
+  //   this.bookmarkForm.reset();
+  // }
 
-  // Add bookmark to the video.bookMarks array
-  addBookmark(item: any) {
-    if (this.bookmarkForm.valid && item.type === 'video') {
-      const newBookmark: VideoBookMark = this.bookmarkForm.value;
+  // // Add bookmark to the video.bookMarks array
+  // addBookmark(item: any) {
+  //   if (this.bookmarkForm.valid && item.type === 'video') {
+  //     const newBookmark: VideoBookMark = this.bookmarkForm.value;
 
-      // Ensure bookmarks array exists
-      if (!item.bookmarks) {
-        item.bookmarks = [];
-      }
+  //     // Ensure bookmarks array exists
+  //     if (!item.bookmarks) {
+  //       item.bookmarks = [];
+  //     }
 
-      // Ensure enforceBookmarks array exists
-      if (!item.enforceBookmarks) {
-        item.enforceBookmarks = [];
-      }
+  //     // Ensure enforceBookmarks array exists
+  //     if (!item.enforceBookmarks) {
+  //       item.enforceBookmarks = [];
+  //     }
 
-      // Add new bookmark
-      item.bookmarks.push(newBookmark);
-      item.enforceBookmarks.push(false); // or `true` if you want it enabled by default
+  //     // Add new bookmark
+  //     item.bookmarks.push(newBookmark);
+  //     item.enforceBookmarks.push(false); // or `true` if you want it enabled by default
 
-      // Close the modal and reset the form
-      this.closeModal();
-    }
-  }
+  //     // Close the modal and reset the form
+  //     this.closeModal();
+  //   }
+  // }
 
-  selectBookmark(bookmark: VideoBookMark): void {
-    if (this.activeBookmark === bookmark) {
-      this.activeBookmark = undefined;
-    } else {
-      this.activeBookmark = bookmark;
-    }
-  }
-  formatBookmarkDescription(bookmark: {
-    from: number;
-    to: number;
-    description: string;
-  }): string {
-    const fromTime = this.formatTime(bookmark.from);
-    const toTime = this.formatTime(bookmark.to);
-    return `${bookmark.description} (${fromTime} - ${toTime})`;
-  }
+  // selectBookmark(bookmark: VideoBookMark): void {
+  //   if (this.activeBookmark === bookmark) {
+  //     this.activeBookmark = undefined;
+  //   } else {
+  //     this.activeBookmark = bookmark;
+  //   }
+  // }
+  // formatBookmarkDescription(bookmark: {
+  //   from: number;
+  //   to: number;
+  //   description: string;
+  // }): string {
+  //   const fromTime = this.formatTime(bookmark.from);
+  //   const toTime = this.formatTime(bookmark.to);
+  //   return `${bookmark.description} (${fromTime} - ${toTime})`;
+  // }
 
-  formatTime(seconds: number): string {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }
+  // formatTime(seconds: number): string {
+  //   const minutes = Math.floor(seconds / 60);
+  //   const remainingSeconds = seconds % 60;
+  //   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  // }
 
-  updateCurrentTime(time: number): void {
-    this.currentTime = time;
-    console.log('time', time);
-  }
+  // updateCurrentTime(time: number): void {
+  //   this.currentTime = time;
+  //   console.log('time', time);
+  // }
 }

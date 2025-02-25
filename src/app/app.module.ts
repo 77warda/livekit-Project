@@ -21,7 +21,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { VideoPlayerComponent } from './video-player/video-player.component';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
-import { WalkthroughComponent } from './live-kit-room/walkthrough/walkthrough.component';
+import { MeetingNotesComponent } from './live-kit-room/meeting-notes/meeting-notes.component';
 
 @NgModule({
   declarations: [
@@ -29,7 +29,7 @@ import { WalkthroughComponent } from './live-kit-room/walkthrough/walkthrough.co
     LiveKitRoomComponent,
     ErrorDialogComponent,
     VideoPlayerComponent,
-    WalkthroughComponent,
+    MeetingNotesComponent,
   ],
   imports: [
     BrowserModule,

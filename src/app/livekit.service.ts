@@ -2139,11 +2139,12 @@ export class LiveKitService {
        gap: 0.375rem;
        border-radius: 0.5rem;
        background-color: #000;
-       min-width: 340px;
+       min-width: 280px;
        max-width:100%;
-           height: 100%;
+           min-height: 25%;
      `
     );
+
     setTimeout(() => {
       const container = document.querySelector('.lk-grid-layout');
       if (container) {
@@ -2165,6 +2166,7 @@ export class LiveKitService {
            line-height: 1;
          `
         );
+
         // Create metadata item
         const el4 = document.createElement('div');
         el4.setAttribute('class', 'lk-participant-metadata-item');
@@ -2178,6 +2180,7 @@ export class LiveKitService {
            border-radius: calc(var(--lk-border-radius) / 2);
          `
         );
+
         // Create participant name element
         const el5 = document.createElement('span');
         el5.setAttribute('class', 'lk-participant-name');
@@ -2189,14 +2192,17 @@ export class LiveKitService {
           `
         );
         el5.innerText = participant.identity;
+
         // Append elements
         el4.appendChild(el5);
         el3.appendChild(el4);
         el2.appendChild(el3);
-        // Create avatar image
-        const imgElement = document.createElement('img');
-        imgElement.setAttribute('src', '../assets/avatar.png');
-        imgElement.style.cssText = `
+
+        // Create initials element
+        const initialsContainer = document.createElement('div');
+        initialsContainer.setAttribute('class', 'participant-initials');
+
+        initialsContainer.style.cssText = `
           position: absolute;
           top: 50%;
           left: 50%;
@@ -2204,24 +2210,36 @@ export class LiveKitService {
           width: 60px;
           height: 60px;
           border-radius: 50%;
-          object-fit: cover;
-          object-position: center;
+          background-color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.5rem;
+          font-weight: bold;
+          color: #000;
+          text-transform: uppercase;
         `;
-        const audioElement = document.createElement('span');
-        audioElement.setAttribute('class', 'lk-participant-name');
-        audioElement.setAttribute(
-          'style',
-          `
-            font-size: 0.875rem;
-            color: white;
-          `
-        );
-        audioElement.innerText = participant.identity;
-        el2.appendChild(imgElement);
+
+        // Extract initials from the participant's identity
+        const initials = this.getInitials(participant.identity);
+        initialsContainer.innerText = initials;
+
+        // Append initials container to the participant tile
+        el2.appendChild(initialsContainer);
+
         // Append participant tile to container
         container.appendChild(el2);
       }
     }, 100);
+  }
+
+  // Function to extract initials from a full name
+  getInitials(name: string): string {
+    const nameParts = name.trim().split(' ');
+    if (nameParts.length > 1) {
+      return nameParts[0][0] + nameParts[1][0]; // First letter of first & last name
+    }
+    return nameParts[0][0]; // Single letter if only one name
   }
 
   //================================================================================= old audio vusalize
