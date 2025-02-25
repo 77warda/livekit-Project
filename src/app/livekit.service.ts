@@ -2210,13 +2210,13 @@ export class LiveKitService {
           width: 60px;
           height: 60px;
           border-radius: 50%;
-          background-color: #fff;
+          background-color: #009d99;
+          color: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 1.5rem;
           font-weight: bold;
-          color: #000;
           text-transform: uppercase;
         `;
 
