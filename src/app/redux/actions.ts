@@ -5,6 +5,7 @@ import { BreakoutRoom } from './reducer';
 export const MeetingActions = createActionGroup({
   source: '[Meeting]',
   events: {
+    setInitialScreenStarted: props<{ started: boolean }>(),
     createMeeting: props<{ participantNames: string[]; roomName: string }>(),
     createMeetingSuccess: props<{ token: string }>(),
     createMeetingFailure: props<{ error: any }>(),

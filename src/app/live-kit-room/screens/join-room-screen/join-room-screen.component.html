@@ -1,0 +1,178 @@
+<ng-container *ngIf="liveKitViewState$ | async as liveKitViewState">
+  <div
+    class="join-meeting-container"
+    *ngIf="
+      !liveKitViewState.isMeetingStarted &&
+      liveKitViewState.isInitialScreenStarted
+    "
+    data-test="meetingForm"
+  >
+    <div class="start-container">
+      <img src="../assets/faviconV2.png" width="50" height="50" alt="" />
+      <div class="getting-started">
+        <h2>Getting Started</h2>
+        <p>Setup your audio and video before joining</p>
+      </div>
+      <div class="join">You are the first to join</div>
+    </div>
+    <div>
+      <div class="video-preview">
+        <div class="user-icon">
+          <p class="your-name">You</p>
+          <p class="preview-screen-mic">
+            <i
+              class="fas"
+              [ngClass]="{
+                'fa-microphone': liveKitViewState.isMicOn,
+                'fa-microphone-slash': !liveKitViewState.isMicOn
+              }"
+            >
+              <!-- <span *ngIf="liveKitViewState.isMicOn"></span> -->
+              <span *ngIf="isSpeaking"></span>
+            </i>
+          </p>
+          <ng-container *ngIf="!isVideoOn">
+            <span class="icon-placeholder">
+              <!-- <img src="../assets/avatar.png" /> -->
+              <i class="far fa-user"></i>
+            </span>
+          </ng-container>
+          <video
+            [hidden]="!isVideoOn"
+            #videoElement
+            autoplay
+            muted
+            playsinline
+            class="video-feed"
+          ></video>
+        </div>
+      </div>
+      <div class="controls">
+        <div class="mic-camera">
+          <div class="video-dropdown-initial">
+            <button
+              data-test="video-test"
+              class="video-toggle"
+              (click)="toggleCamera()"
+              [disabled]="liveKitViewState.isVideoLoading"
+              [matTooltip]="
+                (liveKitViewState$ | async)?.isVideoOn
+                  ? 'Camera Off'
+                  : 'Camera On'
+              "
+            >
+              <ng-container
+                *ngIf="liveKitViewState.isVideoLoading; else videoIcon"
+              >
+                <span class="loader"></span>
+              </ng-container>
+              <ng-template #videoIcon>
+                <i
+                  class="fas"
+                  [ngClass]="{
+                    'fa-video': isVideoOn,
+                    'fa-video-slash': !isVideoOn
+                  }"
+                ></i>
+              </ng-template>
+            </button>
+
+            <!-- Dropdown for selecting video devices -->
+            <button
+              class="dropdown-toggle"
+              [disabled]="liveKitViewState.isVideoLoading"
+              (click)="toggleVideoDropdown()"
+            >
+              <i class="fa fa-ellipsis-v"></i>
+            </button>
+            <ul class="mic-toggle-dropdown" *ngIf="isVideoDropdownOpen">
+              <li
+                *ngFor="let video of videoDevices"
+                (click)="selectVideo(video.deviceId)"
+                [ngClass]="{
+                  selected: video.deviceId === selectedVideoId
+                }"
+              >
+                {{ video.label || "Unnamed Device" }}
+              </li>
+            </ul>
+          </div>
+
+          <div class="mic-dropdown-initial">
+            <button
+              class="mic"
+              (click)="togglePreviewMic()"
+              [disabled]="liveKitViewState.isMicLoading"
+              [matTooltip]="
+                (liveKitViewState$ | async)?.isMicOn ? 'Mic Off' : 'Mic On'
+              "
+            >
+              <ng-container *ngIf="liveKitViewState.isMicLoading; else micIcon">
+                <span class="loader"></span>
+              </ng-container>
+              <ng-template #micIcon>
+                <i
+                  class="fas"
+                  [ngClass]="{
+                    'fa-microphone': liveKitViewState.isMicOn,
+                    'fa-microphone-slash': !liveKitViewState.isMicOn
+                  }"
+                >
+                  <!-- <span *ngIf="liveKitViewState.isMicOn"></span> -->
+                  <span *ngIf="isSpeaking"></span>
+                </i>
+              </ng-template>
+            </button>
+
+            <button
+              class="dropdown-toggle"
+              [disabled]="liveKitViewState.isMicLoading"
+              (click)="toggleMicDropdown()"
+            >
+              <i class="fa fa-ellipsis-v"></i>
+            </button>
+            <ul *ngIf="isMicDropdownOpen" class="mic-toggle-dropdown">
+              <li class="dropdown-heading">Select a Microphone</li>
+              <li
+                *ngFor="let mic of micDevices"
+                (click)="selectMic(mic.deviceId)"
+                [ngClass]="{
+                  selected: mic.deviceId === selectedMicId
+                }"
+              >
+                {{ mic.label || "Unnamed Mic Device" }}
+              </li>
+
+              <li class="dropdown-heading">Select a Speaker</li>
+              <li
+                *ngFor="let speaker of speakerDevices"
+                (click)="selectSpeaker(speaker.deviceId)"
+                [ngClass]="{
+                  selected: speaker.deviceId === selectedSpeakerId
+                }"
+              >
+                {{ speaker.label || "Unnamed Speaker Device" }}
+              </li>
+            </ul>
+          </div>
+        </div>
+        <!-- <button class="join-button">Join Room</button> -->
+        <input
+          type="text"
+          [(ngModel)]="participantName"
+          placeholder="Enter your Name"
+          class="name-input"
+        />
+
+        <button
+          (click)="startMeeting()"
+          data-cy="submit"
+          type="submit"
+          class="startBtn"
+        >
+          Join Room
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>

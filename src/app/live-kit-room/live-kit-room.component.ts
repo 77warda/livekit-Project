@@ -29,6 +29,7 @@ import { BreakoutRoomService } from '../breakout-room-service/breakout-room.serv
 import { BreakoutRoom } from '../redux/reducer';
 import { ActivatedRoute, Router } from '@angular/router';
 import { VideoBookMark } from '../models/video-player.model';
+import { JoinRoomScreenComponent } from './screens/join-room-screen/join-room-screen.component';
 
 const GRIDCOLUMN: { [key: number]: string } = {
   1: '1fr',
@@ -67,6 +68,9 @@ const PIPGRIDCOLUMN: { [key: number]: string } = {
   styleUrls: ['./live-kit-room.component.scss'],
 })
 export class LiveKitRoomComponent {
+  @ViewChild(JoinRoomScreenComponent)
+  joinMeetingComponent!: JoinRoomScreenComponent;
+
   isMobileMenuOpen = false;
   isUsersSidebarOpen = false;
 
@@ -94,9 +98,9 @@ export class LiveKitRoomComponent {
   @ViewChild('videoElement', { static: false })
   videoElement!: ElementRef<HTMLVideoElement>;
 
-  isVideoOn = false;
-  isMicOn = false;
-  videoStream: MediaStream | null = null;
+  // isVideoOn = false;
+  // isMicOn = false;
+  // videoStream: MediaStream | null = null;
 
   isInitialMeetingStarted: boolean = false;
 
@@ -269,17 +273,17 @@ export class LiveKitRoomComponent {
       console.error('Error initializing default devices:', error);
     }
 
-    this.route.params.subscribe((params) => {
-      console.log('Route params:', params);
-      this.dynamicRoomName = params['roomname'];
+    // this.route.params.subscribe((params) => {
+    //   console.log('Route params:', params);
+    //   this.dynamicRoomName = params['roomname'];
 
-      // Dispatch the action after updating dynamicRoomName
-      this.store.dispatch(
-        LiveKitRoomActions.MeetingActions.setRoomName({
-          roomName: this.dynamicRoomName,
-        })
-      );
-    });
+    //   // Dispatch the action after updating dynamicRoomName
+    //   this.store.dispatch(
+    //     LiveKitRoomActions.MeetingActions.setRoomName({
+    //       roomName: this.dynamicRoomName,
+    //     })
+    //   );
+    // });
     const SpeechRecognition =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
@@ -340,22 +344,22 @@ export class LiveKitRoomComponent {
       }
     });
   }
-  async onDeviceSelected(kind: MediaDeviceKind, deviceId: string) {
-    try {
-      console.log(`Selected ${kind}: ${deviceId}`);
-      // Update the selected device
-      if (kind === 'videoinput') this.selectedVideoId = deviceId;
-      if (kind === 'audioinput') this.selectedMicId = deviceId;
-      if (kind === 'audiooutput') this.selectedSpeakerId = deviceId;
+  // async onDeviceSelected(kind: MediaDeviceKind, deviceId: string) {
+  //   try {
+  //     console.log(`Selected ${kind}: ${deviceId}`);
+  //     // Update the selected device
+  //     if (kind === 'videoinput') this.selectedVideoId = deviceId;
+  //     if (kind === 'audioinput') this.selectedMicId = deviceId;
+  //     if (kind === 'audiooutput') this.selectedSpeakerId = deviceId;
 
-      // Switch the active device using the LiveKit service
-      await this.livekitService.switchDevice(kind, deviceId);
+  //     // Switch the active device using the LiveKit service
+  //     await this.livekitService.switchDevice(kind, deviceId);
 
-      console.log(`Successfully switched ${kind} to device: ${deviceId}`);
-    } catch (error) {
-      console.error(`Error switching ${kind} to device: ${deviceId}`, error);
-    }
-  }
+  //     console.log(`Successfully switched ${kind} to device: ${deviceId}`);
+  //   } catch (error) {
+  //     console.error(`Error switching ${kind} to device: ${deviceId}`, error);
+  //   }
+  // }
 
   async toggleVideoDropdown() {
     if (!this.videoDevicesLoaded) {
@@ -426,6 +430,7 @@ export class LiveKitRoomComponent {
     );
 
     this.liveKitViewState$.subscribe((state) => {
+      console.log('starting state is', state.isInitialScreenStarted);
       this.breakoutRoomsData = state.breakoutRoomsData;
       this.chatSideWindowVisible = state.chatSideWindowVisible;
       if (state.isMeetingStarted) {
@@ -746,7 +751,12 @@ export class LiveKitRoomComponent {
    */
 
   initialStartMeeting() {
-    this.isInitialMeetingStarted = true; // Set to true when meeting starts
+    // this.isInitialMeetingStarted = true; // Set to true when meeting starts
+    this.store.dispatch(
+      LiveKitRoomActions.MeetingActions.setInitialScreenStarted({
+        started: true,
+      })
+    );
     this.store.dispatch(
       LiveKitRoomActions.MeetingActions.createMeeting({
         participantNames: [this.participantName],
@@ -971,7 +981,7 @@ export class LiveKitRoomComponent {
     // await this.livekitService.connectDefaultDevices();
 
     this.store.dispatch(LiveKitRoomActions.LiveKitActions.toggleVideo());
-    this.toggleCamera();
+    this.joinMeetingComponent.toggleCamera();
   }
 
   /**
@@ -984,7 +994,7 @@ export class LiveKitRoomComponent {
   async toggleMic(): Promise<void> {
     // await this.livekitService.connectDefaultDevices();
     this.store.dispatch(LiveKitRoomActions.LiveKitActions.toggleMic());
-    this.togglePreviewMic();
+    this.joinMeetingComponent.togglePreviewMic();
   }
 
   /**
@@ -997,6 +1007,7 @@ export class LiveKitRoomComponent {
     this.store.dispatch(
       LiveKitRoomActions.LiveKitActions.toggleParticipantSideWindow()
     );
+    this.closeMobileMenu();
   }
   /**
    * Dispatches an action to toggle the participant side window.
@@ -1006,6 +1017,7 @@ export class LiveKitRoomComponent {
    */
   openNotes(): void {
     this.store.dispatch(LiveKitRoomActions.LiveKitActions.toggleNotesWindow());
+    this.closeMobileMenu();
   }
   /**
    * Dispatches an action to toggle the breakout side window.
@@ -1030,6 +1042,7 @@ export class LiveKitRoomComponent {
     this.store.dispatch(
       LiveKitRoomActions.LiveKitActions.toggleChatSideWindow()
     );
+    this.closeMobileMenu();
     // if (!this.chatSideWindowVisible) {
     //   this.store.dispatch(
     //     LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
@@ -2067,113 +2080,6 @@ export class LiveKitRoomComponent {
       LiveKitRoomActions.BreakoutActions.recreateRoom({ roomId })
     );
   }
-
-  async toggleCamera() {
-    try {
-      if (this.isVideoOn) {
-        // Turn off the camera
-        this.stopVideoStream();
-      } else {
-        // Turn on the camera
-        await this.startVideoStream();
-      }
-      this.livekitService.toggleVideo().subscribe(
-        (isVideoOn) => {
-          this.isVideoOn = isVideoOn;
-          console.log('Video turned on by default:', isVideoOn);
-        },
-        (error) => {
-          console.error('Error enabling video by default:', error);
-        }
-      );
-      this.isVideoOn = !this.isVideoOn;
-      this.store.dispatch(
-        LiveKitRoomActions.LiveKitActions.previewCameraEnable({
-          isPreviewVideo: this.isVideoOn,
-        })
-      );
-      this.liveKitViewState$.subscribe((video) => {
-        video.isVideoOn = this.isVideoOn;
-      });
-    } catch (error) {
-      console.error('Error toggling camera:', error);
-    }
-  }
-
-  async startVideoStream() {
-    try {
-      // Request video access
-      this.videoStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-      });
-      console.log('Video element:', this.videoElement);
-      console.log('Video stream:', this.videoStream);
-
-      if (this.videoElement && this.videoStream) {
-        const video = this.videoElement.nativeElement;
-
-        // Attach stream to video element
-        video.srcObject = this.videoStream;
-
-        // Ensure video starts playing
-        await video.play();
-        console.log('Video is playing');
-      } else {
-        console.warn('Video element or stream is not available');
-      }
-    } catch (error) {
-      console.error('Error accessing video stream:', error);
-    }
-  }
-
-  stopVideoStream() {
-    if (this.videoStream) {
-      this.videoStream.getTracks().forEach((track) => track.stop());
-      this.videoStream = null;
-    }
-
-    if (this.videoElement) {
-      const video = this.videoElement.nativeElement;
-      video.srcObject = null; // Detach stream
-    }
-  }
-
-  togglePreviewMic(): void {
-    try {
-      this.livekitService.toggleMicrophone().subscribe(
-        (isMicOn) => {
-          this.isMicOn = isMicOn;
-          console.log('Video turned on by default:', isMicOn);
-        },
-        (error) => {
-          console.error('Error enabling video by default:', error);
-        }
-      );
-      if (!this.isMicOn) {
-        // Start speech recognition
-        this.recognition.start();
-        console.log('Microphone turned on.');
-      } else {
-        // Stop speech recognition
-        this.recognition.stop();
-        console.log('Microphone turned off.');
-        this.isSpeaking = false; // Ensure span is hidden when mic is turned off
-      }
-
-      this.isMicOn = !this.isMicOn;
-      this.store.dispatch(
-        LiveKitRoomActions.LiveKitActions.previewMicEnable({
-          isPreviewMic: this.isMicOn,
-        })
-      );
-      this.liveKitViewState$.subscribe((mic) => {
-        mic.isMicOn = this.isMicOn;
-      });
-    } catch (error) {
-      console.error('Error toggling Mic:', error);
-    }
-  }
-
   // Responsiveness;
   openMobileMenu() {
     this.isMobileMenuOpen = true;
@@ -2428,4 +2334,11 @@ export class LiveKitRoomComponent {
   //   this.currentTime = time;
   //   console.log('time', time);
   // }
+
+  meetingStarted(isReady: boolean) {
+    if (isReady) {
+      // Call startMeeting() when it's ready
+      this.joinMeetingComponent.startMeeting();
+    }
+  }
 }

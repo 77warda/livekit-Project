@@ -5,6 +5,13 @@ import { BreakoutRoom, LiveKitRoomState } from './reducer';
 export const selectLiveKitRoomState =
   createFeatureSelector<LiveKitRoomState>('liveKitRoom');
 
+export const selectIsInitialScreenStarted = createSelector(
+  selectLiveKitRoomState,
+  (state) => {
+    console.log('selector screen', state.isInitialScreenStarted);
+    return state.isInitialScreenStarted;
+  }
+);
 // Specific property selectors
 export const selectIsMeetingStarted = createSelector(
   selectLiveKitRoomState,
@@ -167,6 +174,7 @@ export const selectNotesWindowVisible = createSelector(
 );
 
 export const selectLiveKitRoomViewState = createSelector(
+  selectIsInitialScreenStarted,
   selectIsMeetingStarted,
   selectIsVideoOn,
   selectParticipantSideWindowVisible,
@@ -193,6 +201,7 @@ export const selectLiveKitRoomViewState = createSelector(
   selectPreviewMic,
   selectNotesWindowVisible,
   (
+    isInitialScreenStarted,
     isMeetingStarted,
     isVideoOn,
     participantSideWindowVisible,
@@ -219,6 +228,7 @@ export const selectLiveKitRoomViewState = createSelector(
     isPreviewMicOn,
     notesWindowVisible
   ) => ({
+    isInitialScreenStarted,
     isMeetingStarted,
     isVideoOn,
     participantSideWindowVisible,

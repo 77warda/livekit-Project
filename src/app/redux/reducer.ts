@@ -8,6 +8,7 @@ export interface BreakoutRoom {
   showAvailableParticipants?: boolean;
 }
 export interface LiveKitRoomState {
+  isInitialScreenStarted: boolean;
   isMeetingStarted: boolean;
   allMessages: any[];
   unreadMessagesCount: number;
@@ -40,6 +41,7 @@ export interface LiveKitRoomState {
 }
 
 export const initialState: LiveKitRoomState = {
+  isInitialScreenStarted: false,
   isMeetingStarted: false,
   allMessages: [],
   unreadMessagesCount: 0,
@@ -72,6 +74,13 @@ export const initialState: LiveKitRoomState = {
 
 export const liveKitRoomReducer = createReducer(
   initialState,
+  on(
+    LiveKitRoomActions.MeetingActions.setInitialScreenStarted,
+    (state, { started }) => ({
+      ...state,
+      isInitialScreenStarted: started,
+    })
+  ),
   on(LiveKitRoomActions.MeetingActions.setRoomName, (state, { roomName }) => ({
     ...state,
     roomName: roomName,

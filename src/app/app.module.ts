@@ -22,6 +22,9 @@ import { VideoPlayerComponent } from './video-player/video-player.component';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatIconModule } from '@angular/material/icon';
 import { MeetingNotesComponent } from './live-kit-room/meeting-notes/meeting-notes.component';
+import { StartScreenComponent } from './live-kit-room/screens/start-screen/start-screen.component';
+import { JoinRoomScreenComponent } from './live-kit-room/screens/join-room-screen/join-room-screen.component';
+import { NavigationComponent } from './live-kit-room/header/navigation/navigation.component';
 
 @NgModule({
   declarations: [
@@ -30,6 +33,9 @@ import { MeetingNotesComponent } from './live-kit-room/meeting-notes/meeting-not
     ErrorDialogComponent,
     VideoPlayerComponent,
     MeetingNotesComponent,
+    StartScreenComponent,
+    JoinRoomScreenComponent,
+    NavigationComponent,
   ],
   imports: [
     BrowserModule,
