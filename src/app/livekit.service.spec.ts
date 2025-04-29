@@ -22,15 +22,14 @@ import {
   TrackPublication,
   VideoQuality,
 } from 'livekit-client';
-import { ErrorDialogComponent } from '../error-dialog/error-dialog.component';
 import { EventEmitter } from '@angular/core';
 import { connect, identity } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
-import { LiveKitService } from '../livekit.service';
+import { LiveKitService } from './livekit.service';
 import { ActivatedRoute } from '@angular/router';
 import { Store, StoreModule } from '@ngrx/store';
-import * as LiveKitRoomActions from '../redux/actions';
+import * as LiveKitRoomActions from './redux/actions';
 
 describe('LivekitService', () => {
   TestBed.configureTestingModule({

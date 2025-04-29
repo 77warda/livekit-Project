@@ -1,34 +1,12 @@
 import { Component, ElementRef, Renderer2, ViewChild } from '@angular/core';
-import {
-  RemoteParticipant,
-  RemoteTrack,
-  RemoteTrackPublication,
-  Room,
-  Track,
-} from 'livekit-client';
+import { RemoteTrack, Room, Track } from 'livekit-client';
 import { LiveKitService } from '../livekit.service';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import {
-  distinctUntilChanged,
-  filter,
-  map,
-  Observable,
-  Subscription,
-  take,
-  tap,
-} from 'rxjs';
+import { distinctUntilChanged, filter, Observable, Subscription } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Store, select } from '@ngrx/store';
-import {
-  selectGetRoomName,
-  selectIsMicOn,
-  selectLiveKitRoomViewState,
-} from '../redux/selectors';
+import { selectLiveKitRoomViewState } from '../redux/selectors';
 import * as LiveKitRoomActions from '../redux/actions';
-import { BreakoutRoomService } from '../breakout-room-service/breakout-room.service';
-import { BreakoutRoom } from '../redux/reducer';
-import { ActivatedRoute, Router } from '@angular/router';
-import { VideoBookMark } from '../models/video-player.model';
 import { JoinRoomScreenComponent } from './screens/join-room-screen/join-room-screen.component';
 
 const GRIDCOLUMN: { [key: number]: string } = {
@@ -70,7 +48,18 @@ const PIPGRIDCOLUMN: { [key: number]: string } = {
 export class LiveKitRoomComponent {
   @ViewChild(JoinRoomScreenComponent)
   joinMeetingComponent!: JoinRoomScreenComponent;
+  @ViewChild('annotationCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('videoElement', { static: false })
+  videoElement!: ElementRef<HTMLVideoElement>;
 
+  @ViewChild('pipModal') pipModal!: ElementRef<HTMLDivElement>;
+  @ViewChild('playerContainer') playerContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('pipContainer') pipContainer!: ElementRef<HTMLDivElement>;
+  @ViewChild('screensharePiP') screensharePiP!: ElementRef<HTMLDivElement>;
+
+  @ViewChild('messageContainer') messageContainer!: ElementRef | any;
+
+  @ViewChild('audioCanvas', { static: true })
   isMobileMenuOpen = false;
   isUsersSidebarOpen = false;
 
@@ -80,9 +69,6 @@ export class LiveKitRoomComponent {
   // To periodically check if the user is speaking
   audioContext: AudioContext | null = null;
   analyserNode: AnalyserNode | null = null;
-  // ====================
-
-  @ViewChild('annotationCanvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   isAnnotationEnabled: boolean = false;
   selectedMode: 'text' | 'erase' | 'draw' = 'draw'; // Default mode is 'text'
@@ -91,18 +77,6 @@ export class LiveKitRoomComponent {
   private paths: Path2D[] = [];
   private redoStack: Path2D[] = [];
   private currentPath!: Path2D;
-  private isErasing: boolean = false; // To toggle erase mode
-  private textInput = ''; // For text input
-  // ====================
-
-  @ViewChild('videoElement', { static: false })
-  videoElement!: ElementRef<HTMLVideoElement>;
-
-  // isVideoOn = false;
-  // isMicOn = false;
-  // videoStream: MediaStream | null = null;
-
-  isInitialMeetingStarted: boolean = false;
 
   showCloseRoomModal = false;
   countdown = 60; // Countdown time in seconds
@@ -116,8 +90,6 @@ export class LiveKitRoomComponent {
   isRoomAccordionOpen: boolean[] = [];
   checkBreakoutRoom = '';
 
-  nestBreakoutRooms: BreakoutRoom[] = [];
-  errorMessage = '';
   isMicDropdownOpen = false; // To toggle mic dropdown visibility
   isVideoDropdownOpen = false; // To toggle video dropdown visibility
   chatSideWindowVisible: boolean = false;
@@ -141,32 +113,24 @@ export class LiveKitRoomComponent {
   liveKitViewState$!: Observable<any>;
   speakerModeLayout = false;
   // =========mic adjustment ======
-  @ViewChild('audioCanvas', { static: true })
-  audioCanvasRef!: ElementRef<HTMLCanvasElement>;
+
   messageContent: string = '';
   participantName: string = '';
   breakoutRoomsData: any[] = [];
   selectedBreakoutRoom = '';
+
   // pip
   pipWindow: any = null;
   isPiPActive = false;
   showModal = false; // Controls modal visibility
-  @ViewChild('pipModal') pipModal!: ElementRef<HTMLDivElement>;
-  @ViewChild('playerContainer') playerContainer!: ElementRef<HTMLDivElement>;
-  @ViewChild('pipContainer') pipContainer!: ElementRef<HTMLDivElement>;
-  @ViewChild('screensharePiP') screensharePiP!: ElementRef<HTMLDivElement>;
 
   pipMode = false;
   private originalParent: HTMLElement | null = null;
   private originalNextSibling: Node | null = null;
-  isVideoToggling = false;
 
-  public breakoutMessageContent: any[] = [];
-  @ViewChild('messageContainer') messageContainer!: ElementRef | any;
   attachedTrack: HTMLElement | null = null;
   startForm!: FormGroup;
   chatForm!: FormGroup;
-  screenShareTrackSubscription!: Subscription;
   screenShareTrack!: RemoteTrack | undefined;
   unreadMessagesCount = 0;
   remoteParticipantNames: any;
@@ -193,10 +157,7 @@ export class LiveKitRoomComponent {
     public livekitService: LiveKitService,
     private snackBar: MatSnackBar,
     public store: Store,
-    private renderer: Renderer2,
-    private breakoutRoomService: BreakoutRoomService,
-    private route: ActivatedRoute,
-    private router: Router
+    private renderer: Renderer2
   ) {}
 
   async ngOnInit() {
@@ -273,17 +234,6 @@ export class LiveKitRoomComponent {
       console.error('Error initializing default devices:', error);
     }
 
-    // this.route.params.subscribe((params) => {
-    //   console.log('Route params:', params);
-    //   this.dynamicRoomName = params['roomname'];
-
-    //   // Dispatch the action after updating dynamicRoomName
-    //   this.store.dispatch(
-    //     LiveKitRoomActions.MeetingActions.setRoomName({
-    //       roomName: this.dynamicRoomName,
-    //     })
-    //   );
-    // });
     const SpeechRecognition =
       (window as any).SpeechRecognition ||
       (window as any).webkitSpeechRecognition;
@@ -344,22 +294,6 @@ export class LiveKitRoomComponent {
       }
     });
   }
-  // async onDeviceSelected(kind: MediaDeviceKind, deviceId: string) {
-  //   try {
-  //     console.log(`Selected ${kind}: ${deviceId}`);
-  //     // Update the selected device
-  //     if (kind === 'videoinput') this.selectedVideoId = deviceId;
-  //     if (kind === 'audioinput') this.selectedMicId = deviceId;
-  //     if (kind === 'audiooutput') this.selectedSpeakerId = deviceId;
-
-  //     // Switch the active device using the LiveKit service
-  //     await this.livekitService.switchDevice(kind, deviceId);
-
-  //     console.log(`Successfully switched ${kind} to device: ${deviceId}`);
-  //   } catch (error) {
-  //     console.error(`Error switching ${kind} to device: ${deviceId}`, error);
-  //   }
-  // }
 
   async toggleVideoDropdown() {
     if (!this.videoDevicesLoaded) {
@@ -727,13 +661,6 @@ export class LiveKitRoomComponent {
           participant
         );
       });
-    // if (this.drawingCanvas) {
-    //   this.ctx = this.drawingCanvas.nativeElement.getContext('2d')!;
-    // } else {
-    //   console.error('Drawing canvas is not initialized.');
-    // }
-
-    // this.livekitService.initCanvas(this.audioCanvasRef.nativeElement);
   }
   /**
    * Initiates the start of a meeting by dispatching a startMeeting action
@@ -750,8 +677,13 @@ export class LiveKitRoomComponent {
    * @returns {Promise<void>} - A promise that resolves when the meeting has been initiated.
    */
 
+  meetingStarted(isReady: boolean) {
+    if (isReady) {
+      // Call startMeeting() when it's ready
+      this.joinMeetingComponent.startMeeting();
+    }
+  }
   initialStartMeeting() {
-    // this.isInitialMeetingStarted = true; // Set to true when meeting starts
     this.store.dispatch(
       LiveKitRoomActions.MeetingActions.setInitialScreenStarted({
         started: true,
@@ -765,19 +697,7 @@ export class LiveKitRoomComponent {
     );
     console.log('participant name ', this.participantName);
   }
-  // async startMeeting() {
-  //   console.log('room name is ', this.dynamicRoomName);
-
-  //   this.store.dispatch(
-  //     LiveKitRoomActions.MeetingActions.createMeeting({
-  //       participantNames: [this.participantName],
-  //       roomName: this.dynamicRoomName,
-  //     })
-  //   );
-  //   this.store.dispatch(LiveKitRoomActions.BreakoutActions.loadBreakoutRooms());
-  // }
   async startMeeting() {
-    console.log(`Current roomName: ${this.dynamicRoomName}`);
     if (this.dynamicRoomName) {
       console.log(`Current roomName: ${this.dynamicRoomName}`);
       this.store.dispatch(
@@ -1043,11 +963,6 @@ export class LiveKitRoomComponent {
       LiveKitRoomActions.LiveKitActions.toggleChatSideWindow()
     );
     this.closeMobileMenu();
-    // if (!this.chatSideWindowVisible) {
-    //   this.store.dispatch(
-    //     LiveKitRoomActions.LiveKitActions.resetUnreadMessagesCount()
-    //   );
-    // }
   }
 
   /**
@@ -1966,7 +1881,7 @@ export class LiveKitRoomComponent {
       this.pipMode = false;
     }
   }
-  // ===================pip window styling end from here===================
+  // ===================pip window styling end here===================
 
   /**
    * Toggles between speaker mode and grid view layout in the LiveKit service.
@@ -2244,101 +2159,5 @@ export class LiveKitRoomComponent {
   }
   selectColor() {
     console.log('select color');
-  }
-
-  // notes funtions
-  // selectBookmark(bookmark: VideoBookMark): void {
-  //   if (this.activeBookmark === bookmark) {
-  //     this.activeBookmark = undefined;
-  //   } else {
-  //     this.activeBookmark = bookmark;
-  //   }
-  // }
-  // updateCurrentTime(time: number): void {
-  //   this.currentTime = time;
-  //   console.log('time', time);
-  // }
-  // formatBookmarkDescription(bookmark: {
-  //   from: number;
-  //   to: number;
-  //   description: string;
-  // }): string {
-  //   const fromTime = this.formatTime(bookmark.from);
-  //   const toTime = this.formatTime(bookmark.to);
-  //   return `${bookmark.description} (${fromTime} - ${toTime})`;
-  // }
-  // formatTime(seconds: number): string {
-  //   const minutes = Math.floor(seconds / 60);
-  //   const remainingSeconds = seconds % 60;
-  //   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  // }
-  // Open the Add Bookmark modal
-  // openAddBookmarkModal() {
-  //   this.isModalOpen = true;
-  // }
-
-  // // Close the modal
-  // closeModal() {
-  //   this.isModalOpen = false;
-  //   this.bookmarkForm.reset();
-  // }
-
-  // // Add bookmark to the video.bookMarks array
-  // addBookmark(item: any) {
-  //   if (this.bookmarkForm.valid && item.type === 'video') {
-  //     const newBookmark: VideoBookMark = this.bookmarkForm.value;
-
-  //     // Ensure bookmarks array exists
-  //     if (!item.bookmarks) {
-  //       item.bookmarks = [];
-  //     }
-
-  //     // Ensure enforceBookmarks array exists
-  //     if (!item.enforceBookmarks) {
-  //       item.enforceBookmarks = [];
-  //     }
-
-  //     // Add new bookmark
-  //     item.bookmarks.push(newBookmark);
-  //     item.enforceBookmarks.push(false); // or `true` if you want it enabled by default
-
-  //     // Close the modal and reset the form
-  //     this.closeModal();
-  //   }
-  // }
-
-  // selectBookmark(bookmark: VideoBookMark): void {
-  //   if (this.activeBookmark === bookmark) {
-  //     this.activeBookmark = undefined;
-  //   } else {
-  //     this.activeBookmark = bookmark;
-  //   }
-  // }
-  // formatBookmarkDescription(bookmark: {
-  //   from: number;
-  //   to: number;
-  //   description: string;
-  // }): string {
-  //   const fromTime = this.formatTime(bookmark.from);
-  //   const toTime = this.formatTime(bookmark.to);
-  //   return `${bookmark.description} (${fromTime} - ${toTime})`;
-  // }
-
-  // formatTime(seconds: number): string {
-  //   const minutes = Math.floor(seconds / 60);
-  //   const remainingSeconds = seconds % 60;
-  //   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  // }
-
-  // updateCurrentTime(time: number): void {
-  //   this.currentTime = time;
-  //   console.log('time', time);
-  // }
-
-  meetingStarted(isReady: boolean) {
-    if (isReady) {
-      // Call startMeeting() when it's ready
-      this.joinMeetingComponent.startMeeting();
-    }
   }
 }

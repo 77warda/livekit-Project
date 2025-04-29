@@ -256,3 +256,97 @@
     }
 
 }
+
+@media (max-width: 768px) {
+    .join-meeting-container {
+        padding: 26px;
+        gap: 0.5rem;
+
+        .start-container {
+            gap: 0.5rem;
+
+            img {
+                width: 40px;
+                height: 40px;
+            }
+
+            .getting-started {
+                h2 {
+                    font-size: 20px;
+                }
+
+                p {
+                    font-size: 14px;
+                }
+            }
+
+            .join {
+                font-size: 13px;
+                padding: 8px 14px;
+            }
+        }
+
+        .video-preview {
+            /* width: 90%; */
+            height: 35%;
+            aspect-ratio: 4 / 2;
+
+            .user-icon {
+                .your-name {
+                    font-size: 0.9rem;
+                    padding: 2px 6px;
+                }
+
+                .preview-screen-mic {
+                    height: 26px;
+                    width: 26px;
+
+                    i {
+                        font-size: 0.9rem;
+                    }
+                }
+
+                .icon-placeholder {
+                    width: 50px;
+                    height: 50px;
+                    font-size: 40px;
+
+                    i {
+                        font-size: 20px;
+                    }
+                }
+            }
+        }
+
+        .controls {
+            .mic-camera {
+                flex-direction: column;
+                gap: 8px;
+
+                button,
+                .video-dropdown-initial button,
+                .mic-dropdown-initial button {
+                    width: 100%;
+                }
+
+                .dropdown-toggle {
+                    width: 100%;
+                }
+
+                ul.mic-toggle-dropdown {
+                    width: 90%;
+                }
+            }
+
+            .name-input {
+                font-size: 14px;
+                padding: 8px;
+            }
+
+            .startBtn {
+                font-size: 15px;
+                padding: 10px;
+            }
+        }
+    }
+}

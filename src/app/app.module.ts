@@ -24,7 +24,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MeetingNotesComponent } from './live-kit-room/meeting-notes/meeting-notes.component';
 import { StartScreenComponent } from './live-kit-room/screens/start-screen/start-screen.component';
 import { JoinRoomScreenComponent } from './live-kit-room/screens/join-room-screen/join-room-screen.component';
-import { NavigationComponent } from './live-kit-room/header/navigation/navigation.component';
 
 @NgModule({
   declarations: [
@@ -35,7 +34,6 @@ import { NavigationComponent } from './live-kit-room/header/navigation/navigatio
     MeetingNotesComponent,
     StartScreenComponent,
     JoinRoomScreenComponent,
-    NavigationComponent,
   ],
   imports: [
     BrowserModule,

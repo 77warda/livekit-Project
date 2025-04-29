@@ -37,3 +37,21 @@
         }
     }
 }
+
+@media (max-width: 768px) {
+    .initial-meeting-container {
+        .initial-container {
+            width: 40%;
+            padding: 1rem;
+
+            h2 {
+                font-size: 14px;
+            }
+
+            .initial-btn {
+                font-size: 14px;
+                padding: 12px 16px;
+            }
+        }
+    }
+}
