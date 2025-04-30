@@ -1099,9 +1099,11 @@ export class LiveKitService {
           console.log('testing avatar', participantTile);
           if (participantTile) {
             // Remove the avatar image if it exists
-            const avatarImg = participantTile.querySelector('img');
-            if (avatarImg) {
-              participantTile.removeChild(avatarImg);
+            const initialsDiv = participantTile.querySelector(
+              '.participant-initials'
+            );
+            if (initialsDiv) {
+              participantTile.removeChild(initialsDiv);
             }
 
             // Attach the video track to the participant tile
@@ -1494,16 +1496,28 @@ export class LiveKitService {
    */
 
   handleTrackUnmuted(publication: TrackPublication, participant: Participant) {
-    console.log('Track :', publication);
-    console.log('testing', publication.kind);
     if (
       publication.kind === 'video' &&
       publication.track?.source === Track.Source.Camera
     ) {
-      console.log('video is on');
-      const containerById = document.getElementById(`${participant.sid}`);
-      const imgElement = containerById?.getElementsByTagName('img');
-      imgElement![0]?.remove();
+      console.log('Video is on');
+
+      const container = document.getElementById(`${participant.sid}`);
+      if (!container) return;
+
+      // Remove participant-initials if present
+      const initialsEl = container.querySelector('.participant-initials');
+      if (initialsEl) {
+        initialsEl.remove();
+      }
+
+      // Show participant metadata if hidden
+      const metadataEl = container.querySelector(
+        '.lk-participant-metadata'
+      ) as HTMLElement;
+      if (metadataEl) {
+        metadataEl.style.display = 'flex';
+      }
     }
   }
 
@@ -1516,28 +1530,49 @@ export class LiveKitService {
    * @param {TrackPublication} publication - The publication of the track that was muted or unmuted.
    * @param {Participant} participant - The participant who owns the track.
    */
+
   handleTrackMuted(publication: TrackPublication, participant: Participant) {
-    console.log('Track mute/unmute event:', publication, participant);
     if (
       publication.kind === 'video' &&
       publication.track?.source === Track.Source.Camera
     ) {
-      // Check if the track is muted
-      if (publication.isMuted) {
-        // Handle logic for when video is muted
-        console.log('Video is off');
-        // const container = document.querySelector('.lk-participant-tile');
-        const containerById = document.getElementById(`${participant.sid}`);
-        const imgElement = document.createElement('img');
-        imgElement.setAttribute('src', '../assets/avatar.png');
-        imgElement.setAttribute(
-          'style',
-          'position:absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; border-radius: 50%; object-fit: cover; object-position: center;'
-        );
-        containerById?.appendChild(imgElement);
-      } else {
-        // Handle logic for when video is unmuted
-        console.log('Video is on');
+      console.log('Video is off');
+
+      const container = document.getElementById(`${participant.sid}`);
+      if (!container) return;
+
+      // Hide participant metadata
+      const metadataEl = container.querySelector(
+        '.lk-participant-metadata'
+      ) as HTMLElement;
+      if (metadataEl) {
+        metadataEl.style.display = 'none';
+      }
+
+      // Check if initials already exist
+      const initialsEl = container.querySelector('.participant-initials');
+      if (!initialsEl) {
+        const initialsContainer = document.createElement('div');
+        initialsContainer.setAttribute('class', 'participant-initials');
+        initialsContainer.style.cssText = `
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          background-color: #009d99;
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.5rem;
+          font-weight: bold;
+          text-transform: uppercase;
+        `;
+        initialsContainer.innerText = this.getInitials(participant.identity);
+        container.appendChild(initialsContainer);
       }
     }
   }

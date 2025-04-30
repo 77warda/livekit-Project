@@ -697,24 +697,6 @@ export class LiveKitRoomComponent {
     );
     console.log('participant name ', this.participantName);
   }
-  async startMeeting() {
-    if (this.dynamicRoomName) {
-      console.log(`Current roomName: ${this.dynamicRoomName}`);
-      this.store.dispatch(
-        LiveKitRoomActions.MeetingActions.createMeeting({
-          participantNames: [this.participantName],
-          roomName: this.dynamicRoomName, // Use the roomName dynamically
-        })
-      );
-      console.log(`Starting meeting in room: ${this.dynamicRoomName}`);
-      this.store.dispatch(
-        LiveKitRoomActions.BreakoutActions.loadBreakoutRooms()
-      );
-      await this.livekitService.applySelectedDevices();
-    } else {
-      console.error('Cannot start meeting: Room name is undefined!');
-    }
-  }
 
   /**
    * Calculates the distribution of participants across breakout rooms.
