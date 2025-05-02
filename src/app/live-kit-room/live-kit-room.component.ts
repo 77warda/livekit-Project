@@ -1978,9 +1978,9 @@ export class LiveKitRoomComponent {
     );
   }
   // Responsiveness;
-  openMobileMenu() {
-    this.isMobileMenuOpen = true;
-  }
+  // openMobileMenu() {
+  //   this.isMobileMenuOpen = true;
+  // }
 
   closeMobileMenu() {
     this.isMobileMenuOpen = false;
@@ -1990,6 +1990,9 @@ export class LiveKitRoomComponent {
   }
   closeUsersSidebar() {
     this.isUsersSidebarOpen = false;
+  }
+  toggleMobileMenu() {
+    this.isMobileMenuOpen = !this.isMobileMenuOpen;
   }
 
   // ============== Annotations work ==========
