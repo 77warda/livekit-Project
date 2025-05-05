@@ -342,7 +342,116 @@
             </div>
           </div>
         </div>
+        <!-- Sidebar for users while sharing screen in mobile view  -->
+        <div class="users-sidebar" *ngIf="isUsersSidebarOpen">
+          <button class="close-sidebar" (click)="closeUsersSidebar()">
+            &times;
+          </button>
+          <div class="mobile-content">
+            <div class="users-in-sidewindow">
+              <div>
+                <div class="uservideo">
+                  <div class="username">
+                    {{ localParticipant.identity }}(You)
+                  </div>
+                  <div class="username-initial">
+                    <p>{{ extractInitials(localParticipant.identity) }}</p>
+                  </div>
+                </div>
 
+                <div
+                  *ngFor="let participant of remoteParticipantNames"
+                  class="uservideo"
+                >
+                  <div class="username">{{ participant.identity }}(You)</div>
+                  <div class="username-initial">
+                    <p>{{ extractInitials(participant.identity) }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="participant-container">
+              <div class="participant">
+                <div class="left-side">
+                  <div class="avatar">
+                    <p>{{ extractInitials(localParticipant.identity) }}</p>
+                  </div>
+                  <div class="name">{{ localParticipant.identity }}(You)</div>
+
+                  <span
+                    *ngIf="handRaiseStates[localParticipant?.identity]"
+                    class="raised-hand-icon"
+                    >✋</span
+                  >
+                </div>
+                <div class="right-side">
+                  <div class="screen-share-icon">
+                    <span
+                      class="material-symbols-outlined"
+                      *ngIf="liveKitViewState.isScreenSharing"
+                    >
+                      screen_share
+                    </span>
+                  </div>
+                  <div class="video-icon">
+                    <i
+                      class="fas"
+                      [ngClass]="{
+                        'fa-video': liveKitViewState.isVideoOn,
+                        'fa-video-slash': !liveKitViewState.isVideoOn
+                      }"
+                    ></i>
+                  </div>
+                  <div class="mic-icon">
+                    <i
+                      class="fas"
+                      [ngClass]="{
+                        'fa-microphone': liveKitViewState.isMicOn,
+                        'fa-microphone-slash': !liveKitViewState.isMicOn
+                      }"
+                    ></i>
+                  </div>
+                </div>
+              </div>
+              <div
+                *ngFor="let participant of remoteParticipantNames"
+                class="participant"
+              >
+                <div class="left-side">
+                  <div class="avatar">
+                    <p>{{ extractInitials(participant.identity) }}</p>
+                  </div>
+                  <div class="name">{{ participant.identity }}</div>
+                  <span
+                    *ngIf="handRaiseStates[participant?.identity]"
+                    class="raised-hand-icon"
+                    >✋</span
+                  >
+                </div>
+                <div class="right-side">
+                  <div class="video-icon">
+                    <i
+                      class="fas"
+                      [ngClass]="{
+                        'fa-video-slash': !participant.isCameraEnabled,
+                        'fa-video': participant.isCameraEnabled
+                      }"
+                    ></i>
+                  </div>
+                  <div class="mic-icon">
+                    <i
+                      class="fas"
+                      [ngClass]="{
+                        'fa-microphone': participant.isMicrophoneEnabled,
+                        'fa-microphone-slash': !participant.isMicrophoneEnabled
+                      }"
+                    ></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="left-header" data-test="left-header">
           <!-- <button
             class="grid-view"
@@ -621,16 +730,7 @@
           </div>
         </div>
       </header>
-      <!-- Sidebar for users while sharing screen in mobile view  -->
-      <div class="users-sidebar" *ngIf="isUsersSidebarOpen">
-        <button class="close-sidebar" (click)="closeUsersSidebar()">
-          &times;
-        </button>
-        <div class="mobile-content">
-          <h1>Hello</h1>
-          <hr />
-        </div>
-      </div>
+
       <!-- for screen sharing container  -->
       <ng-container
         *ngIf="

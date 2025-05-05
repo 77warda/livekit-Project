@@ -2174,9 +2174,9 @@ export class LiveKitService {
        gap: 0.375rem;
        border-radius: 0.5rem;
        background-color: #000;
-       min-width: 280px;
+       min-width: 250px;
        max-width:100%;
-           min-height: 25%;
+       min-height: 25%;
      `
     );
 
