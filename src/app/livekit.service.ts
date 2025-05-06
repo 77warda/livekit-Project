@@ -32,6 +32,7 @@ import {
   isKrispNoiseFilterSupported,
   KrispNoiseFilter,
 } from '@livekit/krisp-noise-filter';
+
 @Injectable({
   providedIn: 'root',
 })

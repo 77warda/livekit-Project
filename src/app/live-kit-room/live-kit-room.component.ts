@@ -689,13 +689,6 @@ export class LiveKitRoomComponent {
         started: true,
       })
     );
-    this.store.dispatch(
-      LiveKitRoomActions.MeetingActions.createMeeting({
-        participantNames: [this.participantName],
-        roomName: this.dynamicRoomName,
-      })
-    );
-    console.log('participant name ', this.participantName);
   }
 
   /**

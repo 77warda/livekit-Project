@@ -24,6 +24,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MeetingNotesComponent } from './live-kit-room/meeting-notes/meeting-notes.component';
 import { StartScreenComponent } from './live-kit-room/screens/start-screen/start-screen.component';
 import { JoinRoomScreenComponent } from './live-kit-room/screens/join-room-screen/join-room-screen.component';
+import { BlurVideoComponent } from './live-kit-room/blur-video/blur-video.component';
 
 @NgModule({
   declarations: [
@@ -34,6 +35,7 @@ import { JoinRoomScreenComponent } from './live-kit-room/screens/join-room-scree
     MeetingNotesComponent,
     StartScreenComponent,
     JoinRoomScreenComponent,
+    BlurVideoComponent,
   ],
   imports: [
     BrowserModule,

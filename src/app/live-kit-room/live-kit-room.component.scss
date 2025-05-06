@@ -709,38 +709,41 @@
         }
     }
 
-    .lk-focus-layout-wrapper {
-        grid-column: 1 / 13;
-    }
+    // .lk-focus-layout-wrapper {
+    //     grid-column: 1 / 13;
+    // }
 
-    // .lk-grid-layout-wrapper.screen-share-layout-wrapper[_ngcontent-ng-c3069544542]
-    .lk-grid-layout {
-        &.screen-share-layout {
-            flex-direction: row !important;
-            overflow-y: scroll !important;
-            padding: 10px 0 !important;
-            overflow-x: scroll !important;
-            margin-top: -35rem !important;
-        }
-    }
+    // // .lk-grid-layout-wrapper.screen-share-layout-wrapper[_ngcontent-ng-c3069544542]
+    // .lk-grid-layout {
+    //     &.screen-share-layout {
+    //         flex-direction: row !important;
+    //         overflow-y: scroll !important;
+    //         padding: 10px 0 !important;
+    //         overflow-x: scroll !important;
+    //         margin-top: -35rem !important;
+    //     }
+    // }
 
     .lk-grid-layout-wrapper {
         &.screen-share-layout-wrapper {
-            // margin-left: 20px;
-            grid-column: 1/ 13 !important; // Change grid-column when screenShareTrack is true
-            // overflow-y: hidden;
-            grid-row: 3/4 !important;
-            // height: 90%;
-            // padding: 10px 10px 0 10px;
-            display: flex;
-            flex-direction: row !important;
-            /* align-items: center; */
-            gap: 6px;
-            height: 10rem;
-            /* overflow-y: scroll; */
-            /* padding: 62px 0; */
-            overflow-x: auto;
-            // margin-top: -39rem;
+            margin-left: 0px !important;
+            width: 100% !important;
+            min-width: auto !important;
+            max-width: auto !important;
+            // grid-column: 1/ 13 !important; // Change grid-column when screenShareTrack is true
+            // // overflow-y: hidden;
+            // grid-row: 3/4 !important;
+            // // height: 90%;
+            // // padding: 10px 10px 0 10px;
+            // display: flex;
+            // flex-direction: row !important;
+            // /* align-items: center; */
+            // gap: 6px;
+            // height: 10rem;
+            // /* overflow-y: scroll; */
+            // /* padding: 62px 0; */
+            // overflow-x: auto;
+            // // margin-top: -39rem;
         }
 
         // &.screen-share-layout-wrapper {
@@ -757,9 +760,9 @@
         // }
     }
 
-    .lk-grid-layout {
-        grid-template-columns: 1fr !important;
-    }
+    // .lk-grid-layout {
+    //     grid-template-columns: 1fr !important;
+    // }
 }
 
 .os-main-content {
