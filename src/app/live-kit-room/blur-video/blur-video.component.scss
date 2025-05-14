@@ -2,5 +2,10 @@
     width: 100%;
     max-width: 640px;
     margin: auto;
-    overflow: hidden;
+
+    video {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+    }
 }
